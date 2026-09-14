@@ -4,6 +4,8 @@ let
     import ./arguments.nix { inherit lib mkRegistry; }
     // import ./minimal.nix { inherit lib mkRegistry; }
     // import ./merging.nix { inherit lib mkRegistry; }
+    // import ./schema.nix { inherit lib mkRegistry; }
+    // import ./schema-ownership.nix { inherit lib mkRegistry; }
     // import ./examples.nix { inherit lib mkRegistry; };
 in
 lib.mapAttrs (

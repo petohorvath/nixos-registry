@@ -53,6 +53,21 @@ The collection key identifies the participant. `config.registry` contains that p
 
 Central and participant definitions are evaluated together under the shared schema. Ordinary lists merge, matching scalar definitions agree, and conflicting scalar definitions raise errors. No infrastructure schema or participant builder is bundled with the library.
 
+## Schema and evaluation independence
+
+Both views derive their top-level keys from the options declared in `schemaModules`. Additional schema modules extend that set; no separate key list is needed. Inspecting those keys does not evaluate central definitions or collect participant contributions:
+
+```nix
+builtins.attrNames registry.central
+builtins.attrNames registry.combined
+```
+
+Participants can inspect these keys when selecting module imports. Reading available `registry.central` data also works during participant construction, even when collecting contributions would fail. Reading a combined value collects contributions as needed; `validate` demands the complete combined evaluation.
+
+Schema declarations, their structure, and their arguments must remain independent of participant evaluation. Central definitions used during participant construction must also have independent dependencies. A central definition that reads participant-derived data can still recurse.
+
+Participants can add entries beneath declared collection options without central entry declarations. Publications cannot install shared option declarations, including through submodule functions or imports. Data-only submodule functions retain their module arguments. Module controls under `registry._module` are reserved, and unrestricted freeform registry roots are rejected. Collection types and any freeform data beneath declared options remain caller-owned.
+
 The [plain Nix example](examples/plain-nix/default.nix) owns its [backup schema](examples/plain-nix/schema.nix) and builds two participants. One publishes its configured port and reads both shared views. Central and participant paths for the archive merge to:
 
 ```nix
@@ -108,6 +123,6 @@ The checked-in dependency selections are:
 
 ## Implementation status
 
-The current tested contract is the minimal standalone API in [issue #3](https://github.com/petohorvath/nixos-registry/issues/3). The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining work. Independent schema discovery, partial records, preservation of whole-contribution priorities and ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration have separate follow-up issues.
+The tested contract covers the minimal standalone API in [issue #3](https://github.com/petohorvath/nixos-registry/issues/3) and independent schema discovery and central reads in [issue #4](https://github.com/petohorvath/nixos-registry/issues/4). The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining work. Partial records, preservation of whole-contribution priorities and ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration have separate follow-up issues.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).
