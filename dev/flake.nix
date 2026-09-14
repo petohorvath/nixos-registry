@@ -42,6 +42,7 @@
       lib = {
         inherit tests;
         examples = evalWithLibraries ../examples/plain-nix;
+        partialContributions = evalWithLibraries ../examples/plain-nix/partial-contributions.nix;
         scalarConflicts = evalWithLibraries ../examples/plain-nix/scalar-conflict.nix;
       };
 

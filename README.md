@@ -53,6 +53,28 @@ The collection key identifies the participant. `config.registry` contains that p
 
 Central and participant definitions are evaluated together under the shared schema. Ordinary lists merge, matching scalar definitions agree, and conflicting scalar definitions raise errors. No infrastructure schema or participant builder is bundled with the library.
 
+## Partial contributions, defaults, and derived values
+
+Different sources can supply required fields of the same record. The [partial-contribution example](examples/plain-nix/partial-contributions.nix) completes `archive` from a central host and a participant's port. Two participants supply the host and port for `offsite`.
+
+The example's [schema](examples/plain-nix/partial-schema.nix) supplies a list default, a read-only endpoint, and a derived backup command. Its completed `archive` record is:
+
+```nix
+{
+  host = "archive.example.test";
+  port = 2222;
+  paths = [ "/srv/default" ];
+  endpoint = "archive.example.test:2222";
+  command = "backup archive.example.test:2222";
+}
+```
+
+Local `config.registry` remains a schema-evaluated contribution. Its supplied fields are readable, but demanding a missing required field or a derived value that needs it fails. Collection reads definitions without demanding complete local records. Shared consumers read completed data from `registry.combined`.
+
+The example reads only the available host from `registry.central`; its central record lacks a port. Combined validation succeeds once participants supply the missing fields. Demanding an incomplete combined record or forcing its `validate` fails.
+
+Schema defaults apply once per shared evaluation, regardless of participant count. An explicit list definition, including `[ ]`, replaces its schema default; multiple explicit lists merge normally. Derived values and read-only defaults use the combined fields. Additional definitions of read-only values fail under ordinary module semantics.
+
 ## Schema and evaluation independence
 
 Both views derive their top-level keys from the options declared in `schemaModules`. Additional schema modules extend that set; no separate key list is needed. Inspecting those keys does not evaluate central definitions or collect participant contributions:
@@ -82,6 +104,14 @@ Commands run from the repository root with Nix's `nix-command` and `flakes` feat
 nix eval ./dev#lib.examples.stable --json
 nix eval ./dev#lib.examples.unstable --json
 nix eval ./dev#lib.examples.stable.validate
+```
+
+The partial-contribution example exposes completed records, the available central host, and the transport participant's local port:
+
+```sh
+nix eval ./dev#lib.partialContributions.stable --json
+nix eval ./dev#lib.partialContributions.unstable --json
+nix eval ./dev#lib.partialContributions.stable.validate
 ```
 
 The [scalar-conflict example](examples/plain-nix/scalar-conflict.nix) assigns different archive hosts centrally and in a participant. Both commands below are expected to exit unsuccessfully with an error for `backupDestinations.archive.host`:
@@ -123,6 +153,12 @@ The checked-in dependency selections are:
 
 ## Implementation status
 
-The tested contract covers the minimal standalone API in [issue #3](https://github.com/petohorvath/nixos-registry/issues/3) and independent schema discovery and central reads in [issue #4](https://github.com/petohorvath/nixos-registry/issues/4). The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining work. Partial records, preservation of whole-contribution priorities and ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration have separate follow-up issues.
+The tested contract includes:
+
+- The minimal standalone API in [issue #3](https://github.com/petohorvath/nixos-registry/issues/3).
+- Independent schema discovery and central reads in [issue #4](https://github.com/petohorvath/nixos-registry/issues/4).
+- Partial records, defaults, and derived values in [issue #5](https://github.com/petohorvath/nixos-registry/issues/5).
+
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks whole-contribution priorities and ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).
