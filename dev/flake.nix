@@ -43,6 +43,7 @@
         inherit tests;
         examples = evalWithLibraries ../examples/plain-nix;
         partialContributions = evalWithLibraries ../examples/plain-nix/partial-contributions.nix;
+        priorities = evalWithLibraries ../examples/plain-nix/priorities.nix;
         scalarConflicts = evalWithLibraries ../examples/plain-nix/scalar-conflict.nix;
       };
 

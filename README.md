@@ -53,6 +53,38 @@ The collection key identifies the participant. `config.registry` contains that p
 
 Central and participant definitions are evaluated together under the shared schema. Ordinary lists merge, matching scalar definitions agree, and conflicting scalar definitions raise errors. No infrastructure schema or participant builder is bundled with the library.
 
+## Contribution priorities
+
+Whole-contribution priorities select definitions at the typed `registry` root before nested options merge. Weaker contributions are discarded in full, including unrelated fields. Central definitions and participant contributions have equal precedence unless an explicit priority changes it.
+
+| Definition | Override priority |
+| --- | --- |
+| `lib.mkForce value` | 50 |
+| Ordinary definition | 100 |
+| `lib.mkDefault value` | 1000 |
+| `lib.mkOverride number value` | The supplied number |
+
+The lowest number wins. Definitions with equal priorities merge according to their option types; conflicting scalar values still fail. Nested priorities take effect only within the surviving contributions.
+
+```nix
+# Replaces weaker contributions, including their other backup destinations.
+registry = lib.mkForce {
+  backupDestinations.archive = {
+    host = "replacement.example.test";
+    port = 2222;
+  };
+};
+
+# Overrides only the port when contribution-wide priorities are equal.
+registry.backupDestinations.archive.port = lib.mkForce 2222;
+```
+
+The [priority example](examples/plain-nix/priorities.nix) evaluates these alternatives separately. Its whole-contribution default yields to the central definitions. Its forced contribution removes the central `offsite` destination and the archive's central paths. Its nested port override preserves both destinations and the central paths.
+
+Central modules express a contribution-wide priority with `config = lib.mkForce { ... };` or another override property. A module containing only imports adds no contribution. The central view continues to evaluate central modules alone; participant overrides affect only the combined view.
+
+Required fields in a discarded contribution cannot complete a surviving partial record. Schema defaults still apply in the shared evaluation. Errors retain participant collection keys and available source filenames; exact diagnostic wording is not a compatibility promise.
+
 ## Partial contributions, defaults, and derived values
 
 Different sources can supply required fields of the same record. The [partial-contribution example](examples/plain-nix/partial-contributions.nix) completes `archive` from a central host and a participant's port. Two participants supply the host and port for `offsite`.
@@ -114,6 +146,14 @@ nix eval ./dev#lib.partialContributions.unstable --json
 nix eval ./dev#lib.partialContributions.stable.validate
 ```
 
+The priority example exposes whole-contribution defaults, whole-contribution forcing, and a nested port override:
+
+```sh
+nix eval ./dev#lib.priorities.stable --json
+nix eval ./dev#lib.priorities.unstable --json
+nix eval ./dev#lib.priorities.stable.forcedContribution.validate
+```
+
 The [scalar-conflict example](examples/plain-nix/scalar-conflict.nix) assigns different archive hosts centrally and in a participant. Both commands below are expected to exit unsuccessfully with an error for `backupDestinations.archive.host`:
 
 ```sh
@@ -158,7 +198,8 @@ The tested contract includes:
 - The minimal standalone API in [issue #3](https://github.com/petohorvath/nixos-registry/issues/3).
 - Independent schema discovery and central reads in [issue #4](https://github.com/petohorvath/nixos-registry/issues/4).
 - Partial records, defaults, and derived values in [issue #5](https://github.com/petohorvath/nixos-registry/issues/5).
+- Whole-contribution and nested override priorities in [issue #6](https://github.com/petohorvath/nixos-registry/issues/6).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks whole-contribution priorities and ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).

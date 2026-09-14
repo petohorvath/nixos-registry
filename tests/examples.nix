@@ -1,5 +1,49 @@
 { lib, mkRegistry }:
 {
+  testPlainNixContributionPrioritiesExample = {
+    expr = import ../examples/plain-nix/priorities.nix { inherit lib mkRegistry; };
+    expected = {
+      defaultContribution = {
+        combined.backupDestinations = {
+          archive = {
+            host = "archive.example.test";
+            port = 22;
+            paths = [ "/central" ];
+          };
+          offsite = {
+            host = "offsite.example.test";
+            port = 22;
+            paths = [ ];
+          };
+        };
+        validate = true;
+      };
+      forcedContribution = {
+        combined.backupDestinations.archive = {
+          host = "replacement.example.test";
+          port = 2222;
+          paths = [ ];
+        };
+        validate = true;
+      };
+      forcedPort = {
+        combined.backupDestinations = {
+          archive = {
+            host = "archive.example.test";
+            port = 2222;
+            paths = [ "/central" ];
+          };
+          offsite = {
+            host = "offsite.example.test";
+            port = 22;
+            paths = [ ];
+          };
+        };
+        validate = true;
+      };
+    };
+  };
+
   testPlainNixBackupDestinationExample = {
     expr = import ../examples/plain-nix { inherit lib mkRegistry; };
     expected = {

@@ -5,6 +5,7 @@ let
     // import ./minimal.nix { inherit lib mkRegistry; }
     // import ./merging.nix { inherit lib mkRegistry; }
     // import ./partial-contributions.nix { inherit lib mkRegistry; }
+    // import ./priorities.nix { inherit lib mkRegistry; }
     // import ./schema.nix { inherit lib mkRegistry; }
     // import ./schema-ownership.nix { inherit lib mkRegistry; }
     // import ./examples.nix { inherit lib mkRegistry; };

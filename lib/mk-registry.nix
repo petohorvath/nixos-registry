@@ -11,6 +11,10 @@
 }:
 let
   checkPublication = import ./check-publication.nix { inherit lib; };
+  wrapCentralModule = import ./wrap-central-module.nix {
+    inherit lib;
+    schemaGraph = schema.graph;
+  };
 
   checkRoot =
     evaluation:
@@ -18,6 +22,34 @@ let
       throw "nixos-registry: unrestricted freeform roots are unsupported; declare options in schemaModules."
     else
       evaluation;
+
+  mkEvaluation =
+    contributions:
+    lib.evalModules {
+      inherit specialArgs;
+      modules = [
+        (
+          args:
+          let
+            # Select whole contributions without demanding complete records.
+            selected = lib.evalModules {
+              inherit specialArgs;
+              modules = [ module ] ++ map (wrapCentralModule args) centralModules ++ contributions;
+            };
+            option = selected.options.registry;
+          in
+          {
+            imports =
+              option.type.getSubModules
+              # Root selection traverses modules in reverse declaration order.
+              ++ map (definition: {
+                _file = definition.file;
+                config = definition.value;
+              }) (lib.reverseList option.definitionsWithLocations);
+          }
+        )
+      ];
+    };
 
   mkView =
     evaluation:
@@ -33,28 +65,22 @@ let
     modules = schemaModules;
   };
 
-  central = lib.evalModules {
-    inherit specialArgs;
-    modules = schemaModules ++ centralModules;
-  };
-
-  combined = lib.evalModules {
-    inherit specialArgs;
-    modules = schemaModules ++ centralModules ++ contributions;
-  };
+  central = mkEvaluation [ ];
+  combined = mkEvaluation contributions;
 
   contributions = lib.pipe participants [
     (lib.mapAttrsToList (
       name: participant:
       map (definition: {
         _file = "participant ${name}: ${definition.file}";
-        config = checkPublication schemaOptions [ "registry" ] definition.value;
+        config.registry = lib.mkOverride participant.options.registry.highestPrio (
+          checkPublication schemaOptions [ "registry" ] definition.value
+        );
       }) participant.options.registry.definitionsWithLocations
     ))
     lib.concatLists
   ];
-in
-builtins.seq (checkRoot schema) {
+
   module = {
     options.registry = lib.mkOption {
       type = lib.types.submoduleWith {
@@ -66,6 +92,9 @@ builtins.seq (checkRoot schema) {
       description = "This participant's contribution to the shared registry.";
     };
   };
+in
+builtins.seq (checkRoot schema) {
+  inherit module;
 
   central = mkView central;
   combined = mkView combined;
