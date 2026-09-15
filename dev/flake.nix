@@ -77,6 +77,7 @@
               )
             )
             {
+              diagnostics = ../tests/diagnostics.sh;
               ordering = ../tests/ordering-failures.sh;
               recursion = ../tests/recursion.sh;
             }

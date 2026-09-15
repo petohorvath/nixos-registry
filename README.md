@@ -51,6 +51,8 @@ participants."offsite backup job" = lib.evalModules {
 
 The collection key identifies the participant. `config.registry` contains that participant's local contribution. Shared reads use the supplied handle's `registry.central` or `registry.combined` view. Constructor `specialArgs` does not configure participant arguments; the participant builder supplies them separately.
 
+Every participant imports the returned `registry.module`. Missing or incompatible contribution options report the collection key and the required import. An independently declared option named `registry` does not provide the generated interface.
+
 Central and participant definitions are evaluated together under the shared schema. Ordinary lists merge, matching scalar definitions agree, and conflicting scalar definitions raise errors. No infrastructure schema or participant builder is bundled with the library.
 
 ## Contribution priorities
@@ -194,6 +196,40 @@ The [plain Nix example](examples/plain-nix/default.nix) owns its [backup schema]
 [ "/srv/central" "/srv/documents" ]
 ```
 
+## Validation and diagnostics
+
+`registry.validate` forces the complete combined data and returns `true` or raises an evaluation error. Checks explicitly demand it:
+
+```nix
+checks.${system}.registry =
+  assert registry.validate;
+  pkgs.runCommand "registry-validation" { } ''
+    touch "$out"
+  '';
+```
+
+| Combined data | Validation result |
+| --- | --- |
+| Complete, valid records | `true` |
+| Central records completed by participants | `true`; the central view may remain incomplete |
+| Unused type errors, missing required fields, or unknown options | Evaluation error |
+| Additional definitions of read-only fields | Evaluation error |
+| A declared `assertions` field containing a false assertion | Ordinary schema-checked data; no NixOS assertion execution |
+
+Ordinary reads retain normal module-system laziness. Reading an independent valid field does not validate unused fields; the explicit check catches their errors.
+
+Diagnostics retain the relevant option path, participant collection key, and available source filenames, including definitions with priorities, ordering, and `mkMerge`. Explicit `lib.mkDefinition` locations and submodule source files retain their origin alongside the participant name. A missing required value identifies its option path; an absent definition has no source filename.
+
+For example, an invalid port from participant `service publisher` in `invalid-service.nix` identifies all three diagnostic facts:
+
+```text
+services.api.port
+service publisher
+invalid-service.nix
+```
+
+Nix's `--show-trace` flag includes surrounding evaluation context. Exact error wording, line numbers, and column formatting are not compatibility promises.
+
 ## Examples and checks
 
 Commands run from the repository root with Nix's `nix-command` and `flakes` features enabled. Dependencies for examples, formatting, and evaluation checks live in the separate [development flake](dev/flake.nix) and [lock file](dev/flake.lock).
@@ -278,6 +314,8 @@ Whole-root ordering failures run in separate Nix processes because `builtins.try
 
 Recursion checks also run in separate Nix processes. Both pinned module libraries must report native recursion for strict collection forcing and actual value cycles, during shared reads and validation.
 
+Diagnostic checks run in separate Nix processes on both pinned module libraries. They assert evaluation failure and stable facts such as option paths, collection keys, and source filenames, without matching complete error messages.
+
 Formatting runs from the development flake directory:
 
 ```sh
@@ -302,7 +340,8 @@ The tested contract includes:
 - Whole-contribution and nested override priorities in [issue #6](https://github.com/petohorvath/nixos-registry/issues/6).
 - Ordering and conditional contributions in [issue #7](https://github.com/petohorvath/nixos-registry/issues/7).
 - Combined reads, laziness, and native recursion behavior in [issue #8](https://github.com/petohorvath/nixos-registry/issues/8).
+- Complete combined validation and source diagnostics in [issue #9](https://github.com/petohorvath/nixos-registry/issues/9).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks complete validation and diagnostics, NixOS integration, and consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining NixOS integration, examples, and consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).

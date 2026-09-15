@@ -11,6 +11,7 @@ let
     // import ./priorities.nix { inherit lib mkRegistry; }
     // import ./schema.nix { inherit lib mkRegistry; }
     // import ./schema-ownership.nix { inherit lib mkRegistry; }
+    // import ./validation.nix { inherit lib mkRegistry; }
     // import ./examples.nix { inherit lib mkRegistry; };
 in
 lib.mapAttrs (

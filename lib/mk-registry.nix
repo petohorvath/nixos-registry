@@ -72,32 +72,65 @@ let
   contributions = lib.pipe participants [
     (lib.mapAttrsToList (
       name: participant:
+      let
+        option = getContributionOption name participant;
+      in
       map (
         definition:
         let
-          value = checkPublication schemaOptions [ "registry" ] definition.value;
+          value = checkPublication name definition.file schemaOptions [ "registry" ] definition.value;
           # Root ordering is separate from the contribution's override priority.
           ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
         in
         {
           _file = "participant ${name}: ${definition.file}";
-          config.registry = lib.mkOverride participant.options.registry.highestPrio ordered;
+          config.registry = lib.mkOverride option.highestPrio ordered;
         }
-      ) participant.options.registry.definitionsWithLocations
+      ) option.definitionsWithLocations
     ))
     lib.concatLists
   ];
 
+  getContributionOption =
+    name: participant:
+    builtins.addErrorContext "while collecting registry data from participant `${name}':" (
+      let
+        option = participant.options.registry;
+      in
+      if !(participant ? options.registry) then
+        throw (
+          "nixos-registry: participant `${name}` is missing options.registry; "
+          + "import the generated registry.module."
+        )
+      else if
+        !(lib.isOption option)
+        || option.type.name or null != "submodule"
+        || !(option._nixosRegistry or false)
+        || !(option ? definitionsWithLocations && option ? highestPrio)
+      then
+        throw (
+          "nixos-registry: participant `${name}` has an incompatible options.registry; "
+          + "import the generated registry.module."
+        )
+      else
+        option
+    );
+
   module = {
-    options.registry = lib.mkOption {
-      type = lib.types.submoduleWith {
-        inherit specialArgs;
-        modules = schemaModules;
-        shorthandOnlyDefinesConfig = true;
+    options.registry =
+      lib.mkOption {
+        type = lib.types.submoduleWith {
+          inherit specialArgs;
+          modules = schemaModules;
+          shorthandOnlyDefinesConfig = true;
+        };
+        default = { };
+        description = "This participant's contribution to the shared registry.";
+      }
+      // {
+        # Identify the generated interface without forcing local values.
+        _nixosRegistry = true;
       };
-      default = { };
-      description = "This participant's contribution to the shared registry.";
-    };
   };
 in
 builtins.seq (checkRoot schema) {
