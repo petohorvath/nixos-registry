@@ -28,4 +28,6 @@ let
       }
   );
 in
-evaluations.${view}
+{
+  result = evaluations.${view};
+}

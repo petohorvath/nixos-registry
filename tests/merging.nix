@@ -29,6 +29,17 @@ let
     };
   };
 
+  direct = lib.evalModules {
+    modules = [
+      schema
+      central
+    ]
+    ++ builtins.attrValues publications;
+  };
+  conflict = mkTestRegistry {
+    disagreeing.backupHost = "different.example.test";
+  };
+
   mkTestRegistry =
     contributions:
     let
@@ -49,16 +60,6 @@ let
     in
     registry;
 
-  direct = lib.evalModules {
-    modules = [
-      schema
-      central
-    ]
-    ++ builtins.attrValues publications;
-  };
-  conflict = mkTestRegistry {
-    disagreeing.backupHost = "different.example.test";
-  };
 in
 {
   testMergesListsLikeDirectEvaluation = {

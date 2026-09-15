@@ -16,12 +16,8 @@ let
     schemaGraph = schema.graph;
   };
 
-  checkRoot =
-    evaluation:
-    if evaluation._module.freeformType != null then
-      throw "nixos-registry: unrestricted freeform roots are unsupported; declare options in schemaModules."
-    else
-      evaluation;
+  central = mkEvaluation [ ];
+  combined = mkEvaluation contributions;
 
   mkEvaluation =
     contributions:
@@ -59,15 +55,19 @@ let
     in
     builtins.mapAttrs (name: _: config.${name}) schemaOptions;
 
+  checkRoot =
+    evaluation:
+    if evaluation._module.freeformType != null then
+      throw "nixos-registry: unrestricted freeform roots are unsupported; declare options in schemaModules."
+    else
+      evaluation;
+
   schemaOptions = removeAttrs schema.options [ "_module" ];
 
   schema = lib.evalModules {
     inherit specialArgs;
     modules = schemaModules;
   };
-
-  central = mkEvaluation [ ];
-  combined = mkEvaluation contributions;
 
   contributions = lib.pipe participants [
     (lib.mapAttrsToList (

@@ -11,10 +11,11 @@ expect_recursion() {
   local attribute=$2
 
   # Native recursion errors escape builtins.tryEval.
-  if nix-instantiate --eval --strict --json --store dummy:// \
+  if nix eval --extra-experimental-features nix-command \
+    --impure --json --store dummy:// \
     --arg lib "import $lib_path" \
     --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
-    --attr "$attribute" "$registry_path/examples/plain-nix/$example.nix" \
+    --file "$registry_path/examples/plain-nix/$example.nix" "$attribute" \
     >"$output_dir/stdout" 2>"$output_dir/stderr"; then
     echo "$example/$attribute: expected native recursion to fail" >&2
     exit 1

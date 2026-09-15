@@ -15,11 +15,12 @@ for source in central participant; do
       views+=(central)
     fi
     for view in "${views[@]}"; do
-      if nix-instantiate --eval --strict --json --store dummy:// \
+      if nix eval --extra-experimental-features nix-command \
+        --impure --json --store dummy:// \
         --arg lib "import $lib_path" \
         --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
         --argstr source "$source" --argstr order "$order" --argstr view "$view" \
-        "$test_path/ordering-failures.nix" >"$output_dir/stdout" 2>"$output_dir/stderr"; then
+        --file "$test_path/ordering-failures.nix" result >"$output_dir/stdout" 2>"$output_dir/stderr"; then
         echo "$source/$order/$view: expected typed root ordering to fail" >&2
         exit 1
       fi

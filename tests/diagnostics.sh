@@ -11,11 +11,12 @@ expect_failure() {
   local attribute=$1
   shift
 
-  if nix-instantiate --eval --strict --json --store dummy:// \
+  if nix eval --extra-experimental-features nix-command \
+    --impure --json --store dummy:// \
     --arg lib "import $lib_path" \
     --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
     --arg serviceSchema "$registry_path/examples/plain-nix/service-schema.nix" \
-    --attr "$attribute" "$test_path/diagnostics.nix" \
+    --file "$test_path/diagnostics.nix" "$attribute" \
     >"$output_dir/stdout" 2>"$output_dir/stderr"; then
     echo "$attribute: expected evaluation to fail" >&2
     exit 1

@@ -62,6 +62,8 @@ let
         };
       };
 
+  schemaKeys = lib.genAttrs (collectSchemaKeys schemaGraph) (_: true);
+
   collectSchemaKeys =
     modules:
     lib.concatMap (
@@ -88,6 +90,5 @@ let
     else
       module;
 
-  schemaKeys = lib.genAttrs (collectSchemaKeys schemaGraph) (_: true);
 in
 wrapModule

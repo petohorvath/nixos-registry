@@ -1,5 +1,25 @@
 { lib, mkRegistry }:
 let
+  schema = ../examples/plain-nix/partial-schema.nix;
+
+  split = mkEvaluations {
+    publications = {
+      address.backupDestinations.archive.host = "archive.example.test";
+      transport.backupDestinations.archive.port = 2222;
+    };
+  };
+
+  centralPartial = mkEvaluations {
+    centralModules = [
+      { backupDestinations.archive.host = "archive.example.test"; }
+    ];
+    publications.transport.backupDestinations.archive.port = 2222;
+  };
+
+  incomplete = mkEvaluations {
+    publications.address.backupDestinations.archive.host = "archive.example.test";
+  };
+
   mkEvaluations =
     {
       centralModules ? [ ],
@@ -26,26 +46,6 @@ let
     {
       inherit direct participants registry;
     };
-
-  schema = ../examples/plain-nix/partial-schema.nix;
-
-  split = mkEvaluations {
-    publications = {
-      address.backupDestinations.archive.host = "archive.example.test";
-      transport.backupDestinations.archive.port = 2222;
-    };
-  };
-
-  centralPartial = mkEvaluations {
-    centralModules = [
-      { backupDestinations.archive.host = "archive.example.test"; }
-    ];
-    publications.transport.backupDestinations.archive.port = 2222;
-  };
-
-  incomplete = mkEvaluations {
-    publications.address.backupDestinations.archive.host = "archive.example.test";
-  };
 
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 in
