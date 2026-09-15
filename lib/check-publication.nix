@@ -6,6 +6,7 @@ let
       options,
       path,
       freeformType ? null,
+      ...
     }:
     mapProperties (
       file: value:
@@ -43,6 +44,17 @@ let
             options = type.getSubOptions path;
             inherit path;
             freeformType = type.nestedTypes.freeformType or null;
+            # Schema identities can depend on the submodule's real name and option path.
+            evaluate =
+              args:
+              lib.evalModules {
+                inherit (type.functor.payload) class specialArgs;
+                prefix = args._prefix;
+                modules = [
+                  { _module.args.name = lib.mkOptionDefault (args.name or args.config._module.args.name); }
+                ]
+                ++ type.getSubModules;
+              };
           };
         in
         if builtins.isAttrs value && type.functor.payload.shorthandOnlyDefinesConfig then
@@ -100,11 +112,11 @@ let
             lib.functionArgs value
           );
         in
-        checkModule schema file (value (args // moduleArgs))
+        checkModule (schema // { context = args; }) file (value (args // moduleArgs))
       else if lib.types.path.check value then
         args:
         let
-          checked = checkModule schema file (import value);
+          checked = checkModule (schema // { context = args; }) file (import value);
         in
         {
           _file = "participant ${participantName}: ${toString value}";
@@ -117,6 +129,8 @@ let
         throw "nixos-registry: publication at `${lib.showOption schema.path}` declares options; use schemaModules."
       else if value.freeformType or null != null then
         throw "nixos-registry: publication at `${lib.showOption schema.path}` sets freeformType; use schemaModules."
+      else if value.disabledModules or [ ] != [ ] && !(schema ? context) then
+        args: checkModule (schema // { context = args; }) file value
       else
         let
           metadata = builtins.intersectAttrs {
@@ -141,6 +155,9 @@ let
               checkOptions schema file (removeAttrs value (builtins.attrNames metadata)) // metadata;
         in
         checked
+        // lib.optionalAttrs (value.disabledModules or [ ] != [ ]) {
+          disabledModules = checkDisabledModules schema file value.disabledModules;
+        }
         // lib.optionalAttrs (value ? _file) {
           _file = "participant ${participantName}: ${toString value._file}";
         }
@@ -151,6 +168,40 @@ let
           require = map (checkModule schema file) value.require;
         }
     );
+
+  checkDisabledModules =
+    schema: file: disabledModules:
+    let
+      evaluation = schema.evaluate schema.context;
+      # Let Nix resolve relative paths and explicit keys before checking schema ownership.
+      remaining = evaluation.extendModules { modules = [ { inherit disabledModules; } ]; };
+      removedKeys = lib.subtractLists (getActiveModuleKeys remaining.graph) (
+        getActiveModuleKeys evaluation.graph
+      );
+    in
+    addPublicationContext file (
+      if removedKeys == [ ] then
+        disabledModules
+      else
+        throw (
+          "nixos-registry: publication at `${lib.showOption schema.path}` "
+          + "disables schema module `${builtins.head removedKeys}`; use schemaModules to control the shared schema."
+        )
+    );
+
+  getActiveModuleKeys =
+    graph:
+    lib.pipe graph [
+      (lib.filter (module: !module.disabled))
+      (
+        modules:
+        builtins.genericClosure {
+          startSet = modules;
+          operator = module: lib.filter (imported: !imported.disabled) module.imports;
+        }
+      )
+      (map (module: module.key))
+    ];
 
   addPublicationContext =
     file:

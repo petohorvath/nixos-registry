@@ -72,6 +72,152 @@ let
     registry;
 in
 {
+  testPublicationsCannotDisableSchemaModules = {
+    expr =
+      let
+        registry =
+          mkPublicationRegistry
+            {
+              type = lib.types.submodule [ ./fixtures/required-endpoint.nix ];
+              wrap = lib.id;
+            }
+            (_: {
+              disabledModules = [ ./fixtures/required-endpoint.nix ];
+            });
+      in
+      (builtins.tryEval registry.validate).success;
+    expected = false;
+  };
+
+  testPublicationsCanDisablePublicationModules = {
+    expr =
+      let
+        registry =
+          mkPublicationRegistry
+            {
+              type = lib.types.submodule {
+                options.endpoints = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  description = "Service endpoints.";
+                };
+              };
+              wrap = lib.id;
+            }
+            (_: {
+              imports = [ ./fixtures/service-endpoints.nix ];
+              disabledModules = [ ./fixtures/service-endpoints.nix ];
+              endpoints = [ "active.example.test:443" ];
+            });
+      in
+      {
+        endpoints = registry.combined.service.endpoints;
+        inherit (registry) validate;
+      };
+    expected = {
+      endpoints = [ "active.example.test:443" ];
+      validate = true;
+    };
+  };
+
+  testPublicationsCanDisableModulesRelativeToModulesPath = {
+    expr =
+      let
+        registry =
+          mkPublicationRegistry
+            {
+              type = lib.types.submoduleWith {
+                specialArgs.modulesPath = ./fixtures;
+                modules = [
+                  {
+                    options.endpoints = lib.mkOption {
+                      type = lib.types.listOf lib.types.str;
+                      description = "Service endpoints.";
+                    };
+                  }
+                ];
+              };
+              wrap = lib.id;
+            }
+            {
+              imports = [ ./fixtures/service-endpoints.nix ];
+              disabledModules = [ "service-endpoints.nix" ];
+              config.endpoints = [ "active.example.test:443" ];
+            };
+      in
+      {
+        endpoints = registry.combined.service.endpoints;
+        inherit (registry) validate;
+      };
+    expected = {
+      endpoints = [ "active.example.test:443" ];
+      validate = true;
+    };
+  };
+
+  testPublicationsCannotDisableSchemaModulesRelativeToModulesPath = {
+    expr =
+      let
+        registry =
+          mkPublicationRegistry
+            {
+              type = lib.types.submoduleWith {
+                specialArgs.modulesPath = ./fixtures;
+                modules = [ ./fixtures/required-endpoint.nix ];
+              };
+              wrap = lib.id;
+            }
+            {
+              disabledModules = [ "required-endpoint.nix" ];
+            };
+      in
+      (builtins.tryEval registry.validate).success;
+    expected = false;
+  };
+
+  testPublicationsCannotDisableImportedSchemaModules = {
+    expr =
+      let
+        registry =
+          mkPublicationRegistry
+            {
+              type = lib.types.submodule {
+                imports = [ ./fixtures/required-endpoint.nix ];
+              };
+              wrap = lib.id;
+            }
+            (_: {
+              disabledModules = [ ./fixtures/required-endpoint.nix ];
+            });
+      in
+      (builtins.tryEval registry.validate).success;
+    expected = false;
+  };
+
+  testPublicationsCannotDisableSchemaModulesNamedByTheirOptionPath = {
+    expr =
+      let
+        registry =
+          mkPublicationRegistry
+            {
+              type = lib.types.submodule (
+                { _prefix, ... }:
+                {
+                  key = lib.showOption _prefix;
+                  imports = [ ./fixtures/required-endpoint.nix ];
+                }
+              );
+              wrap = lib.id;
+            }
+            (
+              { _prefix, ... }: {
+                disabledModules = [ { key = lib.showOption _prefix; } ];
+              }
+            );
+      in
+      (builtins.tryEval registry.validate).success;
+    expected = false;
+  };
+
   testPublicationModuleSyntaxCannotExtendTheSchema = {
     expr =
       let
