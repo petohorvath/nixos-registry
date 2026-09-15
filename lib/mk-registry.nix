@@ -38,7 +38,8 @@ let
             };
             option = selected.options.registry;
           in
-          {
+          # Let the supplied root type accept the selected definition properties.
+          builtins.seq option.value {
             imports =
               option.type.getSubModules
               # Root selection traverses modules in reverse declaration order.
@@ -71,12 +72,18 @@ let
   contributions = lib.pipe participants [
     (lib.mapAttrsToList (
       name: participant:
-      map (definition: {
-        _file = "participant ${name}: ${definition.file}";
-        config.registry = lib.mkOverride participant.options.registry.highestPrio (
-          checkPublication schemaOptions [ "registry" ] definition.value
-        );
-      }) participant.options.registry.definitionsWithLocations
+      map (
+        definition:
+        let
+          value = checkPublication schemaOptions [ "registry" ] definition.value;
+          # Root ordering is separate from the contribution's override priority.
+          ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
+        in
+        {
+          _file = "participant ${name}: ${definition.file}";
+          config.registry = lib.mkOverride participant.options.registry.highestPrio ordered;
+        }
+      ) participant.options.registry.definitionsWithLocations
     ))
     lib.concatLists
   ];

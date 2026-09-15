@@ -1,36 +1,6 @@
 { lib, mkRegistry }:
 let
-  mkEvaluations =
-    {
-      central ? [ ],
-      publications ? { },
-    }:
-    let
-      registry = mkRegistry {
-        inherit lib;
-        schemaModules = [ schema ];
-        centralModules = map (config: { inherit config; }) central;
-        participants = lib.mapAttrs (
-          _: definitions:
-          lib.evalModules {
-            modules = [ registry.module ] ++ map (registry: { inherit registry; }) definitions;
-          }
-        ) publications;
-      };
-      direct = lib.evalModules {
-        modules = [
-          rootSchema
-          {
-            registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues publications));
-          }
-        ];
-      };
-    in
-    {
-      combined = registry.combined;
-      direct = direct.config.registry;
-      validate = registry.validate;
-    };
+  mkEvaluations = import ./fixtures/evaluate-properties.nix { inherit lib mkRegistry schema; };
 
   schema = {
     options = {

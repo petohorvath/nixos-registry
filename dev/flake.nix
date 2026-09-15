@@ -16,10 +16,11 @@
       ...
     }:
     let
-      libraries = {
-        stable = nixpkgsStable.lib;
-        unstable = nixpkgsUnstable.lib;
+      sources = {
+        stable = nixpkgsStable;
+        unstable = nixpkgsUnstable;
       };
+      libraries = builtins.mapAttrs (_: source: source.lib) sources;
       tests = evalWithLibraries ../tests;
       systems = [
         "x86_64-linux"
@@ -42,6 +43,7 @@
       lib = {
         inherit tests;
         examples = evalWithLibraries ../examples/plain-nix;
+        conditionalOrdering = evalWithLibraries ../examples/plain-nix/conditional-ordering.nix;
         partialContributions = evalWithLibraries ../examples/plain-nix/partial-contributions.nix;
         priorities = evalWithLibraries ../examples/plain-nix/priorities.nix;
         scalarConflicts = evalWithLibraries ../examples/plain-nix/scalar-conflict.nix;
@@ -59,6 +61,15 @@
             touch "$out"
           ''
         ) tests
+        // nixpkgsStable.lib.mapAttrs' (
+          channel: source:
+          nixpkgsStable.lib.nameValuePair "ordering-${channel}" (
+            pkgs.runCommand "registry-ordering-${channel}" { nativeBuildInputs = [ pkgs.nix ]; } ''
+              bash ${../tests/ordering-failures.sh} ${source}/lib ${registry} ${../tests}
+              touch "$out"
+            ''
+          )
+        ) sources
       );
 
       formatter = forAllSystems (system: nixpkgsStable.legacyPackages.${system}.nixfmt);

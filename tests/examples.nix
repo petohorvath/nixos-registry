@@ -1,5 +1,33 @@
 { lib, mkRegistry }:
 {
+  testLocallyEnabledOrderedPublicationExample = {
+    expr = import ../examples/plain-nix/conditional-ordering.nix { inherit lib mkRegistry; };
+    expected = {
+      enabled = {
+        combined.backupDestinations.archive = {
+          host = "archive.example.test";
+          port = 22;
+          paths = [
+            "/srv/documents"
+            "/srv/central"
+            "/srv/snapshots"
+          ];
+        };
+        backupCommand = "backup archive.example.test /srv/documents /srv/central /srv/snapshots";
+        validate = true;
+      };
+      disabled = {
+        combined.backupDestinations.archive = {
+          host = "archive.example.test";
+          port = 22;
+          paths = [ "/srv/central" ];
+        };
+        backupCommand = "backup archive.example.test /srv/central";
+        validate = true;
+      };
+    };
+  };
+
   testPlainNixContributionPrioritiesExample = {
     expr = import ../examples/plain-nix/priorities.nix { inherit lib mkRegistry; };
     expected = {

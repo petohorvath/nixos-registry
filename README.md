@@ -85,6 +85,40 @@ Central modules express a contribution-wide priority with `config = lib.mkForce 
 
 Required fields in a discarded contribution cannot complete a surviving partial record. Schema defaults still apply in the shared evaluation. Errors retain participant collection keys and available source filenames; exact diagnostic wording is not a compatibility promise.
 
+## Ordering and conditional contributions
+
+List ordering applies across central and participant definitions. Override priorities select the surviving definitions before ordering takes effect.
+
+| List definition | Order priority |
+| --- | --- |
+| `lib.mkBefore paths` | 500 |
+| Ordinary definition | 1000 |
+| `lib.mkAfter paths` | 1500 |
+| `lib.mkOrder number paths` | The supplied number |
+
+Lower numbers come first. Ordering wrappers on the whole typed `registry` root fail with the pinned stable and unstable module libraries. The registry preserves that direct-evaluation failure; list ordering uses nested options such as `registry.backupDestinations.archive.paths`.
+
+The [conditional-ordering example](examples/plain-nix/conditional-ordering.nix) controls publication with the participant's local `backup.enable` option:
+
+```nix
+registry = lib.mkIf config.backup.enable (
+  lib.mkMerge [
+    { backupDestinations.archive.paths = lib.mkBefore config.backup.paths; }
+    { backupDestinations.archive.paths = lib.mkAfter [ "/srv/snapshots" ]; }
+  ]
+);
+```
+
+When enabled, the participant's paths surround the central paths:
+
+```nix
+[ "/srv/documents" "/srv/central" "/srv/snapshots" ]
+```
+
+When disabled, only `[ "/srv/central" ]` remains. The example also demonstrates a nested condition and a participant command that reads the combined result. Both variants explicitly validate the combined data.
+
+Whole-contribution and nested conditions follow ordinary module semantics. Disabled or overridden contributions do not force discarded content beyond direct-evaluation behavior. `lib.mkMerge` composes conditional fragments without completing each local record first.
+
 ## Partial contributions, defaults, and derived values
 
 Different sources can supply required fields of the same record. The [partial-contribution example](examples/plain-nix/partial-contributions.nix) completes `archive` from a central host and a participant's port. Two participants supply the host and port for `offsite`.
@@ -154,6 +188,14 @@ nix eval ./dev#lib.priorities.unstable --json
 nix eval ./dev#lib.priorities.stable.forcedContribution.validate
 ```
 
+The conditional-ordering example exposes enabled and disabled publication with their combined data and derived commands:
+
+```sh
+nix eval ./dev#lib.conditionalOrdering.stable --json
+nix eval ./dev#lib.conditionalOrdering.unstable --json
+nix eval ./dev#lib.conditionalOrdering.stable.enabled.validate
+```
+
 The [scalar-conflict example](examples/plain-nix/scalar-conflict.nix) assigns different archive hosts centrally and in a participant. Both commands below are expected to exit unsuccessfully with an error for `backupDestinations.archive.host`:
 
 ```sh
@@ -177,6 +219,8 @@ nix flake check ./dev
 
 Tests exercise the exported constructor, generated module, and returned views through real module evaluations. Merge checks compare observable results with direct evaluation using the same library. Nix evaluates option types during these checks; no separate static typechecker is configured. The suite includes the successful example and expected scalar-conflict failure.
 
+Whole-root ordering failures run in separate Nix processes because `builtins.tryEval` cannot catch the selected libraries' native type error. These checks cover before, after, and explicit ordering in both central and participant contributions, including central reads and combined validation.
+
 Formatting runs from the development flake directory:
 
 ```sh
@@ -199,7 +243,8 @@ The tested contract includes:
 - Independent schema discovery and central reads in [issue #4](https://github.com/petohorvath/nixos-registry/issues/4).
 - Partial records, defaults, and derived values in [issue #5](https://github.com/petohorvath/nixos-registry/issues/5).
 - Whole-contribution and nested override priorities in [issue #6](https://github.com/petohorvath/nixos-registry/issues/6).
+- Ordering and conditional contributions in [issue #7](https://github.com/petohorvath/nixos-registry/issues/7).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks ordering, broader laziness and validation guarantees, NixOS integration, and consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks broader laziness and validation guarantees, NixOS integration, and consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).
