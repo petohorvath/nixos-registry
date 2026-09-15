@@ -21,7 +21,14 @@
         unstable = nixpkgsUnstable;
       };
       libraries = builtins.mapAttrs (_: source: source.lib) sources;
-      tests = evalWithLibraries ../tests;
+      tests = builtins.mapAttrs (
+        channel: nixpkgs:
+        import ../tests {
+          inherit nixpkgs;
+          alternateNixpkgs = if channel == "stable" then nixpkgsUnstable else nixpkgsStable;
+          inherit (registry.lib) mkRegistry;
+        }
+      ) sources;
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -46,6 +53,13 @@
         collectionLaziness = evalWithLibraries ../examples/plain-nix/collection-laziness.nix;
         combinedReads = evalWithLibraries ../examples/plain-nix/combined-reads.nix;
         conditionalOrdering = evalWithLibraries ../examples/plain-nix/conditional-ordering.nix;
+        nixosExamples = builtins.mapAttrs (
+          _: nixpkgs:
+          (import ../examples/nixos {
+            inherit nixpkgs;
+            inherit (registry.lib) mkRegistry;
+          }).result
+        ) sources;
         partialContributions = evalWithLibraries ../examples/plain-nix/partial-contributions.nix;
         priorities = evalWithLibraries ../examples/plain-nix/priorities.nix;
         scalarConflicts = evalWithLibraries ../examples/plain-nix/scalar-conflict.nix;

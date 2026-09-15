@@ -55,6 +55,61 @@ Every participant imports the returned `registry.module`. Missing or incompatibl
 
 Central and participant definitions are evaluated together under the shared schema. Ordinary lists merge, matching scalar definitions agree, and conflicting scalar definitions raise errors. No infrastructure schema or participant builder is bundled with the library.
 
+## NixOS participants
+
+The [NixOS example](examples/nixos/default.nix) builds two NixOS configurations using the caller-owned [service schema](examples/plain-nix/service-schema.nix). The same `nixpkgs` input supplies `mkRegistry.lib` and `nixpkgs.lib.nixosSystem`.
+
+The caller imports the generated module and supplies the handle and participant-specific arguments:
+
+```nix
+participants."metrics publisher" = nixpkgs.lib.nixosSystem {
+  specialArgs = {
+    inherit registry;
+    serviceName = "metrics";
+  };
+  modules = [
+    registry.module
+    ./publish-service.nix
+    {
+      nixpkgs.hostPlatform = "x86_64-linux";
+      networking.hostName = "monitor";
+      services.prometheus = {
+        enable = true;
+        port = 9191;
+      };
+      system.stateVersion = "26.05";
+    }
+  ];
+};
+```
+
+The example's [publication module](examples/nixos/publish-service.nix) reads the combined domain and publishes the service's configured port:
+
+```nix
+networking.domain = registry.combined.domain;
+registry.services.${serviceName} = lib.mkIf config.services.prometheus.enable {
+  host = "${config.networking.hostName}.${config.networking.domain}";
+  port = config.services.prometheus.port;
+};
+environment.etc."metrics-endpoint".text = registry.combined.services.metrics.endpoint;
+```
+
+The active participant publishes `metrics` at `monitor.example.test:9191`. The standby participant's disabled service contributes no record. Both configurations read the completed endpoint into `/etc/metrics-endpoint`, including the participant publishing its port. Collection keys, hostnames, and service names remain distinct.
+
+Every participant in a registry uses the same Nixpkgs module-system revision as the constructor's `lib`. Package selection can use another package set. With the development inputs, the example accepts an alternate Prometheus package:
+
+```nix
+import ./examples/nixos {
+  nixpkgs = inputs.nixpkgsStable;
+  mkRegistry = inputs.registry.lib.mkRegistry;
+  package = inputs.nixpkgsUnstable.legacyPackages.x86_64-linux.prometheus;
+}
+```
+
+The `package` argument sets `services.prometheus.package`; `nixpkgs.lib.nixosSystem` still selects the module system. Mixing module-system revisions within a registry is unsupported. Tests exercise each pinned module revision separately, including a service command using the other pin's package.
+
+The example returns `registry`, the participant evaluations, and a JSON-compatible `result` containing both views, client endpoints, and explicit validation. It defaults to `x86_64-linux`; the `system` argument selects another NixOS platform. Checks evaluate registry data and affected NixOS options without building a system closure or booting a VM.
+
 ## Contribution priorities
 
 Whole-contribution priorities select definitions at the typed `registry` root before nested options merge. Weaker contributions are discarded in full, including unrelated fields. Central definitions and participant contributions have equal precedence unless an explicit priority changes it.
@@ -240,6 +295,16 @@ nix eval ./dev#lib.examples.unstable --json
 nix eval ./dev#lib.examples.stable.validate
 ```
 
+The NixOS example and its package-selection check run against both pinned module libraries:
+
+```sh
+nix eval ./dev#lib.nixosExamples.stable --json
+nix eval ./dev#lib.nixosExamples.unstable --json
+nix eval ./dev#lib.nixosExamples.stable.validate
+nix eval ./dev#lib.tests.stable.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
+nix eval ./dev#lib.tests.unstable.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
+```
+
 The partial-contribution example exposes completed records, the available central host, and the transport participant's local port:
 
 ```sh
@@ -320,7 +385,7 @@ Formatting runs from the development flake directory:
 
 ```sh
 cd dev
-nix fmt -- ../flake.nix flake.nix ../lib/*.nix ../tests/*.nix ../examples/plain-nix/*.nix
+nix fmt -- ../flake.nix flake.nix ../lib/*.nix ../tests/*.nix ../examples/*/*.nix
 ```
 
 The checked-in dependency selections are:
@@ -341,7 +406,8 @@ The tested contract includes:
 - Ordering and conditional contributions in [issue #7](https://github.com/petohorvath/nixos-registry/issues/7).
 - Combined reads, laziness, and native recursion behavior in [issue #8](https://github.com/petohorvath/nixos-registry/issues/8).
 - Complete combined validation and source diagnostics in [issue #9](https://github.com/petohorvath/nixos-registry/issues/9).
+- Real NixOS participants, caller-owned wiring, and independent package selection in [issue #10](https://github.com/petohorvath/nixos-registry/issues/10).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining NixOS integration, examples, and consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining examples and consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).
