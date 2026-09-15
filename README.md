@@ -4,6 +4,8 @@
 
 This registry concerns shared configuration data; Nix's flake registry concerns flake-name lookup. Participants can be plain Nix module evaluations without a NixOS hostname or system configuration.
 
+Contributions from separate source repositories and separate participant evaluations must remain accessible within one Nix computation. Shared data is computed during evaluation; the library provides no runtime storage or discovery service.
+
 ## Constructor
 
 ```nix
@@ -109,6 +111,49 @@ import ./examples/nixos {
 The `package` argument sets `services.prometheus.package`; `nixpkgs.lib.nixosSystem` still selects the module system. Mixing module-system revisions within a registry is unsupported. Tests exercise each pinned module revision separately, including a service command using the other pin's package.
 
 The example returns `registry`, the participant evaluations, and a JSON-compatible `result` containing both views, client endpoints, and explicit validation. It defaults to `x86_64-linux`; the `system` argument selects another NixOS platform. Checks evaluate registry data and affected NixOS options without building a system closure or booting a VM.
+
+## Flake-parts and independent sources
+
+The runnable [flake-parts example](examples/flake-parts/flake.nix) owns its [schema](examples/flake-parts/schema.nix) and [participant construction](examples/flake-parts/module.nix). Its two source inputs export generic modules:
+
+| Source flake | Local contribution | Shared read |
+| --- | --- | --- |
+| [Service publisher](examples/sources/service-publisher/flake.nix) | API hostname and configured port `8443` | `registry.combined.domain` |
+| [Backup client](examples/sources/backup-client/flake.nix) | Backup hostname and configured port `8022` | `registry.central.domain` and `registry.combined.services.api.endpoint` |
+
+Each source has its own flake root. The example uses local path inputs as reproducible stand-ins for separate repositories. Locked repository URLs can replace those paths without changing the modules or participant wiring.
+
+The caller evaluates each source module separately with its selected `lib`. Both evaluations import the generated contribution module and receive the same handle:
+
+```nix
+participants = {
+  "api publisher" = mkParticipant inputs.servicePublisher.modules.generic.default;
+  "backup consumer" = mkParticipant inputs.backupClient.modules.generic.default;
+};
+
+mkParticipant = participantModule: lib.evalModules {
+  specialArgs = { inherit registry; };
+  modules = [ registry.module participantModule ];
+};
+```
+
+The backup participant reads the API endpoint published by the other source while adding its own service record. Its resulting command is `backup --api api.example.test:8443`. Each local `config.registry.services` contains only that participant's service; the combined view contains both.
+
+The example's `flake-parts.inputs.nixpkgs-lib` follows its `nixpkgs` input. Flake-parts, registry construction, and participant evaluation therefore share the selected module-library revision. Source modules receive that library through ordinary module arguments; source ownership does not select another module system.
+
+The composition module exposes both views and validation in `flake.lib.result`. It also registers an explicit check through flake-parts' [`perSystem.checks`](https://flake.parts/options/flake-parts.html#opt-perSystem.checks):
+
+```nix
+perSystem = { pkgs, ... }: {
+  checks.registry =
+    assert registry.validate;
+    pkgs.runCommand "flake-parts-registry-validation" { } ''
+      touch "$out"
+    '';
+};
+```
+
+No integration adapter is needed. The source flakes, flake-parts, and Nixpkgs are example dependencies. The consumer-facing root flake retains zero required inputs.
 
 ## Contribution priorities
 
@@ -305,6 +350,23 @@ nix eval ./dev#lib.tests.stable.testNixosUsesAnotherPackageSetWithTheSelectedMod
 nix eval ./dev#lib.tests.unstable.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
 ```
 
+The flake-parts example has its own [lock file](examples/flake-parts/flake.lock) and runs directly with the stable pin:
+
+```sh
+nix eval ./examples/flake-parts#lib.result --json
+nix eval ./examples/flake-parts#lib.result.validate
+nix flake check ./examples/flake-parts
+```
+
+The development flake runs the same example with each selected Nixpkgs input, including flake-parts' module library:
+
+```sh
+nix eval ./dev#lib.flakePartsExamples.stable --json
+nix eval ./dev#lib.flakePartsExamples.unstable --json
+nix eval ./dev#lib.tests.stable.testSeparateSourceParticipantsKeepLocalContributionsDistinct
+nix eval ./dev#lib.tests.unstable.testSeparateSourceParticipantsKeepLocalContributionsDistinct
+```
+
 The partial-contribution example exposes completed records, the available central host, and the transport participant's local port:
 
 ```sh
@@ -373,7 +435,7 @@ The complete suite runs both module libraries on the current system:
 nix flake check ./dev
 ```
 
-Tests exercise the exported constructor, generated module, and returned views through real module evaluations. Merge checks compare observable results with direct evaluation using the same library. Nix evaluates option types during these checks; no separate static typechecker is configured. The suite includes the successful example and expected scalar-conflict failure.
+Tests exercise the exported constructor, generated module, and returned views through real module evaluations. Merge checks compare observable results with direct evaluation using the same library. Nix evaluates option types during these checks; no separate static typechecker is configured. The suite includes the successful examples and expected scalar-conflict failure. The flake-parts example's own validation check also runs on both pins.
 
 Whole-root ordering failures run in separate Nix processes because `builtins.tryEval` cannot catch the selected libraries' native type error. These checks cover before, after, and explicit ordering in both central and participant contributions, including central reads and combined validation.
 
@@ -385,7 +447,9 @@ Formatting runs from the development flake directory:
 
 ```sh
 cd dev
-nix fmt -- ../flake.nix flake.nix ../lib/*.nix ../tests/*.nix ../examples/*/*.nix
+nix fmt -- ../flake.nix flake.nix ../lib/*.nix ../tests/*.nix \
+  ../tests/fixtures/*.nix ../examples/*/*.nix \
+  ../examples/sources/*/*.nix
 ```
 
 The checked-in dependency selections are:
@@ -394,6 +458,8 @@ The checked-in dependency selections are:
 | --- | --- | --- |
 | Stable | `nixos-26.05` | `c3eea5b2156db11c7eeeada3dc737711255b253e` |
 | Unstable | `nixos-unstable` | `ef34387ddd751e1ab8857adf4676492d32eb24ec` |
+
+Both flake-parts runs use revision `31729ca8cbdb4fa927b34e5f4353e6a83f39e993`, with `nixpkgs-lib` following the corresponding Nixpkgs pin. Relative source inputs are versioned with this repository.
 
 ## Implementation status
 
@@ -407,7 +473,8 @@ The tested contract includes:
 - Combined reads, laziness, and native recursion behavior in [issue #8](https://github.com/petohorvath/nixos-registry/issues/8).
 - Complete combined validation and source diagnostics in [issue #9](https://github.com/petohorvath/nixos-registry/issues/9).
 - Real NixOS participants, caller-owned wiring, and independent package selection in [issue #10](https://github.com/petohorvath/nixos-registry/issues/10).
+- Flake-parts adoption and separately evaluated source inputs in [issue #11](https://github.com/petohorvath/nixos-registry/issues/11).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining examples and consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).

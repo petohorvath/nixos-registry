@@ -1,6 +1,7 @@
 {
   nixpkgs,
   alternateNixpkgs,
+  flakePartsExample,
   mkRegistry,
 }:
 let
@@ -9,6 +10,7 @@ let
   tests =
     import ./arguments.nix { inherit lib mkRegistry; }
     // import ./conditions.nix { inherit lib mkRegistry; }
+    // import ./flake-parts.nix { example = flakePartsExample; }
     // import ./laziness.nix { inherit lib mkRegistry; }
     // import ./minimal.nix { inherit lib mkRegistry; }
     // import ./merging.nix { inherit lib mkRegistry; }

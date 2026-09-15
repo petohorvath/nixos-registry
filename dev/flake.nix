@@ -6,6 +6,16 @@
     registry.url = "path:..";
     nixpkgsStable.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgsUnstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flakePartsExampleStable = {
+      url = "path:../examples/flake-parts";
+      inputs.nixpkgs.follows = "nixpkgsStable";
+      inputs.nixos-registry.follows = "registry";
+    };
+    flakePartsExampleUnstable = {
+      url = "path:../examples/flake-parts";
+      inputs.nixpkgs.follows = "nixpkgsUnstable";
+      inputs.nixos-registry.follows = "registry";
+    };
   };
 
   outputs =
@@ -13,6 +23,8 @@
       registry,
       nixpkgsStable,
       nixpkgsUnstable,
+      flakePartsExampleStable,
+      flakePartsExampleUnstable,
       ...
     }:
     let
@@ -21,11 +33,16 @@
         unstable = nixpkgsUnstable;
       };
       libraries = builtins.mapAttrs (_: source: source.lib) sources;
+      flakePartsExamples = {
+        stable = flakePartsExampleStable;
+        unstable = flakePartsExampleUnstable;
+      };
       tests = builtins.mapAttrs (
         channel: nixpkgs:
         import ../tests {
           inherit nixpkgs;
           alternateNixpkgs = if channel == "stable" then nixpkgsUnstable else nixpkgsStable;
+          flakePartsExample = flakePartsExamples.${channel};
           inherit (registry.lib) mkRegistry;
         }
       ) sources;
@@ -53,6 +70,7 @@
         collectionLaziness = evalWithLibraries ../examples/plain-nix/collection-laziness.nix;
         combinedReads = evalWithLibraries ../examples/plain-nix/combined-reads.nix;
         conditionalOrdering = evalWithLibraries ../examples/plain-nix/conditional-ordering.nix;
+        flakePartsExamples = builtins.mapAttrs (_: example: example.lib.result) flakePartsExamples;
         nixosExamples = builtins.mapAttrs (
           _: nixpkgs:
           (import ../examples/nixos {
@@ -78,6 +96,10 @@
             touch "$out"
           ''
         ) tests
+        // nixpkgsStable.lib.mapAttrs' (
+          channel: example:
+          nixpkgsStable.lib.nameValuePair "flake-parts-${channel}" example.checks.${system}.registry
+        ) flakePartsExamples
         // nixpkgsStable.lib.concatMapAttrs (
           channel: source:
           nixpkgsStable.lib.mapAttrs'

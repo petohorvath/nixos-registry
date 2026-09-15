@@ -1,5 +1,117 @@
 {
   "nodes": {
+    "backupClient": {
+      "locked": {
+        "path": "../sources/backup-client",
+        "type": "path"
+      },
+      "original": {
+        "path": "../sources/backup-client",
+        "type": "path"
+      },
+      "parent": [
+        "flakePartsExampleStable"
+      ]
+    },
+    "backupClient_2": {
+      "locked": {
+        "path": "../sources/backup-client",
+        "type": "path"
+      },
+      "original": {
+        "path": "../sources/backup-client",
+        "type": "path"
+      },
+      "parent": [
+        "flakePartsExampleUnstable"
+      ]
+    },
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "flakePartsExampleStable",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788450739,
+        "narHash": "sha256-glZLQlzIn1fXH6PazR2iUmTo7kzzyYSshrWhLS9TqCU=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "31729ca8cbdb4fa927b34e5f4353e6a83f39e993",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_2": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "flakePartsExampleUnstable",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788450739,
+        "narHash": "sha256-glZLQlzIn1fXH6PazR2iUmTo7kzzyYSshrWhLS9TqCU=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "31729ca8cbdb4fa927b34e5f4353e6a83f39e993",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flakePartsExampleStable": {
+      "inputs": {
+        "backupClient": "backupClient",
+        "flake-parts": "flake-parts",
+        "nixos-registry": [
+          "registry"
+        ],
+        "nixpkgs": [
+          "nixpkgsStable"
+        ],
+        "servicePublisher": "servicePublisher"
+      },
+      "locked": {
+        "path": "../examples/flake-parts",
+        "type": "path"
+      },
+      "original": {
+        "path": "../examples/flake-parts",
+        "type": "path"
+      },
+      "parent": []
+    },
+    "flakePartsExampleUnstable": {
+      "inputs": {
+        "backupClient": "backupClient_2",
+        "flake-parts": "flake-parts_2",
+        "nixos-registry": [
+          "registry"
+        ],
+        "nixpkgs": [
+          "nixpkgsUnstable"
+        ],
+        "servicePublisher": "servicePublisher_2"
+      },
+      "locked": {
+        "path": "../examples/flake-parts",
+        "type": "path"
+      },
+      "original": {
+        "path": "../examples/flake-parts",
+        "type": "path"
+      },
+      "parent": []
+    },
     "nixpkgsStable": {
       "locked": {
         "lastModified": 1789344334,
@@ -45,10 +157,38 @@
     },
     "root": {
       "inputs": {
+        "flakePartsExampleStable": "flakePartsExampleStable",
+        "flakePartsExampleUnstable": "flakePartsExampleUnstable",
         "nixpkgsStable": "nixpkgsStable",
         "nixpkgsUnstable": "nixpkgsUnstable",
         "registry": "registry"
       }
+    },
+    "servicePublisher": {
+      "locked": {
+        "path": "../sources/service-publisher",
+        "type": "path"
+      },
+      "original": {
+        "path": "../sources/service-publisher",
+        "type": "path"
+      },
+      "parent": [
+        "flakePartsExampleStable"
+      ]
+    },
+    "servicePublisher_2": {
+      "locked": {
+        "path": "../sources/service-publisher",
+        "type": "path"
+      },
+      "original": {
+        "path": "../sources/service-publisher",
+        "type": "path"
+      },
+      "parent": [
+        "flakePartsExampleUnstable"
+      ]
     }
   },
   "root": "root",
