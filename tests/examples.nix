@@ -1,5 +1,34 @@
 { lib, mkRegistry }:
 {
+  testParticipantPublishesFromCombinedDomainExample = {
+    expr = import ../examples/plain-nix/combined-reads.nix { inherit lib mkRegistry; };
+    expected = {
+      centralDomain = "example.test";
+      localHost = "api.example.test";
+      clientEndpoint = "api.example.test:8443";
+      combined = {
+        domain = "example.test";
+        services.api = {
+          host = "api.example.test";
+          port = 8443;
+          endpoint = "api.example.test:8443";
+        };
+      };
+      validate = true;
+    };
+  };
+
+  testLazyCollectionAllowsAContributionToReadAnotherEntryExample = {
+    expr = (import ../examples/plain-nix/collection-laziness.nix { inherit lib mkRegistry; }).lazy;
+    expected = {
+      combined.settings = {
+        domain = "example.test";
+        endpoint = "api.example.test:8443";
+      };
+      validate = true;
+    };
+  };
+
   testLocallyEnabledOrderedPublicationExample = {
     expr = import ../examples/plain-nix/conditional-ordering.nix { inherit lib mkRegistry; };
     expected = {

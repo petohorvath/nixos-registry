@@ -43,10 +43,13 @@
       lib = {
         inherit tests;
         examples = evalWithLibraries ../examples/plain-nix;
+        collectionLaziness = evalWithLibraries ../examples/plain-nix/collection-laziness.nix;
+        combinedReads = evalWithLibraries ../examples/plain-nix/combined-reads.nix;
         conditionalOrdering = evalWithLibraries ../examples/plain-nix/conditional-ordering.nix;
         partialContributions = evalWithLibraries ../examples/plain-nix/partial-contributions.nix;
         priorities = evalWithLibraries ../examples/plain-nix/priorities.nix;
         scalarConflicts = evalWithLibraries ../examples/plain-nix/scalar-conflict.nix;
+        valueCycles = evalWithLibraries ../examples/plain-nix/value-cycle.nix;
       };
 
       checks = forAllSystems (
@@ -61,14 +64,22 @@
             touch "$out"
           ''
         ) tests
-        // nixpkgsStable.lib.mapAttrs' (
+        // nixpkgsStable.lib.concatMapAttrs (
           channel: source:
-          nixpkgsStable.lib.nameValuePair "ordering-${channel}" (
-            pkgs.runCommand "registry-ordering-${channel}" { nativeBuildInputs = [ pkgs.nix ]; } ''
-              bash ${../tests/ordering-failures.sh} ${source}/lib ${registry} ${../tests}
-              touch "$out"
-            ''
-          )
+          nixpkgsStable.lib.mapAttrs'
+            (
+              name: script:
+              nixpkgsStable.lib.nameValuePair "${name}-${channel}" (
+                pkgs.runCommand "registry-${name}-${channel}" { nativeBuildInputs = [ pkgs.nix ]; } ''
+                  bash ${script} ${source}/lib ${registry} ${../tests}
+                  touch "$out"
+                ''
+              )
+            )
+            {
+              ordering = ../tests/ordering-failures.sh;
+              recursion = ../tests/recursion.sh;
+            }
         ) sources
       );
 

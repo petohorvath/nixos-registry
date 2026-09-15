@@ -141,6 +141,38 @@ The example reads only the available host from `registry.central`; its central r
 
 Schema defaults apply once per shared evaluation, regardless of participant count. An explicit list definition, including `[ ]`, replaces its schema default; multiple explicit lists merge normally. Derived values and read-only defaults use the combined fields. Additional definitions of read-only values fail under ordinary module semantics.
 
+## Combined reads and schema forcing
+
+The [combined-read example](examples/plain-nix/combined-reads.nix) publishes a service host using a centrally supplied domain from the combined view:
+
+```nix
+registry.services.api.host = "api.${registry.combined.domain}";
+clientEndpoint = registry.combined.services.api.endpoint;
+```
+
+Central data supplies port `8443`. The shared evaluation completes the participant's partial record and derives endpoint `api.example.test:8443`. Reading the combined domain does not demand the missing local port.
+
+Ordinary reads leave unrelated invalid data unused where the schema permits. For example, an invalid service port does not prevent reading the independent domain. Demanding the invalid field raises its evaluation error.
+
+Collection types can force sibling definitions. An acyclic intended data-reference graph alone does not guarantee successful evaluation. The [collection-laziness example](examples/plain-nix/collection-laziness.nix) puts both values under one `settings` option:
+
+```nix
+# Central declaration
+settings.domain = "example.test";
+
+# Participant publication
+registry.settings.endpoint = "api.${registry.combined.settings.domain}:8443";
+```
+
+| Type of `settings` | Result on both pinned module libraries |
+| --- | --- |
+| `lib.types.attrsOf lib.types.str` | Reading the domain or validating recurses: merging inspects the endpoint definition, which requests the same collection |
+| `lib.types.lazyAttrsOf lib.types.str` | Both values evaluate, and validation returns `true` |
+
+Forcing depends on the complete schema, including element types. The combined-read example uses `attrsOf (submodule ...)`, which keeps service fields lazy within their records. `lazyAttrsOf` retains the module system's [conditional-definition limitations](https://nixos.org/manual/nixos/stable/#sec-option-types-composed).
+
+The [value-cycle example](examples/plain-nix/value-cycle.nix) has two participants: `services.east` reads `services.west`, and `services.west` reads `services.east`. Even with `lazyAttrsOf`, reads and validation raise Nix's native `infinite recursion encountered` error.
+
 ## Schema and evaluation independence
 
 Both views derive their top-level keys from the options declared in `schemaModules`. Additional schema modules extend that set; no separate key list is needed. Inspecting those keys does not evaluate central definitions or collect participant contributions:
@@ -196,6 +228,29 @@ nix eval ./dev#lib.conditionalOrdering.unstable --json
 nix eval ./dev#lib.conditionalOrdering.stable.enabled.validate
 ```
 
+The combined-read example exposes the completed service record, local host, derived client endpoint, and validation:
+
+```sh
+nix eval ./dev#lib.combinedReads.stable --json
+nix eval ./dev#lib.combinedReads.unstable --json
+```
+
+The lazy collection variant also evaluates successfully:
+
+```sh
+nix eval ./dev#lib.collectionLaziness.stable.lazy --json
+nix eval ./dev#lib.collectionLaziness.unstable.lazy --json
+```
+
+The strict collection variant and actual value cycle are expected to fail with native recursion errors:
+
+```sh
+nix eval ./dev#lib.collectionLaziness.stable.strict.combined.settings.domain
+nix eval ./dev#lib.collectionLaziness.unstable.strict.combined.settings.domain
+nix eval ./dev#lib.valueCycles.stable.combined.services.east
+nix eval ./dev#lib.valueCycles.unstable.combined.services.east
+```
+
 The [scalar-conflict example](examples/plain-nix/scalar-conflict.nix) assigns different archive hosts centrally and in a participant. Both commands below are expected to exit unsuccessfully with an error for `backupDestinations.archive.host`:
 
 ```sh
@@ -221,6 +276,8 @@ Tests exercise the exported constructor, generated module, and returned views th
 
 Whole-root ordering failures run in separate Nix processes because `builtins.tryEval` cannot catch the selected libraries' native type error. These checks cover before, after, and explicit ordering in both central and participant contributions, including central reads and combined validation.
 
+Recursion checks also run in separate Nix processes. Both pinned module libraries must report native recursion for strict collection forcing and actual value cycles, during shared reads and validation.
+
 Formatting runs from the development flake directory:
 
 ```sh
@@ -244,7 +301,8 @@ The tested contract includes:
 - Partial records, defaults, and derived values in [issue #5](https://github.com/petohorvath/nixos-registry/issues/5).
 - Whole-contribution and nested override priorities in [issue #6](https://github.com/petohorvath/nixos-registry/issues/6).
 - Ordering and conditional contributions in [issue #7](https://github.com/petohorvath/nixos-registry/issues/7).
+- Combined reads, laziness, and native recursion behavior in [issue #8](https://github.com/petohorvath/nixos-registry/issues/8).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks broader laziness and validation guarantees, NixOS integration, and consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks complete validation and diagnostics, NixOS integration, and consumer migration.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).
