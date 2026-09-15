@@ -474,7 +474,8 @@ The tested contract includes:
 - Complete combined validation and source diagnostics in [issue #9](https://github.com/petohorvath/nixos-registry/issues/9).
 - Real NixOS participants, caller-owned wiring, and independent package selection in [issue #10](https://github.com/petohorvath/nixos-registry/issues/10).
 - Flake-parts adoption and separately evaluated source inputs in [issue #11](https://github.com/petohorvath/nixos-registry/issues/11).
+- Consumer adoption across hosts, home configurations, services, and guests, with compatibility removal and generated-data comparisons, in [issue #16](https://github.com/petohorvath/nixos-registry/issues/16).
 
-The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) tracks the remaining consumer migration.
+The [v1 specification](https://github.com/petohorvath/nixos-registry/issues/1) is implemented, including the originating consumer's migration. The consumer uses the library for aggregation and complete validation while retaining its schemas, models, projections, forwarding, shields, and configuration builders.
 
 The underlying evaluation interface is documented in the [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules).
