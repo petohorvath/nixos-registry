@@ -49,7 +49,7 @@ let
         config.registry = lib.mkMerge (
           # Import-only modules must not override contribution-wide defaults.
           lib.optional (config != { }) config
-          ++ lib.optional ((module ? config || module ? options) && module ? meta) { meta = module.meta; }
+          ++ lib.optional ((module ? config || module ? options) && module ? meta) { inherit (module) meta; }
           ++ lib.optional (module ? freeformType) { _module.freeformType = module.freeformType; }
         );
       }

@@ -1,69 +1,90 @@
 # Development
 
-The [development flake](../dev/flake.nix) supplies dependencies, a formatter, and evaluation checks. Keeping these dependencies in `dev/` leaves the public library flake with no required inputs.
+The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.1.1](https://github.com/petohorvath/nixos-project-policy/blob/v0.1.1/POLICY.md). Adoption remains pending; local checks do not establish hosted readiness or enforced compliance.
 
-Run commands from the repository root with Nix's `nix-command` and `flakes` features enabled, except where a command changes directory explicitly.
+## Host prerequisites
+
+Install Nix with the `nix-command` and `flakes` experimental features enabled, Git for the checkout, and direnv with flake support and shell integration. Flake support may come from direnv itself or nix-direnv. Run `direnv allow` at the repository root after reviewing `.envrc`, or enter the shell directly:
+
+```sh
+nix develop --no-update-lock-file
+```
+
+The default shell supplies Nix CLI, nil, nixfmt, statix, deadnix, Git, shfmt, Prettier, actionlint, and the root formatter from the stable pin. No unstable tool overrides are needed. These tools require no KVM or other virtualization permissions.
+
+Development supports `x86_64-linux` and `aarch64-linux`. Existing `x86_64-darwin` and `aarch64-darwin` outputs remain available as best effort; they have no required hosted CI. Validation evidence must identify the actual host and any untested platforms.
 
 ## Run checks
 
-Run the complete suite for the current system:
+Run commands from the repository root. Reject lock updates during validation so tests use the committed dependencies:
 
 ```sh
-nix flake check ./dev
+nix flake check --no-update-lock-file
 ```
 
-The suite evaluates the public `lib.mkRegistry` function, generated module, and shared data using both pinned Nixpkgs module-system revisions. Merge tests compare results with direct evaluation using the same library. Nix checks option types during evaluation; the project has no separate static typechecker.
+The suite evaluates the public `lib.mkRegistry` function, generated participant module, central data, combined data, and validation using both pinned Nixpkgs module-system revisions. Merge tests compare behavior with direct evaluation using the same library. A plain-import check constructs and uses a registry with a caller-provided library and no development inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
 
-Run the evaluation tests for one revision or one test:
+The root checks also cover formatting, statix, deadnix, and workflow validation. Workflow validation checks every `.yml` and `.yaml` file in `.github/workflows` when present; a repository without workflows needs no placeholder. NixOS checks evaluate the affected configuration options without building a full system or executing a VM. Normal checks have no VM build dependencies.
+
+Run one channel or a focused test:
 
 ```sh
-nix eval ./dev#lib.tests.stable --json
-nix eval ./dev#lib.tests.unstable --json
-nix eval ./dev#lib.tests.stable.testCollectsCentralAndNamedParticipants
+nix eval --no-update-lock-file .#lib.tests.stable --json
+nix eval --no-update-lock-file .#lib.tests.unstable --json
+nix eval --no-update-lock-file .#lib.tests.stable.testCollectsCentralAndNamedParticipants
+nix eval --no-update-lock-file .#lib.tests.unstable.testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
+nix eval --no-update-lock-file .#lib.tests.stable.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
+nix eval --no-update-lock-file .#lib.tests.unstable.testSeparateSourceParticipantsKeepLocalContributionsDistinct
 ```
 
-The [example guide](examples.md) lists commands for individual examples and their expected results. The complete suite includes successful examples, expected failures, NixOS configuration checks, and the flake-parts validation check on both revisions.
-
-Useful integration checks include:
+The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results. The standalone flake-parts example also uses its own committed lock:
 
 ```sh
-nix eval ./dev#lib.tests.stable.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
-nix eval ./dev#lib.tests.unstable.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
-nix eval ./dev#lib.tests.stable.testSeparateSourceParticipantsKeepLocalContributionsDistinct
-nix eval ./dev#lib.tests.unstable.testSeparateSourceParticipantsKeepLocalContributionsDistinct
+nix eval --no-update-lock-file ./examples/flake-parts#lib.result --json
+nix flake check --no-update-lock-file ./examples/flake-parts
 ```
-
-NixOS checks evaluate registry data and the affected configuration options. They do not build a full system or boot a VM.
 
 ### Failure and diagnostic checks
 
-Some checks run in separate Nix processes because `builtins.tryEval` cannot catch the relevant native errors:
+Native ordering and recursion errors require separate evaluator processes because `builtins.tryEval` cannot catch them. [Ordering checks](../tests/ordering-failures.sh) exercise whole-contribution ordering, [recursion checks](../tests/recursion.sh) demand strict collection reads and cyclic values, and [diagnostic checks](../tests/diagnostics.sh) assert option paths, participant identities, and available source filenames rather than complete error snapshots.
 
-- [Ordering checks](../tests/ordering-failures.sh) cover `mkBefore`, `mkAfter`, and `mkOrder` applied to whole contributions, in both central and participant definitions.
-- [Recursion checks](../tests/recursion.sh) cover strict collection evaluation and actual value cycles, during shared reads and validation.
-- [Diagnostic checks](../tests/diagnostics.sh) check evaluation failure and facts such as option paths, participant names, and source filenames.
-
-These scripts run against both pinned module-system revisions as part of `nix flake check ./dev`. Diagnostic checks do not match complete error messages.
-
-## Format Nix files
-
-Run the formatter from the development flake directory:
+Run a focused derivation, replacing `x86_64-linux` with the current system and `stable` with `unstable` as needed:
 
 ```sh
-cd dev
-nix fmt -- ../flake.nix flake.nix ../lib/*.nix ../tests/*.nix \
-  ../tests/fixtures/*.nix ../examples/*/*.nix \
-  ../examples/sources/*/*.nix
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.diagnostics-stable
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.ordering-stable
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.recursion-stable
 ```
 
-## Dependencies
+## Formatting and lint
 
-The development flake tests the `nixos-26.05` and `nixos-unstable` branches. [dev/flake.lock](../dev/flake.lock) records the exact revisions used for Nixpkgs and flake-parts.
+```sh
+nix fmt --no-update-lock-file
+nix fmt --no-update-lock-file -- --ci
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.lint
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.workflows
+```
 
-Each flake-parts run uses the selected Nixpkgs input for its `nixpkgs-lib` dependency. The standalone [flake-parts example](../examples/flake-parts/flake.nix) has its own [lock file](../examples/flake-parts/flake.lock). Its local source inputs are versioned in this repository.
+[treefmt.toml](../treefmt.toml) covers first-party Nix, shell (including `.envrc`), Markdown, YAML, and JSON. Add any new extensionless shell scripts to its shell includes. Git and direnv state, result links, lockfiles, and generated or vendored trees are excluded. Current fixtures are Nix modules whose exact text is not asserted, so they remain formatted; exclude future exact-text fixtures explicitly. Prettier preserves existing prose wrapping; new prose uses one source line per paragraph.
+
+## Dependencies and policy
+
+The root inputs `nixpkgs` and `nixpkgs-unstable` select stable and unstable module systems. [flake.lock](../flake.lock) records their exact revisions and preserves the flake-parts revisions used by both example evaluations. Each flake-parts `nixpkgs-lib` follows its example's selected `nixpkgs`; the example input follows the corresponding root channel.
+
+The independent [example lock](../examples/flake-parts/flake.lock) retains its own stable pin and separate participant sources. Its registry input is source-only, preventing recursive development inputs. The constructor still works through a [plain import](api.md#plain-import-access), while normal flake consumers can acquire root development inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the retired `dev/` commands and renamed input overrides.
+
+The immutable v0.1.1 release supplies the policy rules and checker. Current [pin records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/pins.json) and [project records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/projects.json) on the policy repository's `main` branch supply approved revisions and enrollment state. Pin changes follow the shared maintenance procedure and require renewed validation; they do not change the selected policy release.
+
+Run the release's shell probe externally to check effective tools in a cleared inherited environment:
+
+```sh
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.1.1 -- shell "$PWD"
+```
+
+The policy repository is not a flake input, shell dependency, or build dependency. The shell probe checks the development environment without claiming readiness or adoption. Hosted policy checks and the central version selection are follow-up enrollment work; full readiness checking requires the v0.1.1 checker and an explicit trusted current-record checkout as described in its [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.1.1/docs/checker.md).
 
 ## Documentation and issues
 
-Keep the [README](../README.md) focused on the first complete use of the library. Describe arguments and behavior in the [API reference](api.md), and put runnable examples in the [example guide](examples.md). Use the terms in [CONTEXT.md](../CONTEXT.md).
+Keep the [README](../README.md) focused on the first complete use of the library. Describe arguments and behavior in the [API reference](api.md), and runnable examples in the [example guide](examples.md). Use the terms in [CONTEXT.md](../CONTEXT.md) and follow [CONTRIBUTING.md](../CONTRIBUTING.md) for review and releases.
 
-Issues and specifications live in [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues). Agent-specific issue instructions are in [the issue-tracker guide](agents/issue-tracker.md).
+Issues and specifications live in [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues). Keep validation evidence on the relevant PR and CI run. Agent-specific issue instructions are in the [issue-tracker guide](agents/issue-tracker.md).

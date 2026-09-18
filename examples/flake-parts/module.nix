@@ -1,7 +1,8 @@
 # The caller evaluates source-owned modules and exposes registry validation.
 { inputs, lib, ... }:
 let
-  registry = inputs.nixos-registry.lib.mkRegistry {
+  mkRegistry = ((import "${inputs.nixos-registry}/flake.nix").outputs { }).lib.mkRegistry;
+  registry = mkRegistry {
     inherit lib participants;
     schemaModules = [ ./schema.nix ];
     centralModules = [ { domain = "example.test"; } ];

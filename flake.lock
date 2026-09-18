@@ -72,20 +72,18 @@
       "inputs": {
         "backupClient": "backupClient",
         "flake-parts": "flake-parts",
-        "nixos-registry": [
-          "registry"
-        ],
+        "nixos-registry": "nixos-registry",
         "nixpkgs": [
-          "nixpkgsStable"
+          "nixpkgs"
         ],
         "servicePublisher": "servicePublisher"
       },
       "locked": {
-        "path": "../examples/flake-parts",
+        "path": "./examples/flake-parts",
         "type": "path"
       },
       "original": {
-        "path": "../examples/flake-parts",
+        "path": "./examples/flake-parts",
         "type": "path"
       },
       "parent": []
@@ -94,25 +92,51 @@
       "inputs": {
         "backupClient": "backupClient_2",
         "flake-parts": "flake-parts_2",
-        "nixos-registry": [
-          "registry"
-        ],
+        "nixos-registry": "nixos-registry_2",
         "nixpkgs": [
-          "nixpkgsUnstable"
+          "nixpkgs-unstable"
         ],
         "servicePublisher": "servicePublisher_2"
       },
       "locked": {
-        "path": "../examples/flake-parts",
+        "path": "./examples/flake-parts",
         "type": "path"
       },
       "original": {
-        "path": "../examples/flake-parts",
+        "path": "./examples/flake-parts",
         "type": "path"
       },
       "parent": []
     },
-    "nixpkgsStable": {
+    "nixos-registry": {
+      "flake": false,
+      "locked": {
+        "path": "../..",
+        "type": "path"
+      },
+      "original": {
+        "path": "../..",
+        "type": "path"
+      },
+      "parent": [
+        "flakePartsExampleStable"
+      ]
+    },
+    "nixos-registry_2": {
+      "flake": false,
+      "locked": {
+        "path": "../..",
+        "type": "path"
+      },
+      "original": {
+        "path": "../..",
+        "type": "path"
+      },
+      "parent": [
+        "flakePartsExampleUnstable"
+      ]
+    },
+    "nixpkgs": {
       "locked": {
         "lastModified": 1789344334,
         "narHash": "sha256-vdhpDJ3Lr24lkZ+fDCjmBRRtw9/vcSzkqGJOJyF5h2U=",
@@ -128,7 +152,7 @@
         "type": "github"
       }
     },
-    "nixpkgsUnstable": {
+    "nixpkgs-unstable": {
       "locked": {
         "lastModified": 1789286504,
         "narHash": "sha256-eiEK7cKZORNEvX0GeF3RtNEF/JXhgf2RqSp3230q13E=",
@@ -144,24 +168,12 @@
         "type": "github"
       }
     },
-    "registry": {
-      "locked": {
-        "path": "..",
-        "type": "path"
-      },
-      "original": {
-        "path": "..",
-        "type": "path"
-      },
-      "parent": []
-    },
     "root": {
       "inputs": {
         "flakePartsExampleStable": "flakePartsExampleStable",
         "flakePartsExampleUnstable": "flakePartsExampleUnstable",
-        "nixpkgsStable": "nixpkgsStable",
-        "nixpkgsUnstable": "nixpkgsUnstable",
-        "registry": "registry"
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-unstable": "nixpkgs-unstable"
       }
     },
     "servicePublisher": {

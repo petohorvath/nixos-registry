@@ -4,21 +4,21 @@ Issues and specs live in GitHub Issues for `petohorvath/nixos-registry`. Operati
 
 ## V1 specification
 
-[Issue #1](https://github.com/petohorvath/nixos-registry/issues/1) tracks the v1 specification and consumer migration. The local specification is `SPEC.md` at the repository root. Ticket planning reads both sources and the issue comments; differences are resolved before drafting tickets.
+[Issue #1](https://github.com/petohorvath/nixos-registry/issues/1) records the original v1 specification and consumer migration. [Spec #18](https://github.com/petohorvath/nixos-registry/issues/18) supersedes its input-free-flake packaging promise while preserving library semantics. Before planning or implementing a ticket, read its parent specification and issue comments.
 
 ## Conventions
 
 Commands run from this clone. Outside it, add `--repo petohorvath/nixos-registry`. Multiline bodies are written to a temporary file and passed with `--body-file`.
 
-| Operation | Command |
-| --- | --- |
-| Create or publish an issue | `gh issue create --title "..." --body-file <path>` |
-| Read or fetch a ticket | `gh issue view <number> --json number,title,body,labels,comments` |
-| List issues | `gh issue list --state open --json number,title,body,labels,comments` |
-| Comment | `gh issue comment <number> --body-file <path>` |
-| Apply a label | `gh issue edit <number> --add-label "..."` |
-| Remove a label | `gh issue edit <number> --remove-label "..."` |
-| Close | `gh issue close <number>` |
+| Operation                  | Command                                                               |
+| -------------------------- | --------------------------------------------------------------------- |
+| Create or publish an issue | `gh issue create --title "..." --body-file <path>`                    |
+| Read or fetch a ticket     | `gh issue view <number> --json number,title,body,labels,comments`     |
+| List issues                | `gh issue list --state open --json number,title,body,labels,comments` |
+| Comment                    | `gh issue comment <number> --body-file <path>`                        |
+| Apply a label              | `gh issue edit <number> --add-label "..."`                            |
+| Remove a label             | `gh issue edit <number> --remove-label "..."`                         |
+| Close                      | `gh issue close <number>`                                             |
 
 Issue listing supports `--label` and `--state` filters. Human-readable ticket output uses `gh issue view <number> --comments`.
 

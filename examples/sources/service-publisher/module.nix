@@ -14,6 +14,6 @@
 
   config.registry.services.api = {
     host = "api.${registry.combined.domain}";
-    port = config.port;
+    inherit (config) port;
   };
 }

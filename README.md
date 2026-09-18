@@ -2,11 +2,17 @@
 
 `nixos-registry` is a Nix library for sharing configuration data between NixOS configurations. One configuration can contribute a service address, and another can use that address. Shared data uses option types, defaults, and merge rules from the Nix module system.
 
-The flake exports one function: `lib.mkRegistry`. The function takes shared option declarations and participating configurations. It returns a module to import, the shared data, and a validation value.
+The public library entrypoint is `lib.mkRegistry`. The function takes shared option declarations and participating configurations. It returns a module to import, the shared data, and a validation value.
 
 Data is shared during Nix evaluation. All participating configurations must be available in the same Nix evaluation, including configurations defined in separate repositories. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry) is a separate feature for looking up flake names.
 
-## Quick start
+## Support
+
+The library is checked against the approved stable and unstable Nixpkgs module systems. Development supports `x86_64-linux` and `aarch64-linux`; existing `x86_64-darwin` and `aarch64-darwin` outputs remain best effort, with no required Darwin CI.
+
+The local workflow targets [nixos-project-policy v0.1.1](https://github.com/petohorvath/nixos-project-policy/blob/v0.1.1/POLICY.md). Adoption is pending: the policy caller, hosted Linux readiness evidence, and enforced merge gates are separate follow-up work. Report problems through [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues).
+
+## Quickstart
 
 This example assumes familiarity with flakes and NixOS modules. It defines two configurations:
 
@@ -126,28 +132,44 @@ The `let` block lets the registry and configurations refer to each other. Shared
 
 Call `inputs.nixos-registry.lib.mkRegistry` with an attribute set containing:
 
-| Argument | Meaning | Default |
-| --- | --- | --- |
-| `lib` | Nixpkgs library used by the participants | Required |
-| `schemaModules` | Modules that declare the shared options | Required |
-| `participants` | Attribute set of evaluated configurations, each importing `registry.module` | Required; `{ }` is valid |
-| `centralModules` | Modules that define shared values outside the participants | `[ ]` |
-| `specialArgs` | Arguments for the schema and central modules | `{ }` |
+| Argument         | Meaning                                                                     | Default                  |
+| ---------------- | --------------------------------------------------------------------------- | ------------------------ |
+| `lib`            | Nixpkgs library used by the participants                                    | Required                 |
+| `schemaModules`  | Modules that declare the shared options                                     | Required                 |
+| `participants`   | Attribute set of evaluated configurations, each importing `registry.module` | Required; `{ }` is valid |
+| `centralModules` | Modules that define shared values outside the participants                  | `[ ]`                    |
+| `specialArgs`    | Arguments for the schema and central modules                                | `{ }`                    |
 
-Use the same Nixpkgs module-system revision for `lib` and every participant. The library flake has no required inputs; the consuming flake supplies Nixpkgs.
+Use the same Nixpkgs module-system revision for `lib` and every participant. The caller supplies the library used for registry evaluation. Root development inputs may enter consumer lock graphs; [plain-import access](docs/api.md#plain-import-access) keeps the constructor usable without evaluating those inputs.
 
 The function returns an attribute set:
 
-| Attribute | Use |
-| --- | --- |
-| `registry.module` | Import this module in each participant to declare its `registry` option. |
-| `registry.central` | Read data from the schema and central modules only. |
-| `registry.combined` | Read data merged from central modules and all participants. |
+| Attribute           | Use                                                                          |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `registry.module`   | Import this module in each participant to declare its `registry` option.     |
+| `registry.central`  | Read data from the schema and central modules only.                          |
+| `registry.combined` | Read data merged from central modules and all participants.                  |
 | `registry.validate` | Evaluate all combined data. Returns `true` or raises a Nix evaluation error. |
 
 `config.registry` is local to one participant. `registry.combined` contains the shared data. Pass `registry` to a participant through that configuration's `specialArgs` when its modules need shared reads; the `specialArgs` argument to `mkRegistry` does not do this.
 
 Central definitions and participant contributions use the same merge rules. Lists normally merge; conflicting scalar values fail. Reading one field does not check every other field. Use `registry.validate` to check all combined data.
+
+## Development
+
+After installing the [host prerequisites](docs/development.md#host-prerequisites), run the normal workflow from the repository root:
+
+```sh
+nix develop --no-update-lock-file
+nix fmt --no-update-lock-file
+nix flake check --no-update-lock-file
+```
+
+`direnv allow` activates the same shell. The [development guide](docs/development.md) covers focused checks, formatting, and pinned inputs. Normal validation evaluates configurations without building systems or running VMs.
+
+## Contributing
+
+Follow the [contribution guide](CONTRIBUTING.md) for Conventional Commit PR titles, human-approved squash merges, the public contract, and independent releases. Original code uses the [MIT license](LICENSE). The [changelog](CHANGELOG.md) records migration steps.
 
 ## Documentation
 
