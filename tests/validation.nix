@@ -152,7 +152,7 @@ in
       in
       {
         inherit (registry) validate;
-        assertion = (builtins.head registry.combined.assertions).assertion;
+        inherit (builtins.head registry.combined.assertions) assertion;
       };
     expected = {
       assertion = false;

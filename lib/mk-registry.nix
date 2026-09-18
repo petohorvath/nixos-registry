@@ -51,7 +51,7 @@ let
   mkView =
     evaluation:
     let
-      config = (checkRoot evaluation).config;
+      inherit (checkRoot evaluation) config;
     in
     builtins.mapAttrs (name: _: config.${name}) schemaOptions;
 

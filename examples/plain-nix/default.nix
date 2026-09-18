@@ -42,7 +42,7 @@ let
             };
             offsite = {
               host = "offsite.example.test";
-              port = config.port;
+              inherit (config) port;
             };
           };
         };

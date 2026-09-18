@@ -21,7 +21,7 @@
   config = {
     registry.services.backup = {
       host = "backup.${registry.central.domain}";
-      port = config.port;
+      inherit (config) port;
     };
     backupCommand = "backup --api ${registry.combined.services.api.endpoint}";
   };

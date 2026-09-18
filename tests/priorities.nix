@@ -234,9 +234,8 @@ in
         };
       in
       {
-        combined = registry.combined;
+        inherit (registry) combined validate;
         matchesDirect = registry.combined == direct.config.registry;
-        inherit (registry) validate;
       };
     expected = {
       combined = {
@@ -269,7 +268,7 @@ in
         };
       in
       {
-        central = registry.central;
+        inherit (registry) central;
         matchesDirect = registry.central == direct.config.registry;
       };
     expected = {
@@ -319,9 +318,8 @@ in
         };
       in
       {
-        combined = registry.combined;
+        inherit (registry) combined validate;
         matchesDirect = registry.combined == direct.config.registry;
-        inherit (registry) validate;
       };
     expected = {
       combined = {

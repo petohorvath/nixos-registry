@@ -77,7 +77,7 @@ in
         settings = evaluations.registry.combined.settings;
       in
       {
-        domain = settings.domain;
+        inherit (settings) domain;
         matchesDirect = settings.domain == evaluations.direct.config.settings.domain;
         invalidReadSucceeds = (builtins.tryEval settings.unused).success;
       };

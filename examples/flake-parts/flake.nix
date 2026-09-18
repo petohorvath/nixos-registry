@@ -8,7 +8,11 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    nixos-registry.url = "path:../..";
+    # Import only the library source, avoiding the root development input graph.
+    nixos-registry = {
+      url = "path:../..";
+      flake = false;
+    };
     servicePublisher.url = "path:../sources/service-publisher";
     backupClient.url = "path:../sources/backup-client";
   };

@@ -149,7 +149,7 @@ let
                 config = checkOptions schema file (value.config or { });
               }
               // lib.optionalAttrs (value ? meta) {
-                meta = (checkOptions schema file { meta = value.meta; }).meta;
+                inherit (checkOptions schema file { inherit (value) meta; }) meta;
               }
             else
               checkOptions schema file (removeAttrs value (builtins.attrNames metadata)) // metadata;

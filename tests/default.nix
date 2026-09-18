@@ -19,6 +19,7 @@ let
     }
     // import ./ordering.nix { inherit lib mkRegistry; }
     // import ./partial-contributions.nix { inherit lib mkRegistry; }
+    // import ./plain-import.nix { inherit lib; }
     // import ./priorities.nix { inherit lib mkRegistry; }
     // import ./schema.nix { inherit lib mkRegistry; }
     // import ./schema-ownership.nix { inherit lib mkRegistry; }

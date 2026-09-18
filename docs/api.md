@@ -2,7 +2,7 @@
 
 The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named participants. The consuming project supplies the option declarations and evaluates the participant configurations.
 
-Start with the complete [README example](../README.md#quick-start). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
+Start with the complete [README example](../README.md#quickstart). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
 
 ## Call `mkRegistry`
 
@@ -20,21 +20,36 @@ registry = inputs.nixos-registry.lib.mkRegistry {
 
 The function takes one attribute set with these arguments:
 
-| Argument | Value | Default |
-| --- | --- | --- |
-| `lib` | Nixpkgs library that supplies the module system and option types | Required |
-| `schemaModules` | List of modules that declare the shared options | Required |
-| `participants` | Attribute set of named, evaluated configurations | Required; `{ }` is valid |
-| `centralModules` | List of modules that define values for the shared options | `[ ]` |
-| `specialArgs` | Attribute set of arguments for schema and central module evaluation, including the schema within each participant's `registry` option | `{ }` |
+| Argument         | Value                                                                                                                                 | Default                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `lib`            | Nixpkgs library that supplies the module system and option types                                                                      | Required                 |
+| `schemaModules`  | List of modules that declare the shared options                                                                                       | Required                 |
+| `participants`   | Attribute set of named, evaluated configurations                                                                                      | Required; `{ }` is valid |
+| `centralModules` | List of modules that define values for the shared options                                                                             | `[ ]`                    |
+| `specialArgs`    | Attribute set of arguments for schema and central module evaluation, including the schema within each participant's `registry` option | `{ }`                    |
 
 ### `lib`
 
 Use the same Nixpkgs module-system revision for this argument and every participant. For NixOS, use the same `nixpkgs` input for `lib` and `nixpkgs.lib.nixosSystem`.
 
-The library flake has no required inputs and does not select Nixpkgs. Extra libraries or module arguments required by the schema must be supplied by the consuming project.
+Root development inputs select the repository's tools and test baselines. The caller-supplied `lib` remains authoritative for registry evaluation. Extra libraries or module arguments required by the schema must be supplied by the consuming project.
 
 Package selection is separate from module-system selection. A NixOS configuration can use a package from another Nixpkgs input while retaining its selected module system. The [NixOS example](examples.md#nixos) demonstrates this.
+
+### Plain-import access
+
+The constructor remains available without supplying or evaluating any development inputs:
+
+```nix
+mkRegistry = ((import ./flake.nix).outputs { }).lib.mkRegistry;
+registry = mkRegistry {
+  inherit lib participants schemaModules;
+};
+```
+
+Use the same caller-provided `lib` for participant evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) demonstrates this.
+
+Normal flake consumption can add the root development inputs to a consumer's lock graph. This packaging change supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md).
 
 ### `schemaModules`
 
@@ -87,12 +102,12 @@ This example uses the `endpoint` field from the [service schema](../examples/pla
 
 `mkRegistry` returns an attribute set with four attributes:
 
-| Attribute | Value | Use |
-| --- | --- | --- |
-| `module` | Nix module | Import it in each participant to declare the typed `registry` option. |
-| `central` | Attribute set of shared option values | Read data from the schema and central modules, without participant contributions. |
-| `combined` | Attribute set of shared option values | Read data from the schema, central modules, and all participant contributions. |
-| `validate` | Boolean value, or an evaluation error | Demand all combined data. Valid data produces `true`. |
+| Attribute  | Value                                 | Use                                                                               |
+| ---------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| `module`   | Nix module                            | Import it in each participant to declare the typed `registry` option.             |
+| `central`  | Attribute set of shared option values | Read data from the schema and central modules, without participant contributions. |
+| `combined` | Attribute set of shared option values | Read data from the schema, central modules, and all participant contributions.    |
+| `validate` | Boolean value, or an evaluation error | Demand all combined data. Valid data produces `true`.                             |
 
 `validate` is a value, so use `registry.validate` without function arguments. Both data sets include schema defaults and derived values. Either can remain incomplete if its definitions lack required fields.
 
@@ -100,14 +115,14 @@ This example uses the `endpoint` field from the [service schema](../examples/pla
 
 The schema determines the available shared options. The `registry` prefix is added only in participant configurations:
 
-| Place | Example path | Meaning |
-| --- | --- | --- |
-| Schema module | `options.services` | Declare the shared option. |
-| Central module | `services.metrics.port` | Define a shared value outside the participants. |
-| Participant module | `registry.services.metrics.port` | Contribute a value from this participant. |
-| Participant's local configuration | `config.registry.services.metrics.port` | Read this participant's own value. |
-| Registry passed as an argument | `registry.central.services.metrics.port` | Read the central value. |
-| Registry passed as an argument | `registry.combined.services.metrics.port` | Read the merged value. |
+| Place                             | Example path                              | Meaning                                         |
+| --------------------------------- | ----------------------------------------- | ----------------------------------------------- |
+| Schema module                     | `options.services`                        | Declare the shared option.                      |
+| Central module                    | `services.metrics.port`                   | Define a shared value outside the participants. |
+| Participant module                | `registry.services.metrics.port`          | Contribute a value from this participant.       |
+| Participant's local configuration | `config.registry.services.metrics.port`   | Read this participant's own value.              |
+| Registry passed as an argument    | `registry.central.services.metrics.port`  | Read the central value.                         |
+| Registry passed as an argument    | `registry.combined.services.metrics.port` | Read the merged value.                          |
 
 Setting `registry.services.metrics.port` in a module contributes data. Reading `registry.combined.services.metrics.port` reads shared data through the module argument. `config.registry` contains only the participant's local contribution evaluated against the schema.
 
@@ -151,11 +166,11 @@ Ordinary lists merge. Equal scalar definitions agree; conflicting scalar definit
 
 Override priorities select which definitions remain:
 
-| Definition | Override priority |
-| --- | --- |
-| `lib.mkForce value` | 50 |
-| Ordinary definition | 100 |
-| `lib.mkDefault value` | 1000 |
+| Definition                    | Override priority   |
+| ----------------------------- | ------------------- |
+| `lib.mkForce value`           | 50                  |
+| Ordinary definition           | 100                 |
+| `lib.mkDefault value`         | 1000                |
 | `lib.mkOverride number value` | The supplied number |
 
 The lowest number wins. Definitions with the same priority merge according to their option types.
@@ -200,11 +215,11 @@ In the [conditional-ordering example](../examples/plain-nix/conditional-ordering
 
 List ordering applies across central and participant definitions after override priorities select the definitions to keep:
 
-| List definition | Order priority |
-| --- | --- |
-| `lib.mkBefore values` | 500 |
-| Ordinary definition | 1000 |
-| `lib.mkAfter values` | 1500 |
+| List definition             | Order priority      |
+| --------------------------- | ------------------- |
+| `lib.mkBefore values`       | 500                 |
+| Ordinary definition         | 1000                |
+| `lib.mkAfter values`        | 1500                |
 | `lib.mkOrder number values` | The supplied number |
 
 Lower numbers come first. Apply ordering to nested list options. Ordering the whole `registry` option fails with both tested Nixpkgs revisions, as it does in direct module evaluation.
@@ -234,10 +249,10 @@ settings.domain = "example.test";
 registry.settings.endpoint = "api.${registry.combined.settings.domain}:8443";
 ```
 
-| Type of `settings` | Result with both tested Nixpkgs revisions |
-| --- | --- |
-| `lib.types.attrsOf lib.types.str` | Reading the domain or validating recurses. Merging inspects the endpoint definition, which reads the same collection. |
-| `lib.types.lazyAttrsOf lib.types.str` | Both values evaluate, and validation returns `true`. |
+| Type of `settings`                    | Result with both tested Nixpkgs revisions                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `lib.types.attrsOf lib.types.str`     | Reading the domain or validating recurses. Merging inspects the endpoint definition, which reads the same collection. |
+| `lib.types.lazyAttrsOf lib.types.str` | Both values evaluate, and validation returns `true`.                                                                  |
 
 The complete schema determines what gets evaluated. For example, `attrsOf (submodule ...)` in the combined-read example keeps the fields within each service record lazy. `lazyAttrsOf` has its own [limitations with conditional definitions](https://nixos.org/manual/nixos/stable/#sec-option-types-composed).
 
@@ -270,12 +285,12 @@ checks.${system}.registry =
   '';
 ```
 
-| Combined data | Result |
-| --- | --- |
-| Complete records with valid types | `true` |
-| Central records completed by participants | `true`, even if the central data is incomplete |
-| Type errors, missing required fields, or unknown options | Evaluation error |
-| Additional definitions of read-only fields | Evaluation error |
+| Combined data                                               | Result                                                             |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| Complete records with valid types                           | `true`                                                             |
+| Central records completed by participants                   | `true`, even if the central data is incomplete                     |
+| Type errors, missing required fields, or unknown options    | Evaluation error                                                   |
+| Additional definitions of read-only fields                  | Evaluation error                                                   |
 | A declared `assertions` option containing a false assertion | Checked as ordinary schema data; NixOS assertions are not executed |
 
 Errors retain the relevant option path, participant name, and available source filenames. This includes definitions with priorities, ordering, `mkMerge`, explicit `lib.mkDefinition` locations, and submodule source files. A missing required value has an option path but no definition filename.
