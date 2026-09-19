@@ -1,10 +1,10 @@
 {
   nixpkgs,
-  alternateNixpkgs,
   mkRegistry,
+  system,
 }:
 let
-  example = import ../examples/nixos { inherit mkRegistry nixpkgs; };
+  example = import ../examples/nixos { inherit mkRegistry nixpkgs system; };
 in
 {
   testNixosExampleEvaluatesAndValidates = {
@@ -77,22 +77,33 @@ in
   testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem = {
     expr =
       let
-        package = alternateNixpkgs.legacyPackages.x86_64-linux.prometheus;
+        pkgs = nixpkgs.legacyPackages.${system};
+        alternatePkgs = pkgs.extend (
+          _final: prev: {
+            prometheus = prev.prometheus.overrideAttrs { pname = "registry-test-prometheus"; };
+          }
+        );
+        package = alternatePkgs.prometheus;
         alternate = import ../examples/nixos {
-          inherit mkRegistry nixpkgs package;
+          inherit
+            mkRegistry
+            nixpkgs
+            package
+            system
+            ;
         };
         config = alternate.participants."metrics publisher".config;
         command = config.systemd.services.prometheus.serviceConfig.ExecStart;
       in
       {
-        differentSources = nixpkgs.outPath != alternateNixpkgs.outPath;
+        differentPackages = pkgs.prometheus.outPath != package.outPath;
         moduleSource = toString config.nixpkgs.flake.source;
         runsSelectedPackage = nixpkgs.lib.hasPrefix "${package}/bin/prometheus " command;
         port = alternate.registry.combined.services.metrics.port;
         inherit (alternate.registry) validate;
       };
     expected = {
-      differentSources = true;
+      differentPackages = true;
       moduleSource = toString nixpkgs.outPath;
       runsSelectedPackage = true;
       port = 9191;
