@@ -23,8 +23,8 @@ Root development inputs may now enter consumer lock graphs. This supersedes the 
 
 Add root tools, formatting, lint, workflow validation, contribution and release guidance, and an MIT license for original code. Preserve the stable and unstable library, example, diagnostic, and native recursion checks. Retain Darwin development outputs as best effort alongside the two supported Linux architectures.
 
-### Policy readiness
+### Policy adoption
 
-Add the immutable nixos-project-policy v0.1.1 workflow caller for every PR, default-branch push, and manual run. Hosted checks cover both Linux architectures, the effective development shell, formatting and lint, root checks, and PR titles. Local readiness uses the released checker with an explicit trusted current-record checkout.
+Add the immutable nixos-project-policy v0.1.1 workflow caller for every PR, default-branch push, and manual run. Hosted checks cover both Linux architectures, the effective development shell, formatting and lint, root checks, and PR titles. Local compliance uses the released checker with an explicit trusted current-record checkout.
 
-Adoption remains pending. Merge gates, audit access, and central activation are separate changes; this migration does not publish a library release.
+Enroll the project in current central records. Require PRs and all three policy statuses on `main`, with squash merging and the PR title as its subject. The central drift audit monitors policy selection, pins, and merge controls. Merge and release approval remain human decisions; this migration does not publish a library release.
