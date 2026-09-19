@@ -81,7 +81,33 @@ Run the release's shell probe externally to check effective tools in a cleared i
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.1.1 -- shell "$PWD"
 ```
 
-The policy repository is not a flake input, shell dependency, or build dependency. The shell probe checks the development environment without claiming readiness or adoption. Hosted policy checks and the central version selection are follow-up enrollment work; full readiness checking requires the v0.1.1 checker and an explicit trusted current-record checkout as described in its [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.1.1/docs/checker.md).
+The policy repository is not a flake input, shell dependency, or build dependency. The shell probe checks the development environment without claiming readiness or adoption.
+
+### Local readiness
+
+Full readiness checking uses the immutable v0.1.1 checker and an explicit trusted checkout of current records. Create the records checkout separately, or update an existing clean checkout from the policy repository's `main` branch, and record its commit with the validation evidence:
+
+```sh
+git clone --branch main --single-branch https://github.com/petohorvath/nixos-project-policy.git ../nixos-project-policy-records
+git -C ../nixos-project-policy-records rev-parse HEAD
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.1.1 -- \
+  --policy-root ../nixos-project-policy-records \
+  check "$PWD" --project nixos-registry --readiness --shell
+```
+
+Current records must select `policyVersion: v0.1.1` before readiness can pass. With approved pins and adoption pending, the expected result is `ready`. Omitting `--readiness` must still fail for a pending member. A successful shell probe or readiness result does not activate merge protection or record adoption. See the release's [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.1.1/docs/checker.md) for report meanings.
+
+### Hosted checks
+
+[Project checks](../.github/workflows/check.yml) calls the immutable v0.1.1 reusable workflow with read-only repository permissions. Its unconditional `policy` job runs for every opened, synchronized, reopened, or edited PR, including title edits, with no PR branch or path filters. Pushes to `main` and manual dispatch also run the workflow.
+
+The workflow verifies that the release is published, immutable, and not a prerelease. It captures the checker commit and one current-record commit for the run, then uses those snapshots in each job. Job logs identify the exact member revision, which is normally GitHub's candidate merge commit for a PR.
+
+Both `x86_64-linux` and `aarch64-linux` jobs run readiness with the cleared-environment shell probe, external formatting and Nix lint, root project checks, and applicable Conventional Commit PR-title validation. Root checks retain stable and unstable module-system coverage on each architecture. The VM step reports `not-applicable` because the member's VM-target list is empty; it provides no VM-suite evidence.
+
+The v0.1.1 caller is expected to produce `policy / Policy records`, `policy / Policy (x86_64-linux)`, and `policy / Policy (aarch64-linux)`. Confirm the actual successful status names and the workflow implementation before configuring merge gates. Central selection changes become hosted evidence only after the record PR is merged to policy `main`; rerun the member workflow to capture that snapshot.
+
+Adoption remains pending. Activation separately requires verified merge controls and audit access, a human-reviewed central adoption record, and a passing normal compliance check. Keep member, checker, and record revisions and hosted job links on the relevant PRs rather than adding a repository validation report.
 
 ## Documentation and issues
 
