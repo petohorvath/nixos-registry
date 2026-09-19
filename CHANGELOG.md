@@ -4,18 +4,24 @@
 
 ### Breaking tooling migration
 
-Development now runs from the repository root. The separate `dev/` flake is retired.
+Development now runs from the repository root with one selected `nixpkgs` input. The separate `dev/` flake is retired. Policy v0.3.0 runs stable and unstable compatibility through exact root-input overrides, replacing the two revisions previously embedded in the root flake.
 
-| Previous interface                       | Replacement                                                    |
-| ---------------------------------------- | -------------------------------------------------------------- |
-| `nix flake check ./dev`                  | `nix flake check --no-update-lock-file`                        |
-| `nix eval ./dev#lib.tests.stable --json` | `nix eval --no-update-lock-file .#lib.tests.stable --json`     |
-| `nix eval ./dev#lib.<example>.<channel>` | `nix eval --no-update-lock-file .#lib.<example>.<channel>`     |
-| Nix-only formatting from `dev/`          | Root `nix fmt --no-update-lock-file` for all supported sources |
-| `nixpkgsStable` input override           | `nixpkgs`                                                      |
-| `nixpkgsUnstable` input override         | `nixpkgs-unstable`                                             |
+| Previous interface                                                                                   | Replacement                                                                                     |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `nix flake check ./dev`                                                                              | `nix flake check --no-update-lock-file`                                                         |
+| `lib.tests.stable` or `lib.tests.unstable`                                                           | `lib.tests.<system>` with the selected root input                                               |
+| `lib.nixosExamples.<channel>`                                                                        | `lib.nixosExamples.<system>`                                                                    |
+| Other `lib.<example>.<channel>` evaluations                                                          | `lib.<example>` with the selected root input                                                    |
+| `checks.<system>.stable` or `.unstable`                                                              | `checks.<system>.evaluation`                                                                    |
+| `diagnostics-<channel>`, `ordering-<channel>`, `recursion-<channel>`, `flake-parts-<channel>` checks | `diagnostics`, `ordering`, `recursion`, `flake-parts` under `checks.<system>`                   |
+| Nix-only formatting from `dev/`                                                                      | Root `nix fmt --no-update-lock-file` for all supported sources                                  |
+| `nixpkgsStable` input override                                                                       | `nixpkgs`                                                                                       |
+| `nixpkgsUnstable` or `nixpkgs-unstable` root input override                                          | Override `nixpkgs` for a selected run; use the policy runner for shared-pin compatibility       |
+| `flakePartsExampleStable` or `flakePartsExampleUnstable` root input override                         | Removed; the integration uses the example lock's flake-parts source and selected root `nixpkgs` |
 
-Enter the new default shell with root `nix develop --no-update-lock-file` or `direnv allow`. Update commands and any `--override-input` or `inputs.<name>.follows` references to the new root input names. Approved stable, unstable, and unrelated dependency revisions are preserved.
+Enter the default shell with root `nix develop --no-update-lock-file` or `direnv allow`. For focused evaluation, use `nix eval --no-update-lock-file .#lib.tests.x86_64-linux --json` or `nix eval --no-update-lock-file .#lib.examples --json`. Update removed input overrides and `inputs.<name>.follows` references to the single root `nixpkgs` input. The root Nixpkgs revision and independently locked example dependencies are unchanged; redundant root lock nodes are removed.
+
+Run both shared compatibility revisions with the [policy runner](docs/development.md#compatibility-checks). The `.stable` and `.unstable` attributes are removed, rather than aliases for the same revision. NixOS checks use the selected system. The alternate-package test now uses a separately extended package set from the selected revision; simultaneous stable/unstable package mixing is no longer a separate coverage commitment.
 
 Root development inputs may now enter consumer lock graphs. This supersedes the original v1 specification's input-free-flake packaging promise. `lib.mkRegistry`, its arguments and defaults, the generated `registry` option, returned attributes, and caller-owned evaluation remain unchanged. Plain-import access through `((import ./flake.nix).outputs { }).lib.mkRegistry` still works without development inputs. Consumers needing a source-only input can set `flake = false`, as the independently locked flake-parts example now does.
 
@@ -23,8 +29,8 @@ Root development inputs may now enter consumer lock graphs. This supersedes the 
 
 Add root tools, formatting, lint, workflow validation, contribution and release guidance, and an MIT license for original code. Preserve the stable and unstable library, example, diagnostic, and native recursion checks. Retain Darwin development outputs as best effort alongside the two supported Linux architectures.
 
-### Policy readiness
+### Policy v0.3.0
 
-Add the immutable nixos-project-policy v0.1.1 workflow caller for every PR, default-branch push, and manual run. Hosted checks cover both Linux architectures, the effective development shell, formatting and lint, root checks, and PR titles. Local readiness uses the released checker with an explicit trusted current-record checkout.
+Select the immutable nixos-project-policy v0.3.0 caller named `Policy` for every PR, default-branch push, and manual run. Hosted checks separate compliance, formatting/lint, committed-lock project tests, and stable/unstable compatibility on both Linux architectures. The selected checker derives the required status set from central records. Local readiness and compatibility use an explicit trusted current-record checkout.
 
-Adoption remains pending. Merge gates, audit access, and central activation are separate changes; this migration does not publish a library release.
+Activation of v0.3.0 requires coordinated central selection, verified hosted statuses, and human authorization to replace the existing v0.1.1 merge gates. Existing enrollment is not evidence for the new gates. This migration does not publish a library release.

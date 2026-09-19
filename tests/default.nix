@@ -1,8 +1,8 @@
 {
   nixpkgs,
-  alternateNixpkgs,
   flakePartsExample,
   mkRegistry,
+  system,
 }:
 let
   inherit (nixpkgs) lib;
@@ -15,7 +15,7 @@ let
     // import ./minimal.nix { inherit lib mkRegistry; }
     // import ./merging.nix { inherit lib mkRegistry; }
     // import ./nixos.nix {
-      inherit alternateNixpkgs mkRegistry nixpkgs;
+      inherit mkRegistry nixpkgs system;
     }
     // import ./ordering.nix { inherit lib mkRegistry; }
     // import ./partial-contributions.nix { inherit lib mkRegistry; }
