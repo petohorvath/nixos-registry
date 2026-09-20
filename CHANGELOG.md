@@ -31,6 +31,6 @@ Add root tools, formatting, lint, workflow validation, contribution and release 
 
 ### Policy v0.3.0
 
-Select the immutable nixos-project-policy v0.3.0 caller named `Policy` for every PR, default-branch push, and manual run. Hosted checks separate compliance, formatting/lint, committed-lock project tests, and stable/unstable compatibility on both Linux architectures. The selected checker derives the required status set from central records. Local readiness and compatibility use an explicit trusted current-record checkout.
+Select the immutable nixos-project-policy v0.3.0 caller named `Policy` for every PR, default-branch push, and manual run. Hosted checks separate compliance, formatting/lint, committed-lock project tests, and stable/unstable compatibility on both Linux architectures. The selected checker derives the required status set from central records. Local compliance and compatibility use an explicit trusted current-record checkout.
 
-Activation of v0.3.0 requires coordinated central selection, verified hosted statuses, and human authorization to replace the existing v0.1.1 merge gates. Existing enrollment is not evidence for the new gates. This migration does not publish a library release.
+Activate v0.3.0 enrollment in current central records. Require PRs and all 11 policy statuses on `main`, including for administrators, with squash merging and the PR title as its subject. The central drift audit monitors policy selection, pins, and merge controls. Merge and release approval remain human decisions; this migration does not publish a library release.
