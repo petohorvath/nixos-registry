@@ -1,6 +1,6 @@
 # Development
 
-The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md). Activation of this version requires matching central records and verified merge gates. Existing v0.1.1 enrollment does not establish v0.3.0 enforcement.
+The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
 
 ## Host prerequisites
 
@@ -84,7 +84,7 @@ The policy repository is not a flake input, shell dependency, or build dependenc
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- shell "$PWD"
 ```
 
-### Policy records and readiness
+### Policy records and compliance
 
 Policy checking requires an explicit trusted checkout of current records. Create it separately, or update an existing clean checkout from policy `main`, and retain its commit with the PR's validation evidence:
 
@@ -93,10 +93,10 @@ git clone --branch main --single-branch https://github.com/petohorvath/nixos-pro
 git -C ../nixos-project-policy-records rev-parse HEAD
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- \
   --policy-root ../nixos-project-policy-records \
-  check "$PWD" --project nixos-registry --readiness --shell
+  check "$PWD" --project nixos-registry --shell
 ```
 
-The record must select `policyVersion: v0.3.0`. A version mismatch fails even with `--readiness`. During preparation, use a separately identified proposed record checkout for local validation; it is not active policy `main`. With approved pins and `adopted: false`, a successful readiness check reports `ready`. Once activation is recorded, run the same command without `--readiness` and require `pass`. Static checks report compatibility as `not-run`; readiness and shell success do not establish test execution or configure merge gates.
+Current records select `policyVersion: v0.3.0` with `adopted: true`. The normal check must report `pass` against approved pins. Static reports identify compatibility as `not-run`; execute the separate compatibility checks below for that evidence. For future enrollment changes, follow the selected release's [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/docs/maintenance.md#enrollment). A readiness result against proposed records does not change active enrollment.
 
 ### Compatibility checks
 
@@ -113,7 +113,7 @@ nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- 
 
 The runner verifies the effective root input through Nix metadata and executes full root host checks with an exact `--override-input nixpkgs`. It checks that the member source and lock remain unchanged and saves metadata and result artifacts. These runs intentionally use a different effective graph from the committed-lock check; they do not update the member lock. Keep both kinds of evidence on the PR, with the member, checker, and record commits and record digest. Run compatibility on each recorded Linux architecture; cached builds can satisfy checks. See the [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/docs/checker.md#compatibility-execution-and-evidence) for replay instructions.
 
-### Hosted checks and activation
+### Hosted checks
 
 [Project checks](../.github/workflows/check.yml) calls the immutable v0.3.0 reusable workflow with read-only repository permissions. Its unconditional job is named `Policy` and runs for every opened, synchronized, reopened, or edited PR, including title edits, with no PR branch or path filters. Pushes to `main` and manual dispatch also run the workflow.
 
@@ -128,9 +128,11 @@ nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- 
   --policy-root ../nixos-project-policy-records ci --project nixos-registry
 ```
 
-The mandatory statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. Confirm the actual successful names and workflow implementation before changing merge gates. Retain a complete central `requiredChecks` compatibility list while any member still selects a policy older than v0.3.0.
+The mandatory statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. All 11 statuses are bound to GitHub Actions and required on an up-to-date PR before a human approves its squash merge. Protection applies to administrators. No VM gate is required.
 
-Coordinate the central selection and member PRs before activation. The hosted workflow reads policy `main`, so a proposed record checkout alone cannot enable member CI. Keep the existing v0.1.1 merge gates until the new statuses are verified and a human authorizes their replacement. Activation requires verified merge controls and audit access, a human-reviewed adoption record, and a passing normal compliance check and hosted drift audit. Keep this evidence on the PRs; local validation does not authorize activation, merges, or release publication.
+The central drift audit inspects adopted members and their GitHub merge controls using the read-only access described in the [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/docs/maintenance.md#audit-access). Keep member, checker, and record revisions and hosted job links on the relevant PRs.
+
+Future policy upgrades require coordinated member and central-record PRs, verified hosted statuses, and human approval of activation and gate changes. The hosted workflow reads policy `main`; proposed records remain separate until their PR is merged. The selected release's maintenance procedure defines the enrollment and record-compatibility requirements.
 
 ## Documentation and issues
 
