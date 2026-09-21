@@ -375,6 +375,20 @@ clientEndpoint = registry.combined.services.api.endpoint;
 
 The central data supplies the domain and port. The combined data completes the record and derives its endpoint without demanding a complete local record.
 
+With the static NixOS module, read the same shared values through the participant's `config.registry`:
+
+```nix
+{ config, ... }: {
+  registry.services.api.host = "api.${config.registry.combined.domain}";
+  environment.etc."api-endpoint".text =
+    config.registry.combined.services.api.endpoint;
+}
+```
+
+Here the project's `registry.settings.centralModules` supplies `domain = "example.test"` and `services.api.port = 8443`. The local contribution at `config.registry.services.api.host` is `api.example.test`; its local port remains undefined. `config.registry.central.services.api.port` reads the central port, while `config.registry.combined.services.api.endpoint` reads the completed endpoint `api.example.test:8443`. `config.registry.validate` validates that completed record without requiring a complete local or central record.
+
+An unrelated invalid contribution can remain unused while reading an independent combined field. Central reads do not collect participants. Supplying shared results through the common module does not itself force validation; importing either static module and reading unrelated configuration can leave the registry unevaluated. The [static consumer tests](../tests/modules/static-reads.nix) exercise these reads and explicit validation through both public modules.
+
 Collection types can force related definitions during merging. In the [collection example](../examples/plain-nix/collection-laziness.nix), both values are under one `settings` option:
 
 ```nix
@@ -392,6 +406,8 @@ registry.settings.endpoint = "api.${registry.combined.settings.domain}:8443";
 
 The complete schema determines what gets evaluated. For example, `attrsOf (submodule ...)` in the combined-read example keeps the fields within each service record lazy. `lazyAttrsOf` has its own [limitations with conditional definitions](https://nixos.org/manual/nixos/stable/#sec-option-types-composed).
 
+The static interfaces preserve this distinction between strict and lazy collections. Use a schema field such as `endpoints` for the same example through static modules: the constructor example's `settings` name is reserved by the static interface. Shared result options do not remove schema-induced strictness or resolve value cycles.
+
 Lazy collections do not resolve value cycles. If one service reads a second service and the second reads the first, shared reads and validation can raise Nix's `infinite recursion encountered` error. The [value-cycle example](../examples/plain-nix/value-cycle.nix) demonstrates this.
 
 ### Schema and central data during participant setup
@@ -403,7 +419,7 @@ builtins.attrNames registry.central
 builtins.attrNames registry.combined
 ```
 
-Participants can inspect these keys when selecting module imports. They can also read available `registry.central` values without collecting participant contributions.
+With the constructor, participants can inspect these keys through caller-supplied module arguments when selecting module imports. They can also read available `registry.central` values without collecting participant contributions. Static participants read `config.registry.central` and `config.registry.combined` after imports are assembled; using those participant configuration values to select the same imports causes a module-system cycle, even for an independent central value.
 
 Keep schema declarations, their structure, and their arguments independent of participant evaluation. Central values used to set up a participant must also have independent dependencies. A central definition that reads participant data can cause recursion.
 
@@ -411,7 +427,7 @@ Keep schema declarations, their structure, and their arguments independent of pa
 
 `registry.validate` evaluates all combined data. Valid data returns `true`; invalid data raises a Nix evaluation error. It does not separately require every local or central record to be complete.
 
-To make validation part of a flake check, use this pattern with a package set for the selected `system`:
+To make constructor validation part of a flake check, use this pattern with a package set for the selected `system`:
 
 ```nix
 checks.${system}.registry =
@@ -420,6 +436,26 @@ checks.${system}.registry =
     touch "$out"
   '';
 ```
+
+With the static flake module, capture the project-level registry before entering `perSystem`:
+
+```nix
+{ config, ... }:
+let
+  shared = config.registry;
+in
+{
+  perSystem = { pkgs, ... }: {
+    checks.registry =
+      assert shared.validate;
+      pkgs.runCommand "registry-validation" { } ''
+        touch "$out"
+      '';
+  };
+}
+```
+
+Run `nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry` for this check alone. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
 
 | Combined data                                               | Result                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |

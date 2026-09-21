@@ -80,6 +80,13 @@ let
     registry.validate;
 in
 {
+  flakeStaticInvalidPort =
+    ((import ./fixtures/static-flake-consumer.nix { inherit flakeParts nixpkgs system; }) {
+      schemaModules = [ serviceSchema ];
+      centralModules = [ { domain = "example.test"; } ];
+      participantModules."static service publisher" = [ ./fixtures/invalid-service.nix ];
+    }).checks.${system}.registry.drvPath;
+
   flakeMissingSchema =
     (mkProjectRegistry [
       {

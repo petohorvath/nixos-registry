@@ -40,11 +40,15 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticParticipantsCo
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticWiringDoesNotSuppressDefaultContributions
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleSharesOneRegistryWithNixosParticipants
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleRequiresSchemaAndParticipantSettings
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticCombinedReadsLeaveAnInvalidServiceUnused
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeChecksValidateCompletedRecords
 ```
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
 
 The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS participants, composed project settings, explicit membership, empty participants, and separate schema/central and participant arguments. The diagnostic check covers missing required settings, duplicate participant names and argument keys, and source attribution for central conflicts.
+
+The [static read tests](../tests/modules/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data and reject unused schema errors, while ordinary reads leave validation unevaluated. The diagnostic check verifies error attribution through this flake-check path; the recursion check also covers static collection forcing, value cycles, and participant imports selected from their own registry configuration.
 
 The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results. The standalone flake-parts example also uses its own committed lock:
 

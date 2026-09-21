@@ -20,6 +20,10 @@ let
     }
     // import ./modules/nixos.nix { inherit nixpkgs system; }
     // import ./modules/static-contributions.nix { inherit nixpkgs system; }
+    // import ./modules/static-reads.nix {
+      inherit nixpkgs system;
+      flakeParts = flakePartsExample.inputs.flake-parts;
+    }
     // import ./nixos.nix {
       inherit mkRegistry nixpkgs system;
     }
