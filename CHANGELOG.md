@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Static consumer examples
+
+Use both static public imports in the maintained [separate-source flake-parts example](docs/examples.md#flake-parts-and-separate-source-repositories). Project-level `registry.settings` selects the schema, central definitions, and caller-constructed NixOS participants. A common module supplies schema settings and the shared `central`, `combined`, and `validate` results; participant modules read `config.registry` and contribute at direct schema paths. Its flake check explicitly validates the completed combined data.
+
+The API hostname moves to central definitions and its participant contributes the configured Prometheus port. The backup participant contributes its configured SSH service and reads the completed API endpoint. Combined endpoints remain `api.example.test:8443` and `backup.example.test:8022`, and the dependent command remains `backup --api api.example.test:8443`. The example's `lib.result.central` now selects the available domain and API hostname; the full central record lacks the port. Its `lib.registry` exposes project settings and results instead of a generated module. Its source flakes add `nixosModules.default` and retain their generic exports.
+
+The library interfaces remain additive. Existing constructor consumers, plain-import access, generic participants, and the ordinary-flake static NixOS example remain supported without flake-parts. Adopting static participants requires avoiding the schema-root names `settings`, `central`, `combined`, and `validate`, and reading shared results after imports are assembled. These restrictions do not narrow the constructor's schema namespace or its module-argument route for independent setup reads. All committed dependency selections remain unchanged.
+
 ### Static flake module
 
 Add `flakeModules.default` for flake-parts consumers to configure one shared registry through `registry.settings` and read `registry.central`, `registry.combined`, and `registry.validate`. Schema modules and participants must be explicitly supplied; empty collections are valid. Central modules default to `[ ]`, and schema/central arguments default to `{ }`.

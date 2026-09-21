@@ -4,5 +4,6 @@
 
   outputs = _inputs: {
     modules.generic.default = ./module.nix;
+    nixosModules.default = ./nixos.nix;
   };
 }

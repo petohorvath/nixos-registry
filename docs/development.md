@@ -34,6 +34,7 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testCollectsCentralAndNa
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceParticipantsKeepLocalContributionsDistinct
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceExampleCompletesPartialRecords
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleContributesAndReadsSharedResults
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleRejectsReservedSchemaNames
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticParticipantsCompletePartialRecords
@@ -46,7 +47,7 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeChecksVal
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
 
-The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS participants, composed project settings, explicit membership, empty participants, and separate schema/central and participant arguments. The diagnostic check covers missing required settings, duplicate participant names and argument keys, and source attribution for central conflicts.
+The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS participants, composed project settings, explicit membership, empty participants, and separate schema/central and participant arguments. The [separate-source example tests](../tests/flake-parts.nix) also check the maintained consumer's configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its participants are evaluation-only `x86_64-linux` configurations; check derivations run on the selected host. The diagnostic check covers missing required settings, duplicate participant names and argument keys, and source attribution for central conflicts.
 
 The [static read tests](../tests/modules/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data and reject unused schema errors, while ordinary reads leave validation unevaluated. The diagnostic check verifies error attribution through this flake-check path; the recursion check also covers static collection forcing, value cycles, and participant imports selected from their own registry configuration.
 
