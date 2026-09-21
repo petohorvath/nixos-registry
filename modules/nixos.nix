@@ -58,15 +58,13 @@ in
         in
         interface.checkSchema schemaOptions (
           contributionType.merge [ "registry" ] (
-            map (
-              definition: definition // { value = interface.selectContribution schemaOptions definition.value; }
-            ) options.registry.definitionsWithLocations
+            interface.selectContributions schemaOptions options.registry.definitionsWithLocations
           )
           // lib.getAttrs interface.reservedNames config
         );
     }
     // {
       _nixosRegistry = true;
-      _nixosRegistrySelectContribution = interface.selectContribution;
+      _nixosRegistrySelectContributions = interface.selectContributions;
     };
 }

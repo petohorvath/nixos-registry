@@ -36,6 +36,8 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testNixosUsesAnotherPack
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceParticipantsKeepLocalContributionsDistinct
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleContributesAndReadsSharedResults
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleRejectsReservedSchemaNames
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticParticipantsCompletePartialRecords
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticWiringDoesNotSuppressDefaultContributions
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleSharesOneRegistryWithNixosParticipants
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleRequiresSchemaAndParticipantSettings
 ```
@@ -54,6 +56,8 @@ nix flake check --no-update-lock-file ./examples/flake-parts
 ### Failure and diagnostic checks
 
 Native ordering and recursion errors require separate evaluator processes because `builtins.tryEval` cannot catch them. [Ordering checks](../tests/ordering-failures.sh) exercise whole-contribution ordering, [recursion checks](../tests/recursion.sh) demand strict collection reads and cyclic values, and [diagnostic checks](../tests/diagnostics.sh) assert option paths, participant identities, and available source filenames rather than complete error snapshots.
+
+The ordering and contribution diagnostic cases run through both the generated module and actual NixOS participants importing the static module. The [static contribution suite](../tests/modules/static-contributions.nix) compares partial records and definition properties with direct module evaluation, checks the separation of shared wiring from contributions, and reuses the schema-ownership cases through the static public interface.
 
 Run a focused derivation, replacing `x86_64-linux` with the current system:
 

@@ -14,6 +14,8 @@ Add `nixosModules.default` for direct imports, `registry.settings` for schema co
 
 The static interface reserves `settings`, `central`, `combined`, and `validate` at the schema root and rejects collisions. A schema field named `schemaModules` remains valid. Existing constructor consumers need no migration; its arguments, generated module, results, plain-import access, and generic participants remain supported, including schemas using the new static interface's reserved names. When adopting the static module, move schema configuration into `registry.settings`, supply the shared results through the common module, and read them through `config.registry`. Keep constructor-based module arguments for shared reads needed during import discovery.
 
+Preserve partial records, defaults, derived values, conditions, priorities, ordering, and schema ownership through static NixOS participants. Exclude settings and results inside contribution properties, and prevent definitions containing only shared wiring from suppressing default contributions. Whole-root overrides still select local wiring under ordinary module rules; the [root-property guidance](docs/api.md#properties-at-the-static-contribution-root) shows how to keep it at the selected priority. Explicit empty contributions retain their priority semantics.
+
 ### Breaking tooling migration
 
 Development now runs from the repository root with one selected `nixpkgs` input. The separate `dev/` flake is retired. Policy v0.3.0 runs stable and unstable compatibility through exact root-input overrides, replacing the two revisions previously embedded in the root flake.
