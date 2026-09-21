@@ -36,9 +36,13 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testNixosUsesAnotherPack
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceParticipantsKeepLocalContributionsDistinct
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleContributesAndReadsSharedResults
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleRejectsReservedSchemaNames
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleSharesOneRegistryWithNixosParticipants
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleRequiresSchemaAndParticipantSettings
 ```
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
+
+The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS participants, composed project settings, explicit membership, empty participants, and separate schema/central and participant arguments. The diagnostic check covers missing required settings, duplicate participant names and argument keys, and source attribution for central conflicts.
 
 The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results. The standalone flake-parts example also uses its own committed lock:
 

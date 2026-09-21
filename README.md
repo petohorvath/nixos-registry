@@ -6,6 +6,8 @@ The public library entrypoint is `lib.mkRegistry`. The function takes shared opt
 
 NixOS consumers can also import the static `nixosModules.default` and configure its schema through `registry.settings`. Contributions keep paths such as `registry.services.metrics.port`; shared reads use `config.registry.central` and `config.registry.combined`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires these options to one caller-owned registry without flake-parts.
 
+Flake-parts consumers can import `flakeModules.default` to compose the shared registry through project-level `registry.settings` options. The [static flake-module example](docs/examples.md#static-flake-module) shows both imports and the common NixOS module that passes settings and shared results to explicitly selected participants.
+
 Data is shared during Nix evaluation. All participating configurations must be available in the same Nix evaluation, including configurations defined in separate repositories. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry) is a separate feature for looking up flake names.
 
 ## Support

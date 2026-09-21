@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Static flake module
+
+Add `flakeModules.default` for flake-parts consumers to configure one shared registry through `registry.settings` and read `registry.central`, `registry.combined`, and `registry.validate`. Schema modules and participants must be explicitly supplied; empty collections are valid. Central modules default to `[ ]`, and schema/central arguments default to `{ }`.
+
+Project modules can append schema and central modules and add distinct named participants. Duplicate participant names or argument keys at the same priority fail when demanded instead of recursively merging whole evaluations or arguments. The [usage example](docs/examples.md#static-flake-module) aligns the consumer's module-system revisions and passes shared settings and results through a common static NixOS module. Existing constructor and ordinary-flake consumers need no migration; the core library and static NixOS module remain usable without flake-parts.
+
 ### Static NixOS participant module
 
 Add `nixosModules.default` for direct imports, `registry.settings` for schema configuration, and `registry.central`, `registry.combined`, and `registry.validate` for caller-supplied shared results. Contributions retain direct schema paths such as `registry.services.metrics.port`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires participants to one shared constructor evaluation without flake-parts.

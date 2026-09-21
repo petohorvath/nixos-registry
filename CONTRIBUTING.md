@@ -18,6 +18,8 @@ The public API comprises `lib.mkRegistry`; its `lib`, `schemaModules`, `particip
 
 The static `nixosModules.default` export is also public, including `registry.settings.schemaModules`, `registry.settings.specialArgs`, the `registry.central`, `registry.combined`, and `registry.validate` result options, and direct schema contribution paths. Its [reserved names and wiring](docs/api.md#static-nixos-module) are part of that interface; the generated constructor module retains its existing namespace.
 
+The static `flakeModules.default` export declares project-level `registry.settings.schemaModules`, `participants`, `centralModules`, and `specialArgs`, and the same three result paths. Its [required settings, defaults, composition, and conflict behavior](docs/api.md#static-flake-module) are public. The enclosing consumer evaluator supplies the module library; callers construct and select participants and pass shared settings and results through the static NixOS module.
+
 Keep the constructor usable through `((import ./flake.nix).outputs { }).lib.mkRegistry` without supplying or evaluating development inputs. Root development inputs can enter normal consumer lock graphs. This packaging contract replaces the original v1 input-free-flake promise while preserving the library contract.
 
 Root `devShells`, `formatter`, and `checks` supply development entrypoints. Root `lib.tests.<system>` and the documented `lib` example attributes provide focused evaluation using the selected root `nixpkgs`. Removing or renaming these entrypoints or input overrides is a breaking tooling change and requires migration guidance.

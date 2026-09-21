@@ -1,6 +1,6 @@
 # API reference
 
-The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named participants, and `nixosModules.default`, a static participant module. The consuming project supplies the option declarations and evaluates the participant configurations.
+The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named participants; `nixosModules.default`, a static participant module; and `flakeModules.default`, a static flake-parts module for project-level registry settings and results. The consuming project supplies the option declarations and evaluates the participant configurations.
 
 Start with the complete [README example](../README.md#quickstart). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
 
@@ -112,6 +112,43 @@ This example uses the `endpoint` field from the [service schema](../examples/pla
 `validate` is a value, so use `registry.validate` without function arguments. Both data sets include schema defaults and derived values. Either can remain incomplete if its definitions lack required fields.
 
 ## Option paths and shared reads
+
+### Static flake module
+
+Import `inputs.nixos-registry.flakeModules.default` into a flake-parts configuration. It evaluates one shared registry with the enclosing evaluator's `lib` and exposes the following options on that configuration:
+
+| Project option                     | Meaning                                                                          | Default                  |
+| ---------------------------------- | -------------------------------------------------------------------------------- | ------------------------ |
+| `registry.settings.schemaModules`  | Shared option declarations; lists from project modules concatenate.              | Required; `[ ]` is valid |
+| `registry.settings.participants`   | Named, whole participant evaluation results, including `options`.                | Required; `{ }` is valid |
+| `registry.settings.centralModules` | Central definitions; lists from project modules concatenate.                     | `[ ]`                    |
+| `registry.settings.specialArgs`    | Arguments for schema and central evaluation, including the participant's schema. | `{ }`                    |
+| `registry.central`                 | Read-only central data.                                                          | Computed                 |
+| `registry.combined`                | Read-only combined data.                                                         | Computed                 |
+| `registry.validate`                | Read-only explicit validation, returning `true` or raising an error.             | Computed                 |
+
+Supply required settings explicitly, even when empty. Settings may be split across project modules. Distinct participant names and argument keys compose; each value is kept opaque and lazy. Multiple definitions of the same participant name or argument key at the same override priority fail when demanded, even if identical. Normal overrides such as `lib.mkDefault` and `lib.mkForce` select definitions before that check. Module lists retain definition origins, and conflicting central values use the schema's ordinary merge rules.
+
+The caller constructs every participant, chooses its module arguments, and selects registry membership through `registry.settings.participants`. Configurations elsewhere in `flake.nixosConfigurations` are not automatically enrolled. Names need not match hostnames. Registry `specialArgs` does not replace the arguments passed separately to `nixosSystem`.
+
+Import the static NixOS module in a common participant module and pass only `schemaModules` and `specialArgs` from the project settings, plus the three shared results:
+
+```nix
+# In a flake-parts module receiving { config, inputs, ... }:
+commonModule = {
+  imports = [ inputs.nixos-registry.nixosModules.default ];
+  registry = {
+    settings = {
+      inherit (config.registry.settings) schemaModules specialArgs;
+    };
+    inherit (config.registry) central combined validate;
+  };
+};
+```
+
+The [complete usage example](examples.md#static-flake-module) shows both imports and participant construction. Align `flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs"` with the input used by `nixosSystem`, so the enclosing evaluator and participants use the same module-system revision. The producer's development input does not select registry semantics.
+
+Project-level `registry` contains settings and results; schema contributions belong to the participants' direct `registry` paths. Their static interface reserves the names described below and excludes settings and results from contributions. Keep schema structure and settings independent of participant values, and do not choose imports from these configuration results. Reading a result demands only that value; importing the flake module does not install or force a validation check. Existing constructor-based [flake-check wiring](examples.md#flake-parts-and-separate-source-repositories) also applies to the explicit validation value. Flake-parts remains optional for constructor and ordinary-flake consumers.
 
 ### Static NixOS module
 

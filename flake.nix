@@ -57,6 +57,7 @@
       );
     in
     {
+      flakeModules.default = import ./modules/flake.nix;
       nixosModules.default = import ./modules/nixos.nix;
 
       lib = {
