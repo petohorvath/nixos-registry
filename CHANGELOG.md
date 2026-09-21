@@ -2,14 +2,29 @@
 
 ## Unreleased
 
+### Breaking rename to nodes
+
+Rename participants to **nodes** throughout the public API, examples, diagnostics, and documentation. A node remains a named, evaluated configuration included in a registry; generic `lib.evalModules` configurations remain supported, and node names need not be hostnames.
+
+| Previous interface                           | Replacement                   |
+| -------------------------------------------- | ----------------------------- |
+| `mkRegistry { participants = ...; }`         | `mkRegistry { nodes = ...; }` |
+| `registry.settings.participants`             | `registry.settings.nodes`     |
+| Flake-parts example `lib.participants`       | `lib.nodes`                   |
+| NixOS example function result `participants` | `nodes`                       |
+
+Rename the argument and option before upgrading; the old names have no compatibility aliases. Keep the same attribute names and whole evaluation results in the node set. Node selection, contribution merging, laziness, and caller-owned module evaluation are unchanged.
+
+Focused commands under `lib.tests.<system>` must replace `Participant` with `Node` and `Participants` with `Nodes` in test names. For example, `testCollectsCentralAndNamedParticipants` becomes `testCollectsCentralAndNamedNodes`. The test-name cleanup table below lists the current replacements. Diagnostic source labels now use `node <name>` instead of `participant <name>`.
+
 ### Breaking test-name cleanup
 
 Shorten the longest evaluation test names. Focused commands under `lib.tests.<system>` must use the replacements below. The suite retains all 145 cases and their assertions.
 
 | Previous test name                                                        | Replacement                                               |
 | ------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `testCentralContributionHasTheSameRootPrecedenceAsParticipants`           | `testCentralAndParticipantsShareRootPrecedence`           |
-| `testCentralViewUsesTheSameContributionRootWithoutParticipants`           | `testCentralRootPrioritiesIgnoreParticipants`             |
+| `testCentralContributionHasTheSameRootPrecedenceAsParticipants`           | `testCentralAndNodesShareRootPrecedence`                  |
+| `testCentralViewUsesTheSameContributionRootWithoutParticipants`           | `testCentralRootPrioritiesIgnoreNodes`                    |
 | `testCollectionTypesDoNotAllowPublicationSchemaDeclarations`              | `testCollectionsRejectContributionSchemaExtensions`       |
 | `testLazyCollectionAllowsAContributionToReadAnotherEntryExample`          | `testLazyCollectionExampleReadsSiblingEntries`            |
 | `testPublicationsCanDisableModulesRelativeToModulesPath`                  | `testDisablesContributionModulesByRelativePath`           |
@@ -20,7 +35,7 @@ Shorten the longest evaluation test names. Focused commands under `lib.tests.<sy
 | `testStaticContributionsCanDisableModulesRelativeToModulesPath`           | `testStaticDisablesContributionModulesByRelativePath`     |
 | `testStaticContributionsCannotDisableSchemaModulesNamedByTheirOptionPath` | `testStaticRejectsDisablingSchemaModulesByOptionPath`     |
 | `testStaticContributionsCannotDisableSchemaModulesRelativeToModulesPath`  | `testStaticRejectsDisablingSchemaModulesByRelativePath`   |
-| `testStaticFlakeModuleAcceptsEmptyParticipantsAndDefaultSettings`         | `testStaticFlakeDefaultsAllowEmptyParticipants`           |
+| `testStaticFlakeModuleAcceptsEmptyParticipantsAndDefaultSettings`         | `testStaticFlakeDefaultsAllowEmptyNodes`                  |
 | `testStaticModuleImportsAndUnrelatedReadsDoNotDemandSettingsOrValidation` | `testStaticUnrelatedReadsLeaveRegistryUnevaluated`        |
 | `testStaticRootOverridesCannotCompleteRecordsFromWeakerContributions`     | `testStaticRootOverridesDiscardWeakerFields`              |
 | `testStaticScalarConflictsAndReadOnlyValuesMatchDirectEvaluation`         | `testStaticScalarAndReadOnlyConflictsMatchDirect`         |
@@ -30,25 +45,25 @@ For example, use `nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSt
 
 ### Static consumer examples
 
-Use both static public imports in the maintained [separate-source flake-parts example](docs/examples.md#flake-parts-and-separate-source-repositories). Project-level `registry.settings` selects the schema, central definitions, and caller-constructed NixOS participants. A common module supplies schema settings and the shared `central`, `combined`, and `validate` results; participant modules read `config.registry` and contribute at direct schema paths. Its flake check explicitly validates the completed combined data.
+Use both static public imports in the maintained [separate-source flake-parts example](docs/examples.md#flake-parts-and-separate-source-repositories). Project-level `registry.settings` selects the schema, central definitions, and caller-constructed NixOS nodes. A common module supplies schema settings and the shared `central`, `combined`, and `validate` results; node modules read `config.registry` and contribute at direct schema paths. Its flake check explicitly validates the completed combined data.
 
-The API hostname moves to central definitions and its participant contributes the configured Prometheus port. The backup participant contributes its configured SSH service and reads the completed API endpoint. Combined endpoints remain `api.example.test:8443` and `backup.example.test:8022`, and the dependent command remains `backup --api api.example.test:8443`. The example's `lib.result.central` now selects the available domain and API hostname; the full central record lacks the port. Its `lib.registry` exposes project settings and results instead of a generated module. Its source flakes add `nixosModules.default` and retain their generic exports.
+The API hostname moves to central definitions and its node contributes the configured Prometheus port. The backup node contributes its configured SSH service and reads the completed API endpoint. Combined endpoints remain `api.example.test:8443` and `backup.example.test:8022`, and the dependent command remains `backup --api api.example.test:8443`. The example's `lib.result.central` now selects the available domain and API hostname; the full central record lacks the port. Its `lib.registry` exposes project settings and results instead of a generated module. Its source flakes add `nixosModules.default` and retain their generic exports.
 
-The library interfaces remain additive. Existing constructor consumers, plain-import access, generic participants, and the ordinary-flake static NixOS example remain supported without flake-parts. Adopting static participants requires avoiding the schema-root names `settings`, `central`, `combined`, and `validate`, and reading shared results after imports are assembled. These restrictions do not narrow the constructor's schema namespace or its module-argument route for independent setup reads. All committed dependency selections remain unchanged.
+The static interfaces remain additive apart from the node rename above. Existing constructor consumers, plain-import access, generic nodes, and the ordinary-flake static NixOS example remain supported without flake-parts. Adopting static nodes requires avoiding the schema-root names `settings`, `central`, `combined`, and `validate`, and reading shared results after imports are assembled. These restrictions do not narrow the constructor's schema namespace or its module-argument route for independent setup reads. All committed dependency selections remain unchanged.
 
 ### Static flake module
 
-Add `flakeModules.default` for flake-parts consumers to configure one shared registry through `registry.settings` and read `registry.central`, `registry.combined`, and `registry.validate`. Schema modules and participants must be explicitly supplied; empty collections are valid. Central modules default to `[ ]`, and schema/central arguments default to `{ }`.
+Add `flakeModules.default` for flake-parts consumers to configure one shared registry through `registry.settings` and read `registry.central`, `registry.combined`, and `registry.validate`. Schema modules and nodes must be explicitly supplied; empty collections are valid. Central modules default to `[ ]`, and schema/central arguments default to `{ }`.
 
-Project modules can append schema and central modules and add distinct named participants. Duplicate participant names or argument keys at the same priority fail when demanded instead of recursively merging whole evaluations or arguments. The [usage example](docs/examples.md#static-flake-module) aligns the consumer's module-system revisions and passes shared settings and results through a common static NixOS module. Existing constructor and ordinary-flake consumers need no migration; the core library and static NixOS module remain usable without flake-parts.
+Project modules can append schema and central modules and add distinct named nodes. Duplicate node names or argument keys at the same priority fail when demanded instead of recursively merging whole evaluations or arguments. The [usage example](docs/examples.md#static-flake-module) aligns the consumer's module-system revisions and passes shared settings and results through a common static NixOS module. Apart from the node rename above, existing constructor and ordinary-flake consumers need no migration; the core library and static NixOS module remain usable without flake-parts.
 
-### Static NixOS participant module
+### Static NixOS node module
 
-Add `nixosModules.default` for direct imports, `registry.settings` for schema configuration, and `registry.central`, `registry.combined`, and `registry.validate` for caller-supplied shared results. Contributions retain direct schema paths such as `registry.services.metrics.port`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires participants to one shared constructor evaluation without flake-parts.
+Add `nixosModules.default` for direct imports, `registry.settings` for schema configuration, and `registry.central`, `registry.combined`, and `registry.validate` for caller-supplied shared results. Contributions retain direct schema paths such as `registry.services.metrics.port`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires nodes to one shared constructor evaluation without flake-parts.
 
-The static interface reserves `settings`, `central`, `combined`, and `validate` at the schema root and rejects collisions. A schema field named `schemaModules` remains valid. Existing constructor consumers need no migration; its arguments, generated module, results, plain-import access, and generic participants remain supported, including schemas using the new static interface's reserved names. When adopting the static module, move schema configuration into `registry.settings`, supply the shared results through the common module, and read them through `config.registry`. Keep constructor-based module arguments for shared reads needed during import discovery.
+The static interface reserves `settings`, `central`, `combined`, and `validate` at the schema root and rejects collisions. A schema field named `schemaModules` remains valid. Apart from the node rename above, existing constructor consumers need no migration; its generated module, results, plain-import access, and generic nodes remain supported, including schemas using the new static interface's reserved names. When adopting the static module, move schema configuration into `registry.settings`, supply the shared results through the common module, and read them through `config.registry`. Keep constructor-based module arguments for shared reads needed during import discovery.
 
-Preserve partial records, defaults, derived values, conditions, priorities, ordering, and schema ownership through static NixOS participants. Exclude settings and results inside contribution properties, and prevent definitions containing only shared wiring from suppressing default contributions. Whole-root overrides still select local wiring under ordinary module rules; the [root-property guidance](docs/api.md#properties-at-the-static-contribution-root) shows how to keep it at the selected priority. Explicit empty contributions retain their priority semantics.
+Preserve partial records, defaults, derived values, conditions, priorities, ordering, and schema ownership through static NixOS nodes. Exclude settings and results inside contribution properties, and prevent definitions containing only shared wiring from suppressing default contributions. Whole-root overrides still select local wiring under ordinary module rules; the [root-property guidance](docs/api.md#properties-at-the-static-contribution-root) shows how to keep it at the selected priority. Explicit empty contributions retain their priority semantics.
 
 ### Breaking tooling migration
 
@@ -71,7 +86,7 @@ Enter the default shell with root `nix develop --no-update-lock-file` or `direnv
 
 Run both shared compatibility revisions with the [policy runner](docs/development.md#compatibility-checks). The `.stable` and `.unstable` attributes are removed, rather than aliases for the same revision. NixOS checks use the selected system. The alternate-package test now uses a separately extended package set from the selected revision; simultaneous stable/unstable package mixing is no longer a separate coverage commitment.
 
-Root development inputs may now enter consumer lock graphs. This supersedes the original v1 specification's input-free-flake packaging promise. `lib.mkRegistry`, its arguments and defaults, the generated `registry` option, returned attributes, and caller-owned evaluation remain unchanged. Plain-import access through `((import ./flake.nix).outputs { }).lib.mkRegistry` still works without development inputs. Consumers needing a source-only input can set `flake = false`, as the independently locked flake-parts example now does.
+Root development inputs may now enter consumer lock graphs. This supersedes the original v1 specification's input-free-flake packaging promise. Apart from the node rename above, `lib.mkRegistry`, its argument defaults, the generated `registry` option, returned attributes, and caller-owned evaluation remain unchanged. Plain-import access through `((import ./flake.nix).outputs { }).lib.mkRegistry` still works without development inputs. Consumers needing a source-only input can set `flake = false`, as the independently locked flake-parts example now does.
 
 ### Development
 

@@ -15,9 +15,9 @@ nix eval --no-update-lock-file .#lib.nixosExamples.x86_64-linux --json
 nix eval --no-update-lock-file .#lib.nixosExamples.x86_64-linux.validate
 ```
 
-The `clientEndpoints` result contains `monitor.example.test:9191` for both participants. `combined.services` contains `metrics` and no `standby` entry. The participant names, hostnames, and service names serve different purposes.
+The `clientEndpoints` result contains `monitor.example.test:9191` for both nodes. `combined.services` contains `metrics` and no `standby` entry. The node names, hostnames, and service names serve different purposes.
 
-The example function takes `nixpkgs` and `mkRegistry`. It returns `registry`, `participants`, and a `result` attribute set that can be evaluated as JSON. The `system` argument defaults to `x86_64-linux`. These are configuration evaluations; the checks do not build a NixOS system or boot a VM.
+The example function takes `nixpkgs` and `mkRegistry`. It returns `registry`, `nodes`, and a `result` attribute set that can be evaluated as JSON. The `system` argument defaults to `x86_64-linux`. These are configuration evaluations; the checks do not build a NixOS system or boot a VM.
 
 An optional `package` argument selects the Prometheus package. A caller that declares an additional `nixpkgs-unstable` input can use it for the package while keeping the selected module system:
 
@@ -29,11 +29,11 @@ import ./examples/nixos {
 }
 ```
 
-This changes `services.prometheus.package`. The caller's `nixpkgs` input still selects the module system through `nixpkgs.lib.nixosSystem`. Every participant and the registry must use the same module-system revision. The repository's root flake has only the selected `nixpkgs` input; its alternate-package test uses an extended package set from that revision.
+This changes `services.prometheus.package`. The caller's `nixpkgs` input still selects the module system through `nixpkgs.lib.nixosSystem`. Every node and the registry must use the same module-system revision. The repository's root flake has only the selected `nixpkgs` input; its alternate-package test uses an extended package set from that revision.
 
 ## Static NixOS module
 
-The [ordinary-flake consumer](../examples/static-nixos/default.nix) imports the public `nixosModules.default` through a common NixOS module. It keeps one project-level `lib.mkRegistry` call and supplies the same schema through `registry.settings.schemaModules`. The common module assigns the shared registry's `central`, `combined`, and `validate` values to the corresponding participant options.
+The [ordinary-flake consumer](../examples/static-nixos/default.nix) imports the public `nixosModules.default` through a common NixOS module. It keeps one project-level `lib.mkRegistry` call and supplies the same schema through `registry.settings.schemaModules`. The common module assigns the shared registry's `central`, `combined`, and `validate` values to the corresponding node options.
 
 The [contributing module](../examples/static-nixos/publish-service.nix) reads `config.registry.central.domain`, contributes the complete `registry.services.metrics` record using the configured Prometheus port, and reads `config.registry.combined.services.metrics.endpoint` into `/etc/metrics-endpoint`. It receives shared data entirely through options.
 
@@ -44,11 +44,11 @@ nix eval --no-update-lock-file .#lib.staticNixosExamples.x86_64-linux.validate
 
 The endpoint is `monitor.example.test:9191`, combined data contains the complete metrics record, and validation returns `true`. Settings and shared results do not appear in combined data. The example uses the root's committed lock and needs no flake-parts dependency or separate lockfile.
 
-The example function accepts `nixpkgs`, optional `system` (default `x86_64-linux`), and optional `registryFlake` (default the local public exports, accessed without development inputs). It returns the named `participants`, shared `registry`, and JSON-compatible `result`. The [API reference](api.md#static-nixos-module) documents argument ownership, result paths, reserved names, and setup constraints. The constructor-generated NixOS example above and the generic examples below remain supported.
+The example function accepts `nixpkgs`, optional `system` (default `x86_64-linux`), and optional `registryFlake` (default the local public exports, accessed without development inputs). It returns the named `nodes`, shared `registry`, and JSON-compatible `result`. The [API reference](api.md#static-nixos-module) documents argument ownership, result paths, reserved names, and setup constraints. The constructor-generated NixOS example above and the generic examples below remain supported.
 
 ## Static flake module
 
-This flake-parts consumer imports `flakeModules.default` for project settings and `nixosModules.default` for participants. Copy the [service schema](../examples/plain-nix/service-schema.nix) to `schema.nix` beside this `flake.nix`:
+This flake-parts consumer imports `flakeModules.default` for project settings and `nixosModules.default` for nodes. Copy the [service schema](../examples/plain-nix/service-schema.nix) to `schema.nix` beside this `flake.nix`:
 
 ```nix
 {
@@ -83,7 +83,7 @@ This flake-parts consumer imports `flakeModules.default` for project settings an
         registry.settings = {
           schemaModules = [ ./schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
-          participants = {
+          nodes = {
             "metrics publisher" = config.flake.nixosConfigurations.monitor;
             "metrics reader" = config.flake.nixosConfigurations.client;
           };
@@ -133,17 +133,17 @@ nix eval --no-update-lock-file .#nixosConfigurations.client.config.environment.e
 nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry
 ```
 
-Combined data contains the metrics endpoint `monitor.example.test:9191`, validation returns `true`, and the client's file contains that endpoint. The participant names differ from the configuration names; membership is explicit. Both participants reuse the same project registry and receive shared data through options.
+Combined data contains the metrics endpoint `monitor.example.test:9191`, validation returns `true`, and the client's file contains that endpoint. The node names differ from the configuration names; membership is explicit. Both nodes reuse the same project registry and receive shared data through options.
 
-The `registry` check demands `shared.validate`. A port changed to a string, a missing required field, an unknown option, or a conflicting read-only definition causes the check to fail during evaluation. Merely defining the check leaves independent reads lazy: for example, `lib.registry.combined.domain` remains readable with an invalid service port. Use the focused command above for these evaluation-only NixOS participants. Full `nix flake check --no-update-lock-file` also validates NixOS system outputs and requires machine-specific boot and filesystem settings, which this example omits.
+The `registry` check demands `shared.validate`. A port changed to a string, a missing required field, an unknown option, or a conflicting read-only definition causes the check to fail during evaluation. Merely defining the check leaves independent reads lazy: for example, `lib.registry.combined.domain` remains readable with an invalid service port. Use the focused command above for these evaluation-only NixOS nodes. Full `nix flake check --no-update-lock-file` also validates NixOS system outputs and requires machine-specific boot and filesystem settings, which this example omits.
 
-Additional project modules can append schema and central modules and supply distinct participant names. Duplicate names at the same priority fail when demanded. The [API reference](api.md#static-flake-module) documents argument ownership and composition. The [consumer tests](../tests/modules/flake.nix) exercise this wiring with two contributing NixOS participants, including a participant reading another participant's data; they also cover an empty participant set and required settings. No NixOS system build or VM boot is needed.
+Additional project modules can append schema and central modules and supply distinct node names. Duplicate names at the same priority fail when demanded. The [API reference](api.md#static-flake-module) documents argument ownership and composition. The [consumer tests](../tests/modules/flake.nix) exercise this wiring with two contributing NixOS nodes, including a node reading another node's data; they also cover an empty node set and required settings. No NixOS system build or VM boot is needed.
 
 ## Plain Nix modules
 
-The [plain Nix example](../examples/plain-nix/default.nix) uses `lib.evalModules` with a [backup-destination schema](../examples/plain-nix/schema.nix). It has two participants, with no NixOS configuration or hostname requirement.
+The [plain Nix example](../examples/plain-nix/default.nix) uses `lib.evalModules` with a [backup-destination schema](../examples/plain-nix/schema.nix). It has two nodes, with no NixOS configuration or hostname requirement.
 
-Each participant imports `registry.module`. A participant that reads shared data receives `registry` through its `specialArgs`. One contributes its configured port and reads both central and combined data.
+Each node imports `registry.module`. A node that reads shared data receives `registry` through its `specialArgs`. One contributes its configured port and reads both central and combined data.
 
 ```sh
 nix eval --no-update-lock-file .#lib.examples --json
@@ -154,16 +154,16 @@ The result includes central and combined data, validation, and the command `back
 
 ## Flake-parts and separate source repositories
 
-The [flake-parts example](../examples/flake-parts/flake.nix) imports the public `flakeModules.default`, configures `registry.settings`, and constructs two named NixOS participants from separate source inputs. Its [composition module](../examples/flake-parts/module.nix) owns the [schema](../examples/flake-parts/schema.nix), central definitions, participant membership, and common wiring. The source flakes export static NixOS modules:
+The [flake-parts example](../examples/flake-parts/flake.nix) imports the public `flakeModules.default`, configures `registry.settings`, and constructs two named NixOS nodes from separate source inputs. Its [composition module](../examples/flake-parts/module.nix) owns the [schema](../examples/flake-parts/schema.nix), central definitions, node membership, and common wiring. The source flakes export static NixOS modules:
 
 | Source                                                               | Contribution                                                                       | Shared data it reads                                                                  |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | [Service publisher](../examples/sources/service-publisher/nixos.nix) | API port from `services.prometheus.port`, configured as `8443`                     | `config.registry.combined.domain` for its NixOS domain                                |
 | [Backup client](../examples/sources/backup-client/nixos.nix)         | Backup hostname and the first `services.openssh.ports` entry, configured as `8022` | `config.registry.central.domain` and `config.registry.combined.services.api.endpoint` |
 
-Central definitions supply `domain = "example.test"` and `services.api.host = "api.example.test"`. The API participant supplies only the port, so neither its local record nor the central record is complete. Combined data derives `api.example.test:8443`. The backup participant contributes `backup.example.test:8022` and reads the completed API endpoint into `/etc/backup-command`, yielding `backup --api api.example.test:8443`.
+Central definitions supply `domain = "example.test"` and `services.api.host = "api.example.test"`. The API node supplies only the port, so neither its local record nor the central record is complete. Combined data derives `api.example.test:8443`. The backup node contributes `backup.example.test:8022` and reads the completed API endpoint into `/etc/backup-command`, yielding `backup --api api.example.test:8443`.
 
-The API hostname previously came from the service participant; moving it to central definitions demonstrates partial records while preserving both completed endpoints and the backup command. `lib.result.central` selects only the defined central domain and API hostname. Serializing the entire central record would demand its missing port and derived endpoint. `lib.registry` exposes the full project settings and results for selective reads.
+The API hostname previously came from the service node; moving it to central definitions demonstrates partial records while preserving both completed endpoints and the backup command. `lib.result.central` selects only the defined central domain and API hostname. Serializing the entire central record would demand its missing port and derived endpoint. `lib.registry` exposes the full project settings and results for selective reads.
 
 The example uses local path inputs for the source flakes. Locked repository URLs can replace those paths without changing the modules. It obtains the public registry exports from its source-only input:
 
@@ -171,7 +171,7 @@ The example uses local path inputs for the source flakes. Locked repository URLs
 registryFlake = (import "${inputs.nixos-registry}/flake.nix").outputs { };
 ```
 
-The flake-parts module imports `registryFlake.flakeModules.default` and captures `shared = config.registry`. Each participant imports this common module before its source module:
+The flake-parts module imports `registryFlake.flakeModules.default` and captures `shared = config.registry`. Each node imports this common module before its source module:
 
 ```nix
 commonModule = {
@@ -185,13 +185,13 @@ commonModule = {
 };
 ```
 
-The caller uses `inputs.nixpkgs.lib.nixosSystem` to construct each participant and assigns the complete evaluations to `registry.settings.participants`. Both participants reuse one project-level registry; no constructor call, generated module, or shared-registry module argument is needed on this route. Central modules and participant membership stay at project level. Only schema settings and shared results are passed to participants.
+The caller uses `inputs.nixpkgs.lib.nixosSystem` to construct each node and assigns the complete evaluations to `registry.settings.nodes`. Both nodes reuse one project-level registry; no constructor call, generated module, or shared-registry module argument is needed on this route. Central modules and node membership stay at project level. Only schema settings and shared results are passed to nodes.
 
-Each local `config.registry.services` contains only that participant's service. The API's local port is readable, while its local host and endpoint remain undefined. Shared reads use `config.registry.central` and `config.registry.combined`; explicit validation uses `config.registry.validate` and checks completed combined data. The static interface reserves `settings`, `central`, `combined`, and `validate` at the schema root; `schemaModules` remains a valid schema field. Keep imports and schema structure independent of these configuration results, as described in the [setup rules](api.md#schema-and-central-data-during-participant-setup).
+Each local `config.registry.services` contains only that node's service. The API's local port is readable, while its local host and endpoint remain undefined. Shared reads use `config.registry.central` and `config.registry.combined`; explicit validation uses `config.registry.validate` and checks completed combined data. The static interface reserves `settings`, `central`, `combined`, and `validate` at the schema root; `schemaModules` remains a valid schema field. Keep imports and schema structure independent of these configuration results, as described in the [setup rules](api.md#schema-and-central-data-during-node-setup).
 
-Flake-parts' `nixpkgs-lib` input follows the example's `nixpkgs` input. Flake-parts, the registry, and the participants therefore use the same module-system revision. The registry input uses `flake = false` and imports only its public exports. This keeps the example independent of the registry's development input graph, including when the root suite evaluates the example. The standalone lock preserves the separate participant sources and existing dependency selections. Neither source flake depends on the consumer or registry.
+Flake-parts' `nixpkgs-lib` input follows the example's `nixpkgs` input. Flake-parts, the registry, and the nodes therefore use the same module-system revision. The registry input uses `flake = false` and imports only its public exports. This keeps the example independent of the registry's development input graph, including when the root suite evaluates the example. The standalone lock preserves the separate node sources and existing dependency selections. Neither source flake depends on the consumer or registry.
 
-The participants are evaluation examples targeting `x86_64-linux`, exposed under `lib.participants`. They omit machine-specific boot and filesystem settings and are not exported as deployable `nixosConfigurations`. The flake check validates registry data without demanding a NixOS system build or running a VM. Its check derivations retain both Linux and both best-effort Darwin outputs.
+The nodes are evaluation examples targeting `x86_64-linux`, exposed under `lib.nodes`. They omit machine-specific boot and filesystem settings and are not exported as deployable `nixosConfigurations`. The flake check validates registry data without demanding a NixOS system build or running a VM. Its check derivations retain both Linux and both best-effort Darwin outputs.
 
 Run the example directly with its own lock file:
 
@@ -207,7 +207,7 @@ The composition module exposes validation through `perSystem.checks.registry`. T
 nix eval --no-update-lock-file .#lib.flakePartsExamples --json
 ```
 
-Flake-parts is optional. The [ordinary-flake example](#static-nixos-module) uses the static NixOS module with a shared constructor evaluation, and the [plain Nix examples](#plain-nix-modules) retain generic participants. The source flakes also retain their `modules.generic.default` exports for constructor-based consumers. Adopting the static interfaces does not require migrating existing constructor users; the [migration notes](../CHANGELOG.md#static-consumer-examples) distinguish their contracts.
+Flake-parts is optional. The [ordinary-flake example](#static-nixos-module) uses the static NixOS module with a shared constructor evaluation, and the [plain Nix examples](#plain-nix-modules) retain generic nodes. The source flakes also retain their `modules.generic.default` exports for constructor-based consumers. Adopting the static interfaces does not require migrating existing constructor users; the [migration notes](../CHANGELOG.md#static-consumer-examples) distinguish their contracts.
 
 ## Specific behavior
 
@@ -231,7 +231,7 @@ nix eval --no-update-lock-file .#lib.conditionalOrdering.enabled.validate
 
 ### Examples that intentionally fail
 
-The [scalar-conflict example](../examples/plain-nix/scalar-conflict.nix) sets different archive hosts in a central module and a participant. This command fails with an error for `backupDestinations.archive.host`:
+The [scalar-conflict example](../examples/plain-nix/scalar-conflict.nix) sets different archive hosts in a central module and a node. This command fails with an error for `backupDestinations.archive.host`:
 
 ```sh
 nix eval --no-update-lock-file .#lib.scalarConflicts

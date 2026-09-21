@@ -2,19 +2,19 @@
 let
   mkRegistry = ((import ../flake.nix).outputs { }).lib.mkRegistry;
   registry = mkRegistry {
-    inherit lib participants;
+    inherit lib nodes;
     schemaModules = [
       {
         options.paths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [ ];
-          description = "Paths shared by the plain-import participants.";
+          description = "Paths shared by the plain-import nodes.";
         };
       }
     ];
     centralModules = [ { paths = [ "/srv/central" ]; } ];
   };
-  participants.backup = lib.evalModules {
+  nodes.backup = lib.evalModules {
     modules = [
       registry.module
       { registry.paths = lib.mkAfter [ "/srv/backup" ]; }
@@ -38,7 +38,7 @@ in
               );
             }
           ];
-          participants.generic = lib.evalModules {
+          nodes.generic = lib.evalModules {
             modules = [
               legacy.module
               {
@@ -70,7 +70,7 @@ in
   testPlainImportUsesCallerLibraryWithoutDevelopmentInputs = {
     expr = {
       inherit (registry) central combined validate;
-      local = participants.backup.config.registry;
+      local = nodes.backup.config.registry;
     };
     expected = {
       central.paths = [ "/srv/central" ];

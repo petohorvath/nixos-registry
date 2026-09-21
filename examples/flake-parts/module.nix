@@ -13,17 +13,17 @@ let
     };
   };
 
-  participants = {
-    "api publisher" = mkParticipant inputs.servicePublisher.nixosModules.default;
-    "backup consumer" = mkParticipant inputs.backupClient.nixosModules.default;
+  nodes = {
+    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
+    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
   };
 
-  mkParticipant =
-    participantModule:
+  mkNode =
+    nodeModule:
     inputs.nixpkgs.lib.nixosSystem {
       modules = [
         commonModule
-        participantModule
+        nodeModule
       ];
     };
 in
@@ -37,7 +37,7 @@ in
   ];
 
   registry.settings = {
-    inherit participants;
+    inherit nodes;
     schemaModules = [ ./schema.nix ];
     centralModules = [
       ({ config, ... }: {
@@ -48,16 +48,16 @@ in
   };
 
   flake.lib = {
-    inherit participants;
+    inherit nodes;
     registry = shared;
     result = {
-      # The central API record lacks its participant's port and derived endpoint.
+      # The central API record lacks its node's port and derived endpoint.
       central = {
         inherit (shared.central) domain;
         services.api.host = shared.central.services.api.host;
       };
       inherit (shared) combined validate;
-      backupCommand = participants."backup consumer".config.environment.etc."backup-command".text;
+      backupCommand = nodes."backup consumer".config.environment.etc."backup-command".text;
     };
   };
 

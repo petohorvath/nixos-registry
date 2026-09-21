@@ -21,7 +21,7 @@ let
         }
       ];
       centralModules = [ { endpoints.domain = "example.test"; } ];
-      participantModules.publisher = [
+      nodeModules.publisher = [
         ({ config, ... }: {
           registry.endpoints.api = "api.${config.registry.combined.endpoints.domain}:8443";
         })
@@ -41,7 +41,7 @@ in
         };
       }
     ];
-    participantModules =
+    nodeModules =
       lib.mapAttrs
         (name: peer: [
           ({ config, ... }: {
@@ -56,7 +56,7 @@ in
   importCycle = mkConsumer {
     schemaModules = [ ../examples/plain-nix/service-schema.nix ];
     centralModules = [ { domain = "example.test"; } ];
-    participantModules.publisher = [
+    nodeModules.publisher = [
       ({ config, ... }: {
         imports = lib.optional (config.registry.central.domain == "example.test") {
           registry.services.api = {

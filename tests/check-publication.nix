@@ -1,7 +1,7 @@
 {
   lib,
   mkRegistry,
-  mkParticipant ?
+  mkNode ?
     { registry, publication, ... }:
     lib.evalModules {
       modules = [
@@ -72,7 +72,7 @@ let
       ];
       registry = mkRegistry {
         inherit lib schemaModules;
-        participants.publisher = mkParticipant {
+        nodes.publisher = mkNode {
           inherit registry schemaModules;
           publication.service = shape.wrap publication;
         };
@@ -257,7 +257,7 @@ in
             {
               options.injected = lib.mkOption {
                 type = lib.types.str;
-                default = "participant-owned schema";
+                default = "node-owned schema";
                 description = "An option absent from schemaModules.";
               };
               config.endpoint = "backup.example.test:443";
@@ -317,7 +317,7 @@ in
                   {
                     options.injected = lib.mkOption {
                       type = lib.types.str;
-                      default = "participant-owned schema";
+                      default = "node-owned schema";
                       description = "An option absent from schemaModules.";
                     };
                     config.endpoint = "backup.example.test:443";
@@ -345,7 +345,7 @@ in
               {
                 options.injected = lib.mkOption {
                   type = lib.types.str;
-                  default = "participant-owned schema";
+                  default = "node-owned schema";
                   description = "An option absent from schemaModules.";
                 };
                 config = { inherit endpoint; };
@@ -460,7 +460,7 @@ in
           {
             options.injected = lib.mkOption {
               type = lib.types.str;
-              default = "participant-owned schema";
+              default = "node-owned schema";
               description = "An option absent from schemaModules.";
             };
             config.endpoint = "backup.example.test:443";

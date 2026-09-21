@@ -27,10 +27,10 @@ let
     }:
     let
       registry = mkRegistry {
-        inherit centralModules lib participants;
+        inherit centralModules lib nodes;
         schemaModules = [ schema ];
       };
-      participants = lib.mapAttrs (
+      nodes = lib.mapAttrs (
         _: publication:
         lib.evalModules {
           modules = [
@@ -44,13 +44,13 @@ let
       };
     in
     {
-      inherit direct participants registry;
+      inherit direct nodes registry;
     };
 
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 in
 {
-  testParticipantsCompleteEachOthersPartialRecords = {
+  testNodesCompleteEachOthersPartialRecords = {
     expr = {
       combined = split.registry.combined;
       matchesDirect = split.registry.combined == split.direct.config;
@@ -69,7 +69,7 @@ in
     };
   };
 
-  testParticipantCompletesACentralPartialRecord = {
+  testNodeCompletesACentralPartialRecord = {
     expr = {
       centralHost = centralPartial.registry.central.backupDestinations.archive.host;
       centralIsComplete = succeeds centralPartial.registry.central;
@@ -88,10 +88,10 @@ in
 
   testLocalContributionsRemainIncomplete = {
     expr = {
-      host = split.participants.address.config.registry.backupDestinations.archive.host;
-      port = split.participants.transport.config.registry.backupDestinations.archive.port;
-      addressIsComplete = succeeds split.participants.address.config.registry;
-      transportIsComplete = succeeds split.participants.transport.config.registry;
+      host = split.nodes.address.config.registry.backupDestinations.archive.host;
+      port = split.nodes.transport.config.registry.backupDestinations.archive.port;
+      addressIsComplete = succeeds split.nodes.address.config.registry;
+      transportIsComplete = succeeds split.nodes.transport.config.registry;
     };
     expected = {
       host = "archive.example.test";
@@ -114,7 +114,7 @@ in
     };
   };
 
-  testSchemaListDefaultAppearsOnceRegardlessOfParticipantCount = {
+  testSchemaListDefaultAppearsOnceRegardlessOfNodeCount = {
     expr =
       map
         (

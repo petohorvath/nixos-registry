@@ -14,7 +14,7 @@ for use_static_module in false true; do
   if [[ $use_static_module == true ]]; then
     evaluation_store="local?root=$output_dir/store"
   fi
-  for source in central participant; do
+  for source in central node; do
     for order in before after explicit; do
       views=(direct combined validate)
       if [[ $source == central ]]; then

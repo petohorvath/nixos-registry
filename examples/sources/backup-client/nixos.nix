@@ -1,4 +1,4 @@
-# Contribute a backup service and read the API endpoint from another participant.
+# Contribute a backup service and read the API endpoint from another node.
 { config, ... }:
 {
   networking.hostName = "backup";

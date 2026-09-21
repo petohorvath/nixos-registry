@@ -14,11 +14,11 @@ Keep usage, design, and architectural decisions in repository documentation. Kee
 
 ## Public contract
 
-The public API comprises `lib.mkRegistry`; its `lib`, `schemaModules`, `participants`, `centralModules`, and `specialArgs` arguments and defaults; the generated participant `registry` option; and the returned `module`, `central`, `combined`, and `validate` attributes. The [API reference](docs/api.md) defines contribution merging, schema ownership, priorities, ordering, laziness, validation, and diagnostic behavior. Callers own schemas, participant construction, and module-system selection.
+The public API comprises `lib.mkRegistry`; its `lib`, `schemaModules`, `nodes`, `centralModules`, and `specialArgs` arguments and defaults; the generated node `registry` option; and the returned `module`, `central`, `combined`, and `validate` attributes. The [API reference](docs/api.md) defines contribution merging, schema ownership, priorities, ordering, laziness, validation, and diagnostic behavior. Callers own schemas, node construction, and module-system selection.
 
 The static `nixosModules.default` export is also public, including `registry.settings.schemaModules`, `registry.settings.specialArgs`, the `registry.central`, `registry.combined`, and `registry.validate` result options, and direct schema contribution paths. Its [reserved names and wiring](docs/api.md#static-nixos-module) are part of that interface; the generated constructor module retains its existing namespace.
 
-The static `flakeModules.default` export declares project-level `registry.settings.schemaModules`, `participants`, `centralModules`, and `specialArgs`, and the same three result paths. Its [required settings, defaults, composition, and conflict behavior](docs/api.md#static-flake-module) are public. The enclosing consumer evaluator supplies the module library; callers construct and select participants and pass shared settings and results through the static NixOS module.
+The static `flakeModules.default` export declares project-level `registry.settings.schemaModules`, `nodes`, `centralModules`, and `specialArgs`, and the same three result paths. Its [required settings, defaults, composition, and conflict behavior](docs/api.md#static-flake-module) are public. The enclosing consumer evaluator supplies the module library; callers construct and select nodes and pass shared settings and results through the static NixOS module.
 
 Keep the constructor usable through `((import ./flake.nix).outputs { }).lib.mkRegistry` without supplying or evaluating development inputs. Root development inputs can enter normal consumer lock graphs. This packaging contract replaces the original v1 input-free-flake promise while preserving the library contract.
 

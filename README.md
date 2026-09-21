@@ -2,15 +2,15 @@
 
 `nixos-registry` is a Nix library for sharing configuration data between NixOS configurations. One configuration can contribute a service address, and another can use that address. Shared data uses option types, defaults, and merge rules from the Nix module system.
 
-The public library entrypoint is `lib.mkRegistry`. The function takes shared option declarations and participating configurations. It returns a module to import, the shared data, and a validation value.
+The public library entrypoint is `lib.mkRegistry`. The function takes shared option declarations and named configurations called nodes. It returns a module to import, the shared data, and a validation value.
 
 NixOS consumers can also import the static `nixosModules.default` and configure its schema through `registry.settings`. Contributions keep paths such as `registry.services.metrics.port`; shared reads use `config.registry.central` and `config.registry.combined`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires these options to one caller-owned registry without flake-parts.
 
-Flake-parts consumers can import `flakeModules.default` to compose the shared registry through project-level `registry.settings` options. The [separate-source example](docs/examples.md#flake-parts-and-separate-source-repositories) uses both static imports, constructs its own NixOS participants, and passes schema settings and shared results through a common module. Central definitions and a participant complete an API record that another participant reads while contributing its own service.
+Flake-parts consumers can import `flakeModules.default` to compose the shared registry through project-level `registry.settings` options. The [separate-source example](docs/examples.md#flake-parts-and-separate-source-repositories) uses both static imports, constructs its own NixOS nodes, and passes schema settings and shared results through a common module. Central definitions and a node complete an API record that another node reads while contributing its own service.
 
-The static participant interface reserves `settings`, `central`, `combined`, and `validate` beneath `registry`; schema contributions keep their other direct paths. Shared validation uses `config.registry.validate`. These interfaces are additive: ordinary flakes can use the static NixOS module without flake-parts, and the constructor retains generic participants, plain-import access, and schemas using those names. See the [API reference](docs/api.md#static-nixos-module) for wiring and setup restrictions.
+The static node interface reserves `settings`, `central`, `combined`, and `validate` beneath `registry`; schema contributions keep their other direct paths. Shared validation uses `config.registry.validate`. These interfaces are additive: ordinary flakes can use the static NixOS module without flake-parts, and the constructor retains generic nodes, plain-import access, and schemas using those names. See the [API reference](docs/api.md#static-nixos-module) for wiring and setup restrictions.
 
-Data is shared during Nix evaluation. All participating configurations must be available in the same Nix evaluation, including configurations defined in separate repositories. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry) is a separate feature for looking up flake names.
+Data is shared during Nix evaluation. All nodes must be available in the same Nix evaluation, including configurations defined in separate repositories. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry) is a separate feature for looking up flake names.
 
 ## Support
 
@@ -25,7 +25,7 @@ This example assumes familiarity with flakes and NixOS modules. It defines two c
 - `server` runs Prometheus and contributes its hostname and configured port.
 - `client` reads that service address into an `/etc/metrics-endpoint` file.
 
-A **participant** is a named, evaluated configuration included in the registry. Both configurations are participants. The **schema** declares the shared options; each participant adds data by setting its `registry` option.
+A **node** is a named, evaluated configuration included in the registry; its name need not be a hostname. Both configurations are nodes. The **schema** declares the shared options; each node adds data by setting its `registry` option.
 
 Save the following as `flake.nix` in a new directory:
 
@@ -43,7 +43,7 @@ Save the following as `flake.nix` in a new directory:
 
       registry = nixos-registry.lib.mkRegistry {
         inherit lib;
-        participants = nixosConfigurations;
+        nodes = nixosConfigurations;
         schemaModules = [
           ({ lib, ... }: {
             options.services = lib.mkOption {
@@ -128,11 +128,11 @@ These commands evaluate the configuration without building or starting either sy
 The example connects four parts:
 
 1. `schemaModules` declares `services` as an attribute set of records with a required `host` and `port`.
-2. `participants = nixosConfigurations` includes the evaluated configurations. Each imports the returned `registry.module`.
+2. `nodes = nixosConfigurations` includes the evaluated configurations. Each imports the returned `registry.module`.
 3. The server sets `registry.services.metrics` to contribute data. Its `config.registry` contains its local contribution.
 4. The client receives `registry` through `specialArgs` and reads `registry.combined.services.metrics` to get the shared data.
 
-The `let` block lets the registry and configurations refer to each other. Shared option declarations must stay independent of the participant configurations. The [evaluation rules](docs/api.md#evaluation-and-recursion) explain which shared reads can cause recursion.
+The `let` block lets the registry and configurations refer to each other. Shared option declarations must stay independent of the node configurations. The [evaluation rules](docs/api.md#evaluation-and-recursion) explain which shared reads can cause recursion.
 
 ## API overview
 
@@ -140,26 +140,26 @@ Call `inputs.nixos-registry.lib.mkRegistry` with an attribute set containing:
 
 | Argument         | Meaning                                                                     | Default                  |
 | ---------------- | --------------------------------------------------------------------------- | ------------------------ |
-| `lib`            | Nixpkgs library used by the participants                                    | Required                 |
+| `lib`            | Nixpkgs library used by the nodes                                           | Required                 |
 | `schemaModules`  | Modules that declare the shared options                                     | Required                 |
-| `participants`   | Attribute set of evaluated configurations, each importing `registry.module` | Required; `{ }` is valid |
-| `centralModules` | Modules that define shared values outside the participants                  | `[ ]`                    |
+| `nodes`          | Attribute set of evaluated configurations, each importing `registry.module` | Required; `{ }` is valid |
+| `centralModules` | Modules that define shared values outside the nodes                         | `[ ]`                    |
 | `specialArgs`    | Arguments for the schema and central modules                                | `{ }`                    |
 
-Use the same Nixpkgs module-system revision for `lib` and every participant. The caller supplies the library used for registry evaluation. Root development inputs may enter consumer lock graphs; [plain-import access](docs/api.md#plain-import-access) keeps the constructor usable without evaluating those inputs.
+Use the same Nixpkgs module-system revision for `lib` and every node. The caller supplies the library used for registry evaluation. Root development inputs may enter consumer lock graphs; [plain-import access](docs/api.md#plain-import-access) keeps the constructor usable without evaluating those inputs.
 
 The function returns an attribute set:
 
 | Attribute           | Use                                                                          |
 | ------------------- | ---------------------------------------------------------------------------- |
-| `registry.module`   | Import this module in each participant to declare its `registry` option.     |
+| `registry.module`   | Import this module in each node to declare its `registry` option.            |
 | `registry.central`  | Read data from the schema and central modules only.                          |
-| `registry.combined` | Read data merged from central modules and all participants.                  |
+| `registry.combined` | Read data merged from central modules and all nodes.                         |
 | `registry.validate` | Evaluate all combined data. Returns `true` or raises a Nix evaluation error. |
 
-With the constructor's generated module, `config.registry` is local to one participant and `registry.combined` contains the shared data. Pass `registry` to a participant through that configuration's `specialArgs` when its modules need shared reads; the `specialArgs` argument to `mkRegistry` does not do this. Static participants instead receive the common settings and shared results through options and read `config.registry.combined`.
+With the constructor's generated module, `config.registry` is local to one node and `registry.combined` contains the shared data. Pass `registry` to a node through that configuration's `specialArgs` when its modules need shared reads; the `specialArgs` argument to `mkRegistry` does not do this. Static nodes instead receive the common settings and shared results through options and read `config.registry.combined`.
 
-Central definitions and participant contributions use the same merge rules. Lists normally merge; conflicting scalar values fail. Reading one field does not check every other field. Use `registry.validate` to check all combined data.
+Central definitions and node contributions use the same merge rules. Lists normally merge; conflicting scalar values fail. Reading one field does not check every other field. Use `registry.validate` to check all combined data.
 
 ## Development
 

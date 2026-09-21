@@ -1,6 +1,6 @@
 # API reference
 
-The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named participants; `nixosModules.default`, a static participant module; and `flakeModules.default`, a static flake-parts module for project-level registry settings and results. The consuming project supplies the option declarations and evaluates the participant configurations.
+The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named nodes; `nixosModules.default`, a static node module; and `flakeModules.default`, a static flake-parts module for project-level registry settings and results. The consuming project supplies the option declarations and evaluates the node configurations.
 
 Start with the complete [README example](../README.md#quickstart). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
 
@@ -12,7 +12,7 @@ The following call assumes that `schema.nix`, `central.nix`, and `nixosConfigura
 registry = inputs.nixos-registry.lib.mkRegistry {
   lib = inputs.nixpkgs.lib;
   schemaModules = [ ./schema.nix ];
-  participants = nixosConfigurations;
+  nodes = nixosConfigurations;
   centralModules = [ ./central.nix ];
   specialArgs = { };
 };
@@ -20,17 +20,17 @@ registry = inputs.nixos-registry.lib.mkRegistry {
 
 The function takes one attribute set with these arguments:
 
-| Argument         | Value                                                                                                                                 | Default                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `lib`            | Nixpkgs library that supplies the module system and option types                                                                      | Required                 |
-| `schemaModules`  | List of modules that declare the shared options                                                                                       | Required                 |
-| `participants`   | Attribute set of named, evaluated configurations                                                                                      | Required; `{ }` is valid |
-| `centralModules` | List of modules that define values for the shared options                                                                             | `[ ]`                    |
-| `specialArgs`    | Attribute set of arguments for schema and central module evaluation, including the schema within each participant's `registry` option | `{ }`                    |
+| Argument         | Value                                                                                                                          | Default                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| `lib`            | Nixpkgs library that supplies the module system and option types                                                               | Required                 |
+| `schemaModules`  | List of modules that declare the shared options                                                                                | Required                 |
+| `nodes`          | Attribute set of named, evaluated configurations                                                                               | Required; `{ }` is valid |
+| `centralModules` | List of modules that define values for the shared options                                                                      | `[ ]`                    |
+| `specialArgs`    | Attribute set of arguments for schema and central module evaluation, including the schema within each node's `registry` option | `{ }`                    |
 
 ### `lib`
 
-Use the same Nixpkgs module-system revision for this argument and every participant. For NixOS, use the same `nixpkgs` input for `lib` and `nixpkgs.lib.nixosSystem`.
+Use the same Nixpkgs module-system revision for this argument and every node. For NixOS, use the same `nixpkgs` input for `lib` and `nixpkgs.lib.nixosSystem`.
 
 Root development inputs select the repository's tools and test baselines. The caller-supplied `lib` remains authoritative for registry evaluation. Extra libraries or module arguments required by the schema must be supplied by the consuming project.
 
@@ -43,47 +43,47 @@ The constructor remains available without supplying or evaluating any developmen
 ```nix
 mkRegistry = ((import ./flake.nix).outputs { }).lib.mkRegistry;
 registry = mkRegistry {
-  inherit lib participants schemaModules;
+  inherit lib nodes schemaModules;
 };
 ```
 
-Use the same caller-provided `lib` for participant evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way. The static module exports are also available from `(import ./flake.nix).outputs { }`; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) obtains both static imports from its source-only input without evaluating development inputs.
+Use the same caller-provided `lib` for node evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way. The static module exports are also available from `(import ./flake.nix).outputs { }`; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) obtains both static imports from its source-only input without evaluating development inputs.
 
 Normal flake consumption can add the root development inputs to a consumer's lock graph. This packaging change supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md).
 
 ### `schemaModules`
 
-Declare shared options at their own paths, such as `options.services`. The generated module places those options under `registry` in each participant. The [service schema](../examples/plain-nix/service-schema.nix) is a complete example with required fields and a derived endpoint.
+Declare shared options at their own paths, such as `options.services`. The generated module places those options under `registry` in each node. The [service schema](../examples/plain-nix/service-schema.nix) is a complete example with required fields and a derived endpoint.
 
-Schema modules can declare types, defaults, and derived values. Keep the declarations, their structure, and their arguments independent of participant evaluation. Shared option declarations belong here; participant contributions cannot add them.
+Schema modules can declare types, defaults, and derived values. Keep the declarations, their structure, and their arguments independent of node evaluation. Shared option declarations belong here; node contributions cannot add them.
 
-### `participants`
+### `nodes`
 
 Each value must be an evaluated configuration that imports the returned `registry.module`, or a NixOS configuration using the [static module](#static-nixos-module). Both `nixpkgs.lib.nixosSystem` and `lib.evalModules` produce suitable results for the generated module. Pass the whole evaluation result, including its `options`, rather than only its `config` attribute.
 
-The attribute name identifies the participant in diagnostics. It need not match a hostname, service name, or source repository. For example:
+The attribute name identifies the node in diagnostics. It need not match a hostname, service name, or source repository. For example:
 
 ```nix
-participants = {
+nodes = {
   "metrics publisher" = nixpkgs.lib.nixosSystem {
     modules = [ registry.module ./server.nix ];
   };
 };
 ```
 
-An independently declared option named `registry` does not replace either supported module. A participant with a missing or incompatible option produces an error naming the participant and the required import.
+An independently declared option named `registry` does not replace either supported module. A node with a missing or incompatible option produces an error naming the node and the required import.
 
 ### `centralModules`
 
 Define shared values directly against the schema, without the `registry` prefix. For example, a central module can set `services.metrics.port = 9090;` when the schema declares `services` with that field.
 
-Central definitions have the same precedence as ordinary participant definitions. Use `lib.mkDefault`, `lib.mkForce`, or `lib.mkOverride` when a different precedence is needed.
+Central definitions have the same precedence as ordinary node definitions. Use `lib.mkDefault`, `lib.mkForce`, or `lib.mkOverride` when a different precedence is needed.
 
 ### `specialArgs`
 
-The `mkRegistry` argument supplies arguments to the schema and central module evaluations. It does not supply arguments to participant modules.
+The `mkRegistry` argument supplies arguments to the schema and central module evaluations. It does not supply arguments to node modules.
 
-To let a NixOS participant read shared data, pass the registry to `nixosSystem` separately:
+To let a NixOS node read shared data, pass the registry to `nixosSystem` separately:
 
 ```nix
 specialArgs = { inherit registry; };
@@ -96,18 +96,18 @@ modules = [
 ];
 ```
 
-This example uses the `endpoint` field from the [service schema](../examples/plain-nix/service-schema.nix). Plain Nix participants use the same `specialArgs` pattern with `lib.evalModules`.
+This example uses the `endpoint` field from the [service schema](../examples/plain-nix/service-schema.nix). Plain Nix nodes use the same `specialArgs` pattern with `lib.evalModules`.
 
 ## Returned attributes
 
 `mkRegistry` returns an attribute set with four attributes:
 
-| Attribute  | Value                                 | Use                                                                               |
-| ---------- | ------------------------------------- | --------------------------------------------------------------------------------- |
-| `module`   | Nix module                            | Import it in each participant to declare the typed `registry` option.             |
-| `central`  | Attribute set of shared option values | Read data from the schema and central modules, without participant contributions. |
-| `combined` | Attribute set of shared option values | Read data from the schema, central modules, and all participant contributions.    |
-| `validate` | Boolean value, or an evaluation error | Demand all combined data. Valid data produces `true`.                             |
+| Attribute  | Value                                 | Use                                                                        |
+| ---------- | ------------------------------------- | -------------------------------------------------------------------------- |
+| `module`   | Nix module                            | Import it in each node to declare the typed `registry` option.             |
+| `central`  | Attribute set of shared option values | Read data from the schema and central modules, without node contributions. |
+| `combined` | Attribute set of shared option values | Read data from the schema, central modules, and all node contributions.    |
+| `validate` | Boolean value, or an evaluation error | Demand all combined data. Valid data produces `true`.                      |
 
 `validate` is a value, so use `registry.validate` without function arguments. Both data sets include schema defaults and derived values. Either can remain incomplete if its definitions lack required fields.
 
@@ -117,21 +117,21 @@ This example uses the `endpoint` field from the [service schema](../examples/pla
 
 Import `inputs.nixos-registry.flakeModules.default` into a flake-parts configuration. It evaluates one shared registry with the enclosing evaluator's `lib` and exposes the following options on that configuration:
 
-| Project option                     | Meaning                                                                          | Default                  |
-| ---------------------------------- | -------------------------------------------------------------------------------- | ------------------------ |
-| `registry.settings.schemaModules`  | Shared option declarations; lists from project modules concatenate.              | Required; `[ ]` is valid |
-| `registry.settings.participants`   | Named, whole participant evaluation results, including `options`.                | Required; `{ }` is valid |
-| `registry.settings.centralModules` | Central definitions; lists from project modules concatenate.                     | `[ ]`                    |
-| `registry.settings.specialArgs`    | Arguments for schema and central evaluation, including the participant's schema. | `{ }`                    |
-| `registry.central`                 | Read-only central data.                                                          | Computed                 |
-| `registry.combined`                | Read-only combined data.                                                         | Computed                 |
-| `registry.validate`                | Read-only explicit validation, returning `true` or raising an error.             | Computed                 |
+| Project option                     | Meaning                                                                   | Default                  |
+| ---------------------------------- | ------------------------------------------------------------------------- | ------------------------ |
+| `registry.settings.schemaModules`  | Shared option declarations; lists from project modules concatenate.       | Required; `[ ]` is valid |
+| `registry.settings.nodes`          | Named, whole node evaluation results, including `options`.                | Required; `{ }` is valid |
+| `registry.settings.centralModules` | Central definitions; lists from project modules concatenate.              | `[ ]`                    |
+| `registry.settings.specialArgs`    | Arguments for schema and central evaluation, including the node's schema. | `{ }`                    |
+| `registry.central`                 | Read-only central data.                                                   | Computed                 |
+| `registry.combined`                | Read-only combined data.                                                  | Computed                 |
+| `registry.validate`                | Read-only explicit validation, returning `true` or raising an error.      | Computed                 |
 
-Supply required settings explicitly, even when empty. Settings may be split across project modules. Distinct participant names and argument keys compose; each value is kept opaque and lazy. Multiple definitions of the same participant name or argument key at the same override priority fail when demanded, even if identical. Normal overrides such as `lib.mkDefault` and `lib.mkForce` select definitions before that check. Module lists retain definition origins, and conflicting central values use the schema's ordinary merge rules.
+Supply required settings explicitly, even when empty. Settings may be split across project modules. Distinct node names and argument keys compose; each value is kept opaque and lazy. Multiple definitions of the same node name or argument key at the same override priority fail when demanded, even if identical. Normal overrides such as `lib.mkDefault` and `lib.mkForce` select definitions before that check. Module lists retain definition origins, and conflicting central values use the schema's ordinary merge rules.
 
-The caller constructs every participant, chooses its module arguments, and selects registry membership through `registry.settings.participants`. Configurations elsewhere in `flake.nixosConfigurations` are not automatically enrolled. Names need not match hostnames. Registry `specialArgs` does not replace the arguments passed separately to `nixosSystem`.
+The caller constructs every node, chooses its module arguments, and selects registry membership through `registry.settings.nodes`. Configurations elsewhere in `flake.nixosConfigurations` are not automatically enrolled. Names need not match hostnames. Registry `specialArgs` does not replace the arguments passed separately to `nixosSystem`.
 
-Import the static NixOS module in a common participant module and pass only `schemaModules` and `specialArgs` from the project settings, plus the three shared results:
+Import the static NixOS module in a common node module and pass only `schemaModules` and `specialArgs` from the project settings, plus the three shared results:
 
 ```nix
 # In a flake-parts module receiving { config, inputs, ... }:
@@ -146,13 +146,13 @@ commonModule = {
 };
 ```
 
-The [complete usage example](examples.md#static-flake-module) shows both imports and participant construction. Align `flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs"` with the input used by `nixosSystem`, so the enclosing evaluator and participants use the same module-system revision. The producer's development input does not select registry semantics.
+The [complete usage example](examples.md#static-flake-module) shows both imports and node construction. Align `flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs"` with the input used by `nixosSystem`, so the enclosing evaluator and nodes use the same module-system revision. The producer's development input does not select registry semantics.
 
-Project-level `registry` contains settings and results; schema contributions belong to the participants' direct `registry` paths. Their static interface reserves the names described below and excludes settings and results from contributions. Keep schema structure and settings independent of participant values, and do not choose imports from these configuration results. Reading a result demands only that value; importing the flake module does not install or force a validation check. The [separate-source example](examples.md#flake-parts-and-separate-source-repositories) explicitly demands `registry.validate` in its flake check. Flake-parts remains optional for constructor and ordinary-flake consumers.
+Project-level `registry` contains settings and results; schema contributions belong to the nodes' direct `registry` paths. Their static interface reserves the names described below and excludes settings and results from contributions. Keep schema structure and settings independent of node values, and do not choose imports from these configuration results. Reading a result demands only that value; importing the flake module does not install or force a validation check. The [separate-source example](examples.md#flake-parts-and-separate-source-repositories) explicitly demands `registry.validate` in its flake check. Flake-parts remains optional for constructor and ordinary-flake consumers.
 
 ### Static NixOS module
 
-Import `inputs.nixos-registry.nixosModules.default` directly in each participating NixOS configuration. The import needs no constructor application. Configure the shared schema and supply the existing registry's results through options:
+Import `inputs.nixos-registry.nixosModules.default` directly in each NixOS node. The import needs no constructor application. Configure the shared schema and supply the existing registry's results through options:
 
 ```nix
 settings = {
@@ -161,7 +161,7 @@ settings = {
 };
 registry = inputs.nixos-registry.lib.mkRegistry (settings // {
   lib = inputs.nixpkgs.lib;
-  participants = nixosConfigurations;
+  nodes = nixosConfigurations;
   centralModules = [ ./central.nix ];
 });
 commonModule = {
@@ -173,9 +173,9 @@ commonModule = {
 };
 ```
 
-Import `commonModule` when constructing each participant with `inputs.nixpkgs.lib.nixosSystem`. The caller chooses the participants and supplies one shared registry. The static module neither discovers participants nor performs shared aggregation. Flake-parts is optional; the [runnable ordinary-flake example](examples.md#static-nixos-module) uses this wiring.
+Import `commonModule` when constructing each node with `inputs.nixpkgs.lib.nixosSystem`. The caller chooses the nodes and supplies one shared registry. The static module neither discovers nodes nor performs shared aggregation. Flake-parts is optional; the [runnable ordinary-flake example](examples.md#static-nixos-module) uses this wiring.
 
-| Participant option                | Meaning                                                                                        | Default            |
+| Node option                       | Meaning                                                                                        | Default            |
 | --------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------ |
 | `registry.settings.schemaModules` | Shared schema modules; supply the same modules to `mkRegistry`. Lists compose normally.        | Required           |
 | `registry.settings.specialArgs`   | Schema arguments; supply the same arguments to `mkRegistry` for schema and central evaluation. | `{ }`              |
@@ -183,19 +183,19 @@ Import `commonModule` when constructing each participant with `inputs.nixpkgs.li
 | `registry.combined`               | Combined data supplied from the shared registry.                                               | Required when read |
 | `registry.validate`               | Explicit validation supplied from the shared registry.                                         | Required when read |
 
-The three result options accept one definition each. `central` and `combined` retain the supplied values without recursively merging their data; `validate` is a Boolean. Reading `config.registry.validate` demands the supplied validation value. Importing the module alone does not demand validation. Configure `participants` and `centralModules` on the project-level constructor, rather than in participant settings.
+The three result options accept one definition each. `central` and `combined` retain the supplied values without recursively merging their data; `validate` is a Boolean. Reading `config.registry.validate` demands the supplied validation value. Importing the module alone does not demand validation. Configure `nodes` and `centralModules` on the project-level constructor, rather than in node settings.
 
-The static module obtains its module-system library from the enclosing NixOS evaluator. Keep that evaluator and `mkRegistry.lib` on the same Nixpkgs revision. Schema `specialArgs` do not supply arguments to ordinary participant modules; continue using `nixosSystem.specialArgs` for those.
+The static module obtains its module-system library from the enclosing NixOS evaluator. Keep that evaluator and `mkRegistry.lib` on the same Nixpkgs revision. Schema `specialArgs` do not supply arguments to ordinary node modules; continue using `nixosSystem.specialArgs` for those.
 
 Contributions still use direct schema paths such as `registry.services.metrics.port`. Read the local value at `config.registry.services.metrics.port`, central data at `config.registry.central.services.metrics.port`, and combined data at `config.registry.combined.services.metrics.port`. Only contribution definitions enter shared data; settings, shared results, and completed local defaults are excluded.
 
 The complete library-reserved name list for this static interface is **`settings`, `central`, `combined`, and `validate`**, immediately beneath `registry`. A schema declaring any of those names, including as an option group, fails with a reserved-name error. `schemaModules` is permitted as a schema field because its library setting is nested beneath `settings`. The usual `_module` controls also remain unavailable for contributions. These restrictions do not apply to the constructor's generated module: existing schemas using the four names remain supported there.
 
-Keep schema structure and settings independent of participant values. Read shared results through `config.registry` after NixOS has assembled its imports; using these configuration values to choose those imports introduces a module-system cycle. For setup that needs independent central values or schema keys during import discovery, retain the constructor's explicit module-argument route described [below](#schema-and-central-data-during-participant-setup).
+Keep schema structure and settings independent of node values. Read shared results through `config.registry` after NixOS has assembled its imports; using these configuration values to choose those imports introduces a module-system cycle. For setup that needs independent central values or schema keys during import discovery, retain the constructor's explicit module-argument route described [below](#schema-and-central-data-during-node-setup).
 
 #### Properties at the static contribution root
 
-Nix first selects definitions of the participant's whole `registry` option. A root override therefore selects the local settings and result wiring too. An ordinary common-module definition overrides a separate `registry = lib.mkDefault { ... };` contribution locally; `registry = lib.mkForce { ... };` discards ordinary wiring. Apply priorities to individual contribution fields when only those fields should change. For a whole-root override, include the wiring at the selected priority:
+Nix first selects definitions of the node's whole `registry` option. A root override therefore selects the local settings and result wiring too. An ordinary common-module definition overrides a separate `registry = lib.mkDefault { ... };` contribution locally; `registry = lib.mkForce { ... };` discards ordinary wiring. Apply priorities to individual contribution fields when only those fields should change. For a whole-root override, include the wiring at the selected priority:
 
 ```nix
 registry = lib.mkForce {
@@ -210,26 +210,26 @@ registry = lib.mkForce {
 
 Here `settings` contains the common schema configuration and `sharedRegistry` is the caller's constructor result. The root priority applies to the whole contribution during shared aggregation. Nested priorities apply within the contributions that remain; fields from discarded contributions cannot complete a selected partial record.
 
-Collection removes settings and results from the selected definitions, including inside `mkMerge` and other definition properties. Plain definitions containing only that wiring do not become empty contributions: a participant that only reads shared data through the common module cannot suppress another source's default contribution. An explicitly empty contribution, such as a separate `registry = lib.mkForce { };`, still participates in whole-root selection. Preserve local wiring separately at the same priority when using it.
+Collection removes settings and results from the selected definitions, including inside `mkMerge` and other definition properties. Plain definitions containing only that wiring do not become empty contributions: a node that only reads shared data through the common module cannot suppress another source's default contribution. An explicitly empty contribution, such as a separate `registry = lib.mkForce { };`, still participates in whole-root selection. Preserve local wiring separately at the same priority when using it.
 
 Properties retained beneath a root override remain deferred until ordinary priority selection. For example, `lib.mkDefault (lib.mkIf condition { ... })` must not evaluate `condition` when a stronger central contribution wins. The same applies to deferred merge fragments and definition payloads. These roots retain native selection behavior, including selecting an empty record when their content contributes no fields; they are not inspected early to identify wiring-only content. Put `mkIf` outside an override to make the whole root definition conditional. List ordering belongs on schema list fields; ordering the whole root retains the module system's native failure.
 
 ### Constructor-generated module
 
-The schema determines the available shared options. The `registry` prefix is added only in participant configurations:
+The schema determines the available shared options. The `registry` prefix is added only in node configurations:
 
-| Place                             | Example path                              | Meaning                                         |
-| --------------------------------- | ----------------------------------------- | ----------------------------------------------- |
-| Schema module                     | `options.services`                        | Declare the shared option.                      |
-| Central module                    | `services.metrics.port`                   | Define a shared value outside the participants. |
-| Participant module                | `registry.services.metrics.port`          | Contribute a value from this participant.       |
-| Participant's local configuration | `config.registry.services.metrics.port`   | Read this participant's own value.              |
-| Registry passed as an argument    | `registry.central.services.metrics.port`  | Read the central value.                         |
-| Registry passed as an argument    | `registry.combined.services.metrics.port` | Read the merged value.                          |
+| Place                          | Example path                              | Meaning                                  |
+| ------------------------------ | ----------------------------------------- | ---------------------------------------- |
+| Schema module                  | `options.services`                        | Declare the shared option.               |
+| Central module                 | `services.metrics.port`                   | Define a shared value outside the nodes. |
+| Node module                    | `registry.services.metrics.port`          | Contribute a value from this node.       |
+| Node's local configuration     | `config.registry.services.metrics.port`   | Read this node's own value.              |
+| Registry passed as an argument | `registry.central.services.metrics.port`  | Read the central value.                  |
+| Registry passed as an argument | `registry.combined.services.metrics.port` | Read the merged value.                   |
 
-With the generated module, setting `registry.services.metrics.port` contributes data. Reading `registry.combined.services.metrics.port` reads shared data through the module argument. `config.registry` contains only the participant's local contribution evaluated against the schema.
+With the generated module, setting `registry.services.metrics.port` contributes data. Reading `registry.combined.services.metrics.port` reads shared data through the module argument. `config.registry` contains only the node's local contribution evaluated against the schema.
 
-Participants can add entries beneath declared collection options. For example, declaring a `services` option with `attrsOf (submodule ...)` allows a participant to add `services.metrics` without a central declaration for that entry.
+Nodes can add entries beneath declared collection options. For example, declaring a `services` option with `attrsOf (submodule ...)` allows a node to add `services.metrics` without a central declaration for that entry.
 
 Contributions cannot add shared option declarations, including through submodule functions or imports. Data-only submodule functions retain their normal module arguments. `registry._module` is reserved for module-system controls, and a freeform registry root is unsupported. Declared options can use collection types or freeform data within their own types.
 
@@ -237,13 +237,13 @@ Contributions cannot add shared option declarations, including through submodule
 
 Different contributions can supply different required fields of one record. The shared evaluation merges the definitions before it evaluates the completed record.
 
-For example, a central module can supply a host and a participant can supply its port:
+For example, a central module can supply a host and a node can supply its port:
 
 ```nix
 # In a central module:
 backupDestinations.archive.host = "archive.example.test";
 
-# In a participant module:
+# In a node module:
 registry.backupDestinations.archive.port = 2222;
 ```
 
@@ -259,15 +259,15 @@ With the [partial-record schema](../examples/plain-nix/partial-schema.nix), `reg
 }
 ```
 
-The participant's local record still lacks a host. Its port can be read from `config.registry`, but reading its missing host or derived endpoint fails. The central record likewise lacks a port. Use `registry.combined` to read the completed record.
+The node's local record still lacks a host. Its port can be read from `config.registry`, but reading its missing host or derived endpoint fails. The central record likewise lacks a port. Use `registry.combined` to read the completed record.
 
-The same split works with static NixOS participants. Using the common module from [static NixOS wiring](#static-nixos-module) with the partial-record schema, the caller can construct two participants:
+The same split works with static NixOS nodes. Using the common module from [static NixOS wiring](#static-nixos-module) with the partial-record schema, the caller can construct two nodes:
 
 ```nix
 # Pass this list as centralModules to the shared constructor:
 centralModules = [ { backupDestinations.archive.host = "archive.example.test"; } ];
 
-participants = {
+nodes = {
   transport = inputs.nixpkgs.lib.nixosSystem {
     modules = [
       commonModule
@@ -292,13 +292,13 @@ participants = {
 };
 ```
 
-Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/static-interface.nix) evaluate this split with actual NixOS participants and compare the completed record with direct module evaluation.
+Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/static-interface.nix) evaluate this split with actual NixOS nodes and compare the completed record with direct module evaluation.
 
-Schema defaults apply once per shared evaluation, regardless of participant count. An explicit list definition, including `[ ]`, replaces its schema default. Multiple explicit lists merge normally. Derived values use the fields from that evaluation; read-only defaults in the combined data therefore use the combined fields. Additional definitions of read-only values fail under normal module rules.
+Schema defaults apply once per shared evaluation, regardless of node count. An explicit list definition, including `[ ]`, replaces its schema default. Multiple explicit lists merge normally. Derived values use the fields from that evaluation; read-only defaults in the combined data therefore use the combined fields. Additional definitions of read-only values fail under normal module rules.
 
 ## Override a field or a whole contribution
 
-Ordinary lists merge. Equal scalar definitions agree; conflicting scalar definitions raise errors. Central definitions and participant definitions follow the same rules.
+Ordinary lists merge. Equal scalar definitions agree; conflicting scalar definitions raise errors. Central definitions and node definitions follow the same rules.
 
 Override priorities select which definitions remain:
 
@@ -330,7 +330,7 @@ registry = lib.mkForce {
 
 The second form discards every weaker contribution in full, including unrelated fields. Required fields in discarded contributions cannot complete the remaining record. Nested priorities apply only within the contributions that remain.
 
-Central modules set a priority for the whole contribution with `config = lib.mkForce { ... };` or another override. A central module containing only imports adds no contribution of its own. Participant overrides affect `registry.combined`; `registry.central` still evaluates only central modules.
+Central modules set a priority for the whole contribution with `config = lib.mkForce { ... };` or another override. A central module containing only imports adds no contribution of its own. Node overrides affect `registry.combined`; `registry.central` still evaluates only central modules.
 
 The [priority example](../examples/plain-nix/priorities.nix) compares a default contribution, a forced contribution, and an override of one port.
 
@@ -349,7 +349,7 @@ registry = lib.mkIf config.backup.enable (
 
 In the [conditional-ordering example](../examples/plain-nix/conditional-ordering.nix), enabled contributions produce `[ "/srv/documents" "/srv/central" "/srv/snapshots" ]`. Disabling the contribution leaves only `[ "/srv/central" ]` from the central module.
 
-List ordering applies across central and participant definitions after override priorities select the definitions to keep:
+List ordering applies across central and node definitions after override priorities select the definitions to keep:
 
 | List definition             | Order priority      |
 | --------------------------- | ------------------- |
@@ -375,7 +375,7 @@ clientEndpoint = registry.combined.services.api.endpoint;
 
 The central data supplies the domain and port. The combined data completes the record and derives its endpoint without demanding a complete local record.
 
-With the static NixOS module, read the same shared values through the participant's `config.registry`:
+With the static NixOS module, read the same shared values through the node's `config.registry`:
 
 ```nix
 { config, ... }: {
@@ -387,7 +387,7 @@ With the static NixOS module, read the same shared values through the participan
 
 Here the project's `registry.settings.centralModules` supplies `domain = "example.test"` and `services.api.port = 8443`. The local contribution at `config.registry.services.api.host` is `api.example.test`; its local port remains undefined. `config.registry.central.services.api.port` reads the central port, while `config.registry.combined.services.api.endpoint` reads the completed endpoint `api.example.test:8443`. `config.registry.validate` validates that completed record without requiring a complete local or central record.
 
-An unrelated invalid contribution can remain unused while reading an independent combined field. Central reads do not collect participants. Supplying shared results through the common module does not itself force validation; importing either static module and reading unrelated configuration can leave the registry unevaluated. The [static consumer tests](../tests/integration/static-reads.nix) exercise these reads and explicit validation through both public modules.
+An unrelated invalid contribution can remain unused while reading an independent combined field. Central reads do not collect nodes. Supplying shared results through the common module does not itself force validation; importing either static module and reading unrelated configuration can leave the registry unevaluated. The [static consumer tests](../tests/integration/static-reads.nix) exercise these reads and explicit validation through both public modules.
 
 Collection types can force related definitions during merging. In the [collection example](../examples/plain-nix/collection-laziness.nix), both values are under one `settings` option:
 
@@ -395,7 +395,7 @@ Collection types can force related definitions during merging. In the [collectio
 # In a central module:
 settings.domain = "example.test";
 
-# In a participant module:
+# In a node module:
 registry.settings.endpoint = "api.${registry.combined.settings.domain}:8443";
 ```
 
@@ -410,18 +410,18 @@ The static interfaces preserve this distinction between strict and lazy collecti
 
 Lazy collections do not resolve value cycles. If one service reads a second service and the second reads the first, shared reads and validation can raise Nix's `infinite recursion encountered` error. The [value-cycle example](../examples/plain-nix/value-cycle.nix) demonstrates this.
 
-### Schema and central data during participant setup
+### Schema and central data during node setup
 
-Both data sets get their top-level keys from the schema. Listing those keys does not evaluate central definitions or collect participant contributions:
+Both data sets get their top-level keys from the schema. Listing those keys does not evaluate central definitions or collect node contributions:
 
 ```nix
 builtins.attrNames registry.central
 builtins.attrNames registry.combined
 ```
 
-With the constructor, participants can inspect these keys through caller-supplied module arguments when selecting module imports. They can also read available `registry.central` values without collecting participant contributions. Static participants read `config.registry.central` and `config.registry.combined` after imports are assembled; using those participant configuration values to select the same imports causes a module-system cycle, even for an independent central value.
+With the constructor, nodes can inspect these keys through caller-supplied module arguments when selecting module imports. They can also read available `registry.central` values without collecting node contributions. Static nodes read `config.registry.central` and `config.registry.combined` after imports are assembled; using those node configuration values to select the same imports causes a module-system cycle, even for an independent central value.
 
-Keep schema declarations, their structure, and their arguments independent of participant evaluation. Central values used to set up a participant must also have independent dependencies. A central definition that reads participant data can cause recursion.
+Keep schema declarations, their structure, and their arguments independent of node evaluation. Central values used to set up a node must also have independent dependencies. A central definition that reads node data can cause recursion.
 
 ## Validation and diagnostics
 
@@ -460,14 +460,14 @@ Run `nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry` f
 | Combined data                                               | Result                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |
 | Complete records with valid types                           | `true`                                                             |
-| Central records completed by participants                   | `true`, even if the central data is incomplete                     |
+| Central records completed by nodes                          | `true`, even if the central data is incomplete                     |
 | Type errors, missing required fields, or unknown options    | Evaluation error                                                   |
 | Additional definitions of read-only fields                  | Evaluation error                                                   |
 | A declared `assertions` option containing a false assertion | Checked as ordinary schema data; NixOS assertions are not executed |
 
-Errors retain the relevant option path, participant name, and available source filenames. This includes definitions with priorities, ordering, `mkMerge`, explicit `lib.mkDefinition` locations, and submodule source files. A missing required value has an option path but no definition filename.
+Errors retain the relevant option path, node name, and available source filenames. This includes definitions with priorities, ordering, `mkMerge`, explicit `lib.mkDefinition` locations, and submodule source files. A missing required value has an option path but no definition filename.
 
-For example, an invalid port from participant `service publisher` in `invalid-service.nix` identifies these facts:
+For example, an invalid port from node `service publisher` in `invalid-service.nix` identifies these facts:
 
 ```text
 services.api.port

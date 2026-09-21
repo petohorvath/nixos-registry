@@ -34,7 +34,7 @@ in
             registry = mkRegistry {
               inherit lib;
               schemaModules = [ schema ];
-              participants.publisher = lib.evalModules {
+              nodes.publisher = lib.evalModules {
                 modules = [
                   registry.module
                   publication
@@ -127,7 +127,7 @@ in
             (lib.mkIf false (lib.mkAfter (throw "Disabled central ordering was forced.")))
           ];
           publications.publisher = [
-            (lib.mkIf false (lib.mkBefore (throw "Disabled participant ordering was forced.")))
+            (lib.mkIf false (lib.mkBefore (throw "Disabled node ordering was forced.")))
             { backupPaths = [ "/enabled" ]; }
           ];
         };
@@ -154,8 +154,8 @@ in
           ];
           publications.publisher = [
             (lib.mkMerge [
-              (lib.mkIf true { backupPaths = [ "/participant" ]; })
-              (lib.mkIf false (throw "A disabled participant contribution was forced."))
+              (lib.mkIf true { backupPaths = [ "/node" ]; })
+              (lib.mkIf false (throw "A disabled node contribution was forced."))
               {
                 backupPaths = lib.mkMerge [
                   (lib.mkIf true (lib.mkAfter [ "/nested" ]))
@@ -174,7 +174,7 @@ in
     expected = {
       paths = [
         "/central"
-        "/participant"
+        "/node"
         "/nested"
       ];
       matchesDirect = true;

@@ -6,7 +6,7 @@
 {
   schemaModules,
   centralModules ? [ ],
-  participantModules ? { },
+  nodeModules ? { },
   modules ? [ ],
 }:
 let
@@ -37,7 +37,7 @@ let
       systems = [ system ];
       registry.settings = {
         inherit centralModules schemaModules;
-        participants = config.flake.nixosConfigurations;
+        nodes = config.flake.nixosConfigurations;
       };
       flake = {
         lib.registry = shared;
@@ -46,7 +46,7 @@ let
           nixpkgs.lib.nixosSystem {
             modules = [ commonModule ] ++ modules;
           }
-        ) participantModules;
+        ) nodeModules;
       };
       perSystem =
         { pkgs, ... }:

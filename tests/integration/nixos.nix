@@ -33,7 +33,7 @@ in
   testNixosPublishesConfiguredServicePort = {
     expr = {
       service = example.registry.combined.services.metrics;
-      configuredPort = example.participants."metrics publisher".config.services.prometheus.port;
+      configuredPort = example.nodes."metrics publisher".config.services.prometheus.port;
     };
     expected = {
       service = {
@@ -48,7 +48,7 @@ in
   testDisabledNixosServiceDoesNotPublish = {
     expr = {
       services = builtins.attrNames example.registry.combined.services;
-      inherit (example.participants."standby publisher".config.services.prometheus) enable port;
+      inherit (example.nodes."standby publisher".config.services.prometheus) enable port;
     };
     expected = {
       services = [ "metrics" ];
@@ -57,11 +57,11 @@ in
     };
   };
 
-  testNixosParticipantsReadCombinedDataWhilePublishing = {
-    expr = nixpkgs.lib.mapAttrs (_: participant: {
-      domain = participant.config.networking.domain;
-      endpoint = participant.config.environment.etc."metrics-endpoint".text;
-    }) example.participants;
+  testNixosNodesReadCombinedDataWhilePublishing = {
+    expr = nixpkgs.lib.mapAttrs (_: node: {
+      domain = node.config.networking.domain;
+      endpoint = node.config.environment.etc."metrics-endpoint".text;
+    }) example.nodes;
     expected = {
       "metrics publisher" = {
         domain = "example.test";
@@ -92,7 +92,7 @@ in
             system
             ;
         };
-        config = alternate.participants."metrics publisher".config;
+        config = alternate.nodes."metrics publisher".config;
         command = config.systemd.services.prometheus.serviceConfig.ExecStart;
       in
       {

@@ -10,10 +10,10 @@ let
         services.api.port = 8443;
       }
     ];
-    participants."API publisher" = participant;
+    nodes."API publisher" = node;
   };
 
-  participant = lib.evalModules {
+  node = lib.evalModules {
     specialArgs = { inherit registry; };
     modules = [
       registry.module
@@ -35,7 +35,7 @@ let
 in
 {
   inherit (registry) combined validate;
-  inherit (participant.config) clientEndpoint;
+  inherit (node.config) clientEndpoint;
   centralDomain = registry.central.domain;
-  localHost = participant.config.registry.services.api.host;
+  localHost = node.config.registry.services.api.host;
 }

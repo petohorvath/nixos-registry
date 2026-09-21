@@ -45,12 +45,12 @@ expect_failure incompatibleOption "unrelated registry option" "incompatible" "re
 expect_failure unrelatedSubmodule "handwritten contribution root" "incompatible" "registry.module"
 expect_failure conflictingInterface "conflicting publication interface" "registry" "conflicting-interface.nix"
 check_contribution_diagnostics() {
-  expect_failure invalidPort "services.api.port" "service publisher" "invalid-service.nix"
-  expect_failure definitionOrigin "services.api.port" "generated service publisher" \
+  expect_failure invalidPort "services.api.port" "node service publisher" "invalid-service.nix"
+  expect_failure definitionOrigin "services.api.port" "node generated service publisher" \
     "/generated/service-port.nix"
-  expect_failure submoduleOrigin "services.api.port" "imported service publisher" \
+  expect_failure submoduleOrigin "services.api.port" "node imported service publisher" \
     "invalid-service-record.nix"
-  expect_failure moduleOrigin "services.api.port" "module service publisher" \
+  expect_failure moduleOrigin "services.api.port" "node module service publisher" \
     "/modules/service-record.nix"
   expect_failure missingRequired "services.api.port" "no value defined"
   expect_failure unknownOption "services.api.undeclared" "unknown service publisher" "unknown-service.nix"
@@ -68,8 +68,8 @@ check_contribution_diagnostics() {
 }
 check_contribution_diagnostics
 expect_failure flakeMissingSchema "registry.settings.schemaModules" "must be set explicitly"
-expect_failure flakeMissingParticipants "registry.settings.participants" "must be set explicitly"
-expect_failure flakeDuplicateParticipant "registry.settings.participants" "duplicate participant" \
+expect_failure flakeMissingNodes "registry.settings.nodes" "must be set explicitly"
+expect_failure flakeDuplicateNode "registry.settings.nodes" "duplicate node" \
   "first-project.nix" "second-project.nix"
 expect_failure flakeCentralConflict "domain" "first-project.nix" "second-project.nix"
 expect_failure flakeDuplicateArgument "registry.settings.specialArgs.schemaLabel" \
@@ -83,7 +83,7 @@ expect_failure staticInvalidPort.local "registry.services.api.port" "invalid-ser
 expect_failure flakeStaticInvalidPort "services.api.port" "static service publisher" "invalid-service.nix"
 for name in settings central combined validate; do
   expect_failure "staticReservedSchema.$name" "registry.$name" "reserved" \
-    "static-schema-collision.nix" "colliding static participant"
+    "static-schema-collision.nix" "colliding static node"
 done
 
-echo "Registry diagnostics retain participant identities and source origins."
+echo "Registry diagnostics retain node identities and source origins."

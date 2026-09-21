@@ -1,4 +1,4 @@
-# Real NixOS participants publish configured services through a shared handle.
+# Real NixOS nodes publish configured services through a shared handle.
 {
   nixpkgs,
   mkRegistry,
@@ -9,19 +9,19 @@ let
   inherit (nixpkgs) lib;
 
   registry = mkRegistry {
-    inherit lib participants;
+    inherit lib nodes;
     schemaModules = [ ../plain-nix/service-schema.nix ];
     centralModules = [ { domain = "example.test"; } ];
   };
 
-  participants = {
-    "metrics publisher" = mkParticipant {
+  nodes = {
+    "metrics publisher" = mkNode {
       serviceName = "metrics";
       hostName = "monitor";
       enable = true;
       port = 9191;
     };
-    "standby publisher" = mkParticipant {
+    "standby publisher" = mkNode {
       serviceName = "standby";
       hostName = "spare";
       enable = false;
@@ -29,7 +29,7 @@ let
     };
   };
 
-  mkParticipant =
+  mkNode =
     {
       serviceName,
       hostName,
@@ -51,12 +51,10 @@ let
     };
 in
 {
-  inherit participants registry;
+  inherit nodes registry;
 
   result = {
     inherit (registry) central combined validate;
-    clientEndpoints = lib.mapAttrs (
-      _: participant: participant.config.environment.etc."metrics-endpoint".text
-    ) participants;
+    clientEndpoints = lib.mapAttrs (_: node: node.config.environment.etc."metrics-endpoint".text) nodes;
   };
 }
