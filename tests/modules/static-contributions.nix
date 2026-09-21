@@ -56,6 +56,48 @@ let
     };
 in
 {
+  testStaticDiscardedContributionDoesNotForceItsProperties = {
+    expr =
+      map
+        (
+          discarded:
+          let
+            evaluations = mkEvaluations {
+              wiringProperty = lib.mkDefault;
+              central = [
+                (lib.mkForce {
+                  backupDestinations.archive = {
+                    host = "archive.example.test";
+                    port = 2222;
+                  };
+                })
+              ];
+              publications.publisher = [ (lib.mkDefault discarded) ];
+            };
+          in
+          {
+            matchesDirect = evaluations.registry.combined == evaluations.direct;
+            inherit (evaluations.registry) validate;
+          }
+        )
+        [
+          (lib.mkIf (throw "A discarded condition was forced.") {
+            backupDestinations.archive.host = "discarded.example.test";
+          })
+          (lib.mkMerge (throw "A discarded merge was forced."))
+          (lib.mkMerge [ (throw "A discarded merge fragment was forced.") ])
+          (lib.mkForce (throw "A discarded override payload was forced."))
+          (lib.mkDefinition {
+            file = "/discarded-definition.nix";
+            value = throw "A discarded definition was forced.";
+          })
+        ];
+    expected = lib.replicate 5 {
+      matchesDirect = true;
+      validate = true;
+    };
+  };
+
   testStaticDiscardedOrderingDoesNotForceItsContent = {
     expr =
       map
@@ -153,7 +195,7 @@ in
     expr =
       let
         evaluations = mkEvaluations {
-          wiringProperty = value: lib.mkForce (lib.mkIf true value);
+          wiringProperty = lib.mkForce;
           central = [
             {
               backupDestinations.archive = {
@@ -581,7 +623,11 @@ in
   };
 }
 //
-  lib.mapAttrs' (name: value: lib.nameValuePair "testStatic${lib.removePrefix "test" name}" value)
+  lib.mapAttrs'
+    (
+      name: value:
+      lib.nameValuePair "testStatic${lib.replaceStrings [ "Publication" ] [ "Contribution" ] (lib.removePrefix "test" name)}" value
+    )
     (
       import ../schema-ownership.nix {
         inherit lib;

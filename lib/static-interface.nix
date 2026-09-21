@@ -43,17 +43,8 @@ let
 
   isWiringOnly =
     value:
-    if value._type or null == "merge" then
-      value.contents != [ ] && lib.all isWiringOnly value.contents
-    else if value._type or null == "if" then
-      # A disabled definition must not demand its payload to classify its fields.
-      value.condition && isWiringOnly value.content
-    else if value._type or null == "override" then
-      isWiringOnly value.content
-    else if value._type or null == "definition" then
-      isWiringOnly value.value
-    else
-      removeAttrs value reservedNames == { } && lib.any (name: value ? ${name}) reservedNames;
+    # Surviving properties stay opaque until shared root priorities select them.
+    removeAttrs value reservedNames == { } && lib.any (name: value ? ${name}) reservedNames;
 in
 {
   inherit checkSchema reservedNames;
