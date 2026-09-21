@@ -128,7 +128,7 @@ in
     };
   };
 
-  testPublicationsCanDisableModulesRelativeToModulesPath = {
+  testDisablesContributionModulesByRelativePath = {
     expr =
       let
         registry =
@@ -163,7 +163,7 @@ in
     };
   };
 
-  testPublicationsCannotDisableSchemaModulesRelativeToModulesPath = {
+  testRejectsDisablingSchemaModulesByRelativePath = {
     expr =
       let
         registry =
@@ -202,7 +202,7 @@ in
     expected = false;
   };
 
-  testPublicationsCannotDisableSchemaModulesNamedByTheirOptionPath = {
+  testRejectsDisablingSchemaModulesByOptionPath = {
     expr =
       let
         registry =
@@ -451,7 +451,7 @@ in
     };
   };
 
-  testCollectionTypesDoNotAllowPublicationSchemaDeclarations = {
+  testCollectionsRejectContributionSchemaExtensions = {
     expr = builtins.mapAttrs (
       _: shape:
       let

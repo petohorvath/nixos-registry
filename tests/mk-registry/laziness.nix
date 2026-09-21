@@ -45,7 +45,7 @@ in
       let
         registry = mkRegistry {
           inherit lib;
-          schemaModules = [ ../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
           participants.publisher = lib.evalModules {
             modules = [
@@ -88,7 +88,7 @@ in
     };
   };
 
-  testStrictCollectionForcesAnUnrelatedThrowLikeDirectEvaluation = {
+  testStrictCollectionsForceUnusedEntries = {
     expr =
       let
         evaluations = mkCollectionEvaluations lib.types.attrsOf;

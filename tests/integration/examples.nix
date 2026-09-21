@@ -1,7 +1,7 @@
 { lib, mkRegistry }:
 {
   testParticipantPublishesFromCombinedDomainExample = {
-    expr = import ../examples/plain-nix/combined-reads.nix { inherit lib mkRegistry; };
+    expr = import ../../examples/plain-nix/combined-reads.nix { inherit lib mkRegistry; };
     expected = {
       centralDomain = "example.test";
       localHost = "api.example.test";
@@ -18,8 +18,8 @@
     };
   };
 
-  testLazyCollectionAllowsAContributionToReadAnotherEntryExample = {
-    expr = (import ../examples/plain-nix/collection-laziness.nix { inherit lib mkRegistry; }).lazy;
+  testLazyCollectionExampleReadsSiblingEntries = {
+    expr = (import ../../examples/plain-nix/collection-laziness.nix { inherit lib mkRegistry; }).lazy;
     expected = {
       combined.settings = {
         domain = "example.test";
@@ -30,7 +30,7 @@
   };
 
   testLocallyEnabledOrderedPublicationExample = {
-    expr = import ../examples/plain-nix/conditional-ordering.nix { inherit lib mkRegistry; };
+    expr = import ../../examples/plain-nix/conditional-ordering.nix { inherit lib mkRegistry; };
     expected = {
       enabled = {
         combined.backupDestinations.archive = {
@@ -58,7 +58,7 @@
   };
 
   testPlainNixContributionPrioritiesExample = {
-    expr = import ../examples/plain-nix/priorities.nix { inherit lib mkRegistry; };
+    expr = import ../../examples/plain-nix/priorities.nix { inherit lib mkRegistry; };
     expected = {
       defaultContribution = {
         combined.backupDestinations = {
@@ -102,7 +102,7 @@
   };
 
   testPlainNixBackupDestinationExample = {
-    expr = import ../examples/plain-nix { inherit lib mkRegistry; };
+    expr = import ../../examples/plain-nix { inherit lib mkRegistry; };
     expected = {
       central.backupDestinations.archive = {
         host = "archive.example.test";
@@ -136,13 +136,13 @@
 
   testPlainNixScalarConflictExampleFails = {
     expr =
-      (builtins.tryEval (import ../examples/plain-nix/scalar-conflict.nix { inherit lib mkRegistry; }))
+      (builtins.tryEval (import ../../examples/plain-nix/scalar-conflict.nix { inherit lib mkRegistry; }))
       .success;
     expected = false;
   };
 
   testPlainNixPartialContributionsExample = {
-    expr = import ../examples/plain-nix/partial-contributions.nix { inherit lib mkRegistry; };
+    expr = import ../../examples/plain-nix/partial-contributions.nix { inherit lib mkRegistry; };
     expected = {
       centralHost = "archive.example.test";
       localPort = 2222;

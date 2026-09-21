@@ -1,6 +1,6 @@
 { lib, mkRegistry }:
 let
-  schema = ../examples/plain-nix/partial-schema.nix;
+  schema = ../../examples/plain-nix/partial-schema.nix;
 
   split = mkEvaluations {
     publications = {

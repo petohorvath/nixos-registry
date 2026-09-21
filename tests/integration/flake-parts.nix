@@ -81,7 +81,7 @@ in
         registryFlake = (import "${example.inputs.nixos-registry}/flake.nix").outputs { };
         registry = registryFlake.lib.mkRegistry {
           inherit lib participants;
-          schemaModules = [ ../examples/flake-parts/schema.nix ];
+          schemaModules = [ ../../examples/flake-parts/schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
         };
         participants =

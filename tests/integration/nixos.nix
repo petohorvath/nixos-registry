@@ -4,7 +4,7 @@
   system,
 }:
 let
-  example = import ../examples/nixos { inherit mkRegistry nixpkgs system; };
+  example = import ../../examples/nixos { inherit mkRegistry nixpkgs system; };
 in
 {
   testNixosExampleEvaluatesAndValidates = {
@@ -84,7 +84,7 @@ in
           }
         );
         package = alternatePkgs.prometheus;
-        alternate = import ../examples/nixos {
+        alternate = import ../../examples/nixos {
           inherit
             mkRegistry
             nixpkgs
