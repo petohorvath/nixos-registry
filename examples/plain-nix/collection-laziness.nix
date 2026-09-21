@@ -16,7 +16,7 @@ let
           }
         ];
         centralModules = [ { settings.domain = "example.test"; } ];
-        participants."API publisher" = lib.evalModules {
+        nodes."API publisher" = lib.evalModules {
           specialArgs = { inherit registry; };
           modules = [
             registry.module

@@ -1,5 +1,5 @@
 { lib }:
-participantName: sourceFile:
+nodeName: sourceFile:
 let
   checkOptions =
     {
@@ -119,7 +119,7 @@ let
           checked = checkModule (schema // { context = args; }) file (import value);
         in
         {
-          _file = "participant ${participantName}: ${toString value}";
+          _file = "node ${nodeName}: ${toString value}";
           key = toString value;
         }
         // (if lib.isFunction checked then checked args else checked)
@@ -159,7 +159,7 @@ let
           disabledModules = checkDisabledModules schema file value.disabledModules;
         }
         // lib.optionalAttrs (value ? _file) {
-          _file = "participant ${participantName}: ${toString value._file}";
+          _file = "node ${nodeName}: ${toString value._file}";
         }
         // lib.optionalAttrs (value ? imports) {
           imports = map (checkModule schema file) value.imports;
@@ -204,8 +204,7 @@ let
     ];
 
   addPublicationContext =
-    file:
-    builtins.addErrorContext "while checking publication from participant `${participantName}' in `${file}':";
+    file: builtins.addErrorContext "while checking publication from node `${nodeName}' in `${file}':";
 
   # Keep checks beneath module properties lazy until those definitions are used.
   mapProperties =
@@ -224,7 +223,7 @@ let
     else if builtins.isAttrs value && value._type or null == "definition" then
       value
       // {
-        file = "participant ${participantName}: ${value.file}";
+        file = "node ${nodeName}: ${value.file}";
         value = mapProperties check value.file value.value;
       }
     else

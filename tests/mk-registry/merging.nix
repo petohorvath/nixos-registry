@@ -47,7 +47,7 @@ let
         inherit lib;
         schemaModules = [ schema ];
         centralModules = [ central ];
-        participants = lib.mapAttrs (
+        nodes = lib.mapAttrs (
           _: contribution:
           lib.evalModules {
             modules = [

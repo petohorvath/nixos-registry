@@ -42,7 +42,7 @@ in
         ];
         registry = mkRegistry {
           inherit centralModules lib schemaModules;
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules { modules = schemaModules ++ centralModules; };
       in
@@ -63,7 +63,7 @@ in
         centralModules = [ { imports = schemaModules; } ];
         registry = mkRegistry {
           inherit centralModules lib schemaModules;
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules { modules = schemaModules ++ centralModules; };
       in
@@ -93,7 +93,7 @@ in
         registry = mkRegistry {
           inherit centralModules lib;
           schemaModules = [ schema ];
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules { modules = [ schema ] ++ centralModules; };
       in
@@ -126,7 +126,7 @@ in
         ];
         registry = mkRegistry {
           inherit centralModules lib schemaModules;
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules { modules = schemaModules ++ centralModules; };
       in
@@ -153,7 +153,7 @@ in
         registry = mkRegistry {
           inherit centralModules lib;
           schemaModules = [ schema ];
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules { modules = [ schema ] ++ centralModules; };
       in
@@ -180,7 +180,7 @@ in
         registry = mkRegistry {
           inherit centralModules lib;
           schemaModules = [ schema ];
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules { modules = [ schema ] ++ centralModules; };
       in
@@ -214,7 +214,7 @@ in
               backupHost = "archive.example.test";
             }
           ];
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules {
           specialArgs.modulesPath = "/central-modules";
@@ -245,7 +245,7 @@ in
     };
   };
 
-  testCentralRootPrioritiesIgnoreParticipants = {
+  testCentralRootPrioritiesIgnoreNodes = {
     expr =
       let
         registry = mkRegistry {
@@ -255,7 +255,7 @@ in
             { backupPaths = [ "/discarded" ]; }
             { config = lib.mkForce { backupHost = "central.example.test"; }; }
           ];
-          participants = throw "The central view collected participants.";
+          nodes = throw "The central view collected nodes.";
         };
         direct = lib.evalModules {
           modules = [
@@ -297,7 +297,7 @@ in
               ];
             }
           ];
-          participants = { };
+          nodes = { };
         };
         direct = lib.evalModules {
           modules = [

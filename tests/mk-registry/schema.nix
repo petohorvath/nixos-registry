@@ -31,38 +31,38 @@ in
           inherit lib;
           schemaModules = [ schema ];
           centralModules = throw "Central definitions were forced.";
-          participants = throw "Participant collection was forced.";
+          nodes = throw "Node collection was forced.";
         };
       in
       builtins.attrNames registry.central;
     expected = [ "domain" ];
   };
 
-  testCentralReadsDoNotCollectParticipants = {
+  testCentralReadsDoNotCollectNodes = {
     expr =
       let
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
           centralModules = [ { domain = "example.test"; } ];
-          participants = throw "Participant collection was forced.";
+          nodes = throw "Node collection was forced.";
         };
       in
       registry.central.domain;
     expected = "example.test";
   };
 
-  testViewsDoNotForceInvalidParticipantContributions = {
+  testViewsDoNotForceInvalidNodeContributions = {
     expr =
       let
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
           centralModules = [ { domain = "example.test"; } ];
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             modules = [
               registry.module
-              { registry = throw "Participant contribution was forced."; }
+              { registry = throw "Node contribution was forced."; }
             ];
           };
         };
@@ -81,20 +81,20 @@ in
     };
   };
 
-  testCombinedKeysDoNotCollectParticipants = {
+  testCombinedKeysDoNotCollectNodes = {
     expr =
       let
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          participants = throw "Participant collection was forced.";
+          nodes = throw "Node collection was forced.";
         };
       in
       builtins.attrNames registry.combined;
     expected = [ "domain" ];
   };
 
-  testParticipantsSelectModulesUsingDeclaredKeysAndCentralData = {
+  testNodesSelectModulesUsingDeclaredKeysAndCentralData = {
     expr =
       let
         registry = mkRegistry {
@@ -117,7 +117,7 @@ in
             centralDomain = "example.test";
             collectionName = "services";
           };
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             specialArgs = { inherit registry; };
             modules = [
               registry.module
@@ -156,7 +156,7 @@ in
             { freeformType = lib.types.attrsOf lib.types.anything; }
           ];
           centralModules = [ { domain = "example.test"; } ];
-          participants = { };
+          nodes = { };
         };
       in
       (builtins.tryEval registry.validate).success;
@@ -175,7 +175,7 @@ in
               domain = "example.test";
             }
           ];
-          participants = { };
+          nodes = { };
         };
       in
       (builtins.tryEval registry.validate).success;
@@ -188,7 +188,7 @@ in
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             modules = [
               registry.module
               {
@@ -206,13 +206,13 @@ in
     expected = false;
   };
 
-  testParticipantOptionDeclarationsDoNotExtendTheSharedSchema = {
+  testNodeOptionDeclarationsDoNotExtendTheSharedSchema = {
     expr =
       let
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             modules = [
               registry.module
               {
@@ -220,10 +220,10 @@ in
                   type = lib.types.submodule {
                     options.injected = lib.mkOption {
                       type = lib.types.str;
-                      description = "A participant-local option.";
+                      description = "A node-local option.";
                     };
                   };
-                  description = "A participant-local registry extension.";
+                  description = "A node-local registry extension.";
                 };
                 config.registry = {
                   domain = "example.test";
@@ -250,7 +250,7 @@ in
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ serviceSchema ];
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             modules = [
               registry.module
               {
@@ -259,7 +259,7 @@ in
                   {
                     options.injected = lib.mkOption {
                       type = lib.types.str;
-                      default = "participant-owned schema";
+                      default = "node-owned schema";
                       description = "An option absent from schemaModules.";
                     };
                     config.endpoint = "backup.example.test:443";
@@ -279,7 +279,7 @@ in
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ serviceSchema ];
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             modules = [
               registry.module
               {

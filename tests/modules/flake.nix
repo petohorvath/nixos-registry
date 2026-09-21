@@ -46,7 +46,7 @@ let
               backupPaths = lib.mkBefore [ "/srv/primary" ];
             }
           ];
-          participants = {
+          nodes = {
             "metrics publisher" = config.flake.nixosConfigurations.monitor;
           };
         };
@@ -77,7 +77,7 @@ let
               })
             ];
           };
-          unselected = throw "Configurations outside registry.settings.participants must not be collected.";
+          unselected = throw "Configurations outside registry.settings.nodes must not be collected.";
         };
       }
     )
@@ -93,7 +93,7 @@ let
           })
         ];
         centralModules = [ { backupPaths = lib.mkAfter [ "/srv/archive" ]; } ];
-        participants."backup reader" = config.flake.nixosConfigurations.backup;
+        nodes."backup reader" = config.flake.nixosConfigurations.backup;
       };
     })
   ];
@@ -116,8 +116,8 @@ in
               { config, ... }:
               let
                 shared = config.registry;
-                participant = selectedLib.nixosSystem {
-                  specialArgs.participantPort = 2222;
+                node = selectedLib.nixosSystem {
+                  specialArgs.nodePort = 2222;
                   modules = [
                     registryFlake.nixosModules.default
                     {
@@ -127,7 +127,7 @@ in
                         inherit (shared) central combined validate;
                       };
                     }
-                    ({ participantPort, ... }: { registry.port = participantPort; })
+                    ({ nodePort, ... }: { registry.port = nodePort; })
                   ];
                 };
               in
@@ -145,7 +145,7 @@ in
                         };
                         port = lib.mkOption {
                           type = lib.registryPortType;
-                          description = "The participant's port.";
+                          description = "The node's port.";
                         };
                         centralPort = lib.mkOption {
                           type = lib.types.port;
@@ -154,17 +154,17 @@ in
                       };
                     })
                   ];
-                  centralModules = [ ({ participantPort, ... }: { centralPort = participantPort; }) ];
+                  centralModules = [ ({ nodePort, ... }: { centralPort = nodePort; }) ];
                   specialArgs = {
                     schemaLabel = "shared schema";
-                    participantPort = 1111;
+                    nodePort = 1111;
                   };
-                  participants."argument owner" = participant;
+                  nodes."argument owner" = node;
                 };
                 flake.lib.result = {
                   inherit (shared) combined validate;
-                  localPort = participant.config.registry.port;
-                  localLabel = participant.config.registry.schemaModules;
+                  localPort = node.config.registry.port;
+                  localLabel = node.config.registry.schemaModules;
                 };
               }
             );
@@ -182,7 +182,7 @@ in
     };
   };
 
-  testStaticFlakeModuleRequiresSchemaAndParticipantSettings = {
+  testStaticFlakeModuleRequiresSchemaAndNodeSettings = {
     expr =
       map
         (
@@ -192,7 +192,7 @@ in
               {
                 registry.settings = removeAttrs {
                   schemaModules = [ ];
-                  participants = { };
+                  nodes = { };
                 } [ name ];
               }
             ]).lib.registry.validate
@@ -200,7 +200,7 @@ in
         )
         [
           "schemaModules"
-          "participants"
+          "nodes"
         ];
     expected = [
       false
@@ -208,7 +208,7 @@ in
     ];
   };
 
-  testStaticFlakeDefaultsAllowEmptyParticipants = {
+  testStaticFlakeDefaultsAllowEmptyNodes = {
     expr =
       let
         empty =
@@ -224,7 +224,7 @@ in
                     };
                   })
                 ];
-                participants = { };
+                nodes = { };
               };
             }
           ]).lib.registry;
@@ -242,13 +242,13 @@ in
     };
   };
 
-  testStaticFlakeModuleSharesOneRegistryWithNixosParticipants = {
+  testStaticFlakeModuleSharesOneRegistryWithNixosNodes = {
     expr = {
       inherit (consumer.lib.registry) central combined validate;
       endpoint = consumer.nixosConfigurations.backup.config.environment.etc."metrics-endpoint".text;
       localServices = lib.mapAttrs (
-        _: participant: builtins.attrNames participant.config.registry.services
-      ) consumer.lib.registry.settings.participants;
+        _: node: builtins.attrNames node.config.registry.services
+      ) consumer.lib.registry.settings.nodes;
     };
     expected = {
       central = {

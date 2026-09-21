@@ -12,7 +12,7 @@ let
         };
       }
     ];
-    participants."conflicting backup job" = lib.evalModules {
+    nodes."conflicting backup job" = lib.evalModules {
       modules = [
         registry.module
         {

@@ -22,7 +22,7 @@ let
   };
 
   registry = mkRegistry {
-    inherit lib participants;
+    inherit lib nodes;
     schemaModules = [ schema ];
     centralModules = [
       {
@@ -34,7 +34,7 @@ let
     ];
   };
 
-  participants = {
+  nodes = {
     "offsite backup job" = lib.evalModules {
       modules = [
         registry.module
@@ -60,7 +60,7 @@ let
   };
 in
 {
-  testCentralViewExcludesParticipants = {
+  testCentralViewExcludesNodes = {
     expr = registry.central;
     expected.backupDestinations.archive = {
       host = "archive.example.test";
@@ -68,7 +68,7 @@ in
     };
   };
 
-  testCollectsCentralAndNamedParticipants = {
+  testCollectsCentralAndNamedNodes = {
     expr = registry.combined;
     expected.backupDestinations = {
       archive = {
@@ -86,13 +86,13 @@ in
     };
   };
 
-  testEmptyParticipantsUseConstructorDefaults = {
+  testEmptyNodesUseConstructorDefaults = {
     expr =
       let
         empty = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          participants = { };
+          nodes = { };
         };
       in
       {
@@ -105,8 +105,8 @@ in
     };
   };
 
-  testLocalRegistryContainsOnlyTheParticipantContribution = {
-    expr = participants."offsite backup job".config.registry;
+  testLocalRegistryContainsOnlyTheNodeContribution = {
+    expr = nodes."offsite backup job".config.registry;
     expected.backupDestinations.offsite = {
       host = "offsite.example.test";
       port = 2222;
@@ -127,7 +127,7 @@ in
               };
             }
           ];
-          participants = { };
+          nodes = { };
         };
       in
       (builtins.tryEval invalid.combined.backupDestinations.invalid.port).success;

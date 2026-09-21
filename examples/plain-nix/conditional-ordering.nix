@@ -16,10 +16,10 @@ let
             };
           }
         ];
-        participants."document backup job" = participant;
+        nodes."document backup job" = node;
       };
 
-      participant = lib.evalModules {
+      node = lib.evalModules {
         specialArgs = { inherit registry; };
         modules = [
           registry.module
@@ -67,7 +67,7 @@ let
     in
     {
       inherit (registry) combined validate;
-      inherit (participant.config) backupCommand;
+      inherit (node.config) backupCommand;
     };
 in
 {

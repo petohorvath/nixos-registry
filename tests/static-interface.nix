@@ -10,14 +10,14 @@ let
       central ? [ ],
       publications ? { },
       wiringProperty ? lib.id,
-      participantModules ? { },
+      nodeModules ? { },
     }:
     let
       registry = registryFlake.lib.mkRegistry {
-        inherit lib participants schemaModules;
+        inherit lib nodes schemaModules;
         centralModules = map (config: { inherit config; }) central;
       };
-      participants = lib.mapAttrs (
+      nodes = lib.mapAttrs (
         name: definitions:
         lib.nixosSystem {
           modules = [
@@ -31,7 +31,7 @@ let
             }
           ]
           ++ map (registry: { inherit registry; }) definitions
-          ++ (participantModules.${name} or [ ]);
+          ++ (nodeModules.${name} or [ ]);
         }
       ) publications;
       direct = lib.evalModules {
@@ -51,7 +51,7 @@ let
       };
     in
     {
-      inherit participants registry;
+      inherit nodes registry;
       direct = direct.config.registry;
     };
 in
@@ -113,7 +113,7 @@ in
             discarded = lib.mkBefore (throw "A discarded ordered contribution was forced.");
             evaluations = mkEvaluations {
               central = [ (if source == "central" then discarded else selected) ];
-              publications.publisher = [ (if source == "participant" then discarded else selected) ];
+              publications.publisher = [ (if source == "node" then discarded else selected) ];
             };
           in
           {
@@ -123,7 +123,7 @@ in
         )
         [
           "central"
-          "participant"
+          "node"
         ];
     expected = lib.replicate 2 {
       matchesDirect = true;
@@ -161,8 +161,7 @@ in
           {
             names = builtins.attrNames evaluations.registry.combined.backupDestinations;
             matchesDirect = evaluations.registry.combined == evaluations.direct;
-            sharedRead =
-              evaluations.participants.reader.config.registry.combined.backupDestinations.archive.endpoint;
+            sharedRead = evaluations.nodes.reader.config.registry.combined.backupDestinations.archive.endpoint;
             inherit (evaluations.registry) validate;
           }
         )
@@ -209,8 +208,7 @@ in
       in
       {
         matchesDirect = evaluations.registry.combined == evaluations.direct;
-        endpoint =
-          evaluations.participants.reader.config.registry.combined.backupDestinations.archive.endpoint;
+        endpoint = evaluations.nodes.reader.config.registry.combined.backupDestinations.archive.endpoint;
         inherit (evaluations.registry) validate;
       };
     expected = {
@@ -294,7 +292,7 @@ in
       in
       {
         shared = evaluations.registry.validate;
-        local = succeeds evaluations.participants.publisher.config.registry.backupDestinations;
+        local = succeeds evaluations.nodes.publisher.config.registry.backupDestinations;
         defaultedNames = builtins.attrNames defaulted.registry.combined.backupDestinations;
       };
     expected = {
@@ -320,9 +318,9 @@ in
                   };
                 }
               ];
-              participantModules.publisher = [ { services.prometheus.enable = enable; } ];
+              nodeModules.publisher = [ { services.prometheus.enable = enable; } ];
               publications.publisher = [
-                (lib.mkIf evaluations.participants.publisher.config.services.prometheus.enable (
+                (lib.mkIf evaluations.nodes.publisher.config.services.prometheus.enable (
                   lib.mkMerge [
                     { backupDestinations.archive.paths = lib.mkBefore [ "/before" ]; }
                     { backupDestinations.archive.paths = lib.mkAfter [ "/after" ]; }
@@ -381,8 +379,7 @@ in
           in
           {
             endpoint = evaluations.registry.combined.backupDestinations.archive.endpoint;
-            localEndpoint =
-              evaluations.participants.publisher.config.registry.backupDestinations.archive.endpoint;
+            localEndpoint = evaluations.nodes.publisher.config.registry.backupDestinations.archive.endpoint;
             inherit (evaluations.registry) validate;
           }
         )
@@ -544,7 +541,7 @@ in
     };
   };
 
-  testStaticParticipantsCompletePartialRecords = {
+  testStaticNodesCompletePartialRecords = {
     expr =
       let
         evaluations = mkEvaluations {
@@ -552,23 +549,21 @@ in
           publications = {
             transport = [
               {
-                backupDestinations.archive.port =
-                  evaluations.participants.transport.config.services.prometheus.port;
+                backupDestinations.archive.port = evaluations.nodes.transport.config.services.prometheus.port;
               }
             ];
             paths = [ { backupDestinations.archive.paths = [ "/documents" ]; } ];
           };
-          participantModules.transport = [ { services.prometheus.port = 2222; } ];
+          nodeModules.transport = [ { services.prometheus.port = 2222; } ];
         };
       in
       {
         inherit (evaluations.registry) combined validate;
         matchesDirect = evaluations.registry.combined == evaluations.direct;
         centralComplete = succeeds evaluations.registry.central;
-        localComplete = succeeds evaluations.participants.transport.config.registry.backupDestinations.archive;
-        localPort = evaluations.participants.transport.config.registry.backupDestinations.archive.port;
-        sharedRead =
-          evaluations.participants.paths.config.registry.combined.backupDestinations.archive.command;
+        localComplete = succeeds evaluations.nodes.transport.config.registry.backupDestinations.archive;
+        localPort = evaluations.nodes.transport.config.registry.backupDestinations.archive.port;
+        sharedRead = evaluations.nodes.paths.config.registry.combined.backupDestinations.archive.command;
       };
     expected = {
       combined.backupDestinations.archive = {
@@ -605,8 +600,7 @@ in
       {
         inherit (evaluations.registry) combined validate;
         matchesDirect = evaluations.registry.combined == evaluations.direct;
-        sharedRead =
-          evaluations.participants.reader.config.registry.combined.backupDestinations.archive.endpoint;
+        sharedRead = evaluations.nodes.reader.config.registry.combined.backupDestinations.archive.endpoint;
       };
     expected = {
       combined.backupDestinations.archive = {
@@ -632,7 +626,7 @@ in
       import ./check-publication.nix {
         inherit lib;
         inherit (registryFlake.lib) mkRegistry;
-        mkParticipant =
+        mkNode =
           {
             registry,
             schemaModules,

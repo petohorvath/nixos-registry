@@ -1,7 +1,7 @@
 { example }:
 let
-  api = example.lib.participants."api publisher".config;
-  backup = example.lib.participants."backup consumer".config;
+  api = example.lib.nodes."api publisher".config;
+  backup = example.lib.nodes."backup consumer".config;
 in
 {
   testFlakePartsExampleEvaluatesAndValidates = {
@@ -31,7 +31,7 @@ in
     };
   };
 
-  testSeparateSourceParticipantsKeepLocalContributionsDistinct = {
+  testSeparateSourceNodesKeepLocalContributionsDistinct = {
     expr = {
       "api publisher" = {
         port = api.services.prometheus.port;
@@ -80,19 +80,19 @@ in
         inherit (example.inputs.nixpkgs) lib;
         registryFlake = (import "${example.inputs.nixos-registry}/flake.nix").outputs { };
         registry = registryFlake.lib.mkRegistry {
-          inherit lib participants;
+          inherit lib nodes;
           schemaModules = [ ../../examples/flake-parts/schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
         };
-        participants =
+        nodes =
           builtins.mapAttrs
             (
-              _: participantModule:
+              _: nodeModule:
               lib.evalModules {
                 specialArgs = { inherit registry; };
                 modules = [
                   registry.module
-                  participantModule
+                  nodeModule
                 ];
               }
             )
@@ -103,7 +103,7 @@ in
       in
       {
         endpoints = builtins.mapAttrs (_: service: service.endpoint) registry.combined.services;
-        backupCommand = participants."backup consumer".config.backupCommand;
+        backupCommand = nodes."backup consumer".config.backupCommand;
         inherit (registry) validate;
       };
     expected = {

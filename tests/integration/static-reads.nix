@@ -28,7 +28,7 @@ in
             consumer = mkConsumer {
               schemaModules = [ schema ];
               centralModules = [ central ];
-              participantModules.publisher = [ { registry = contribution; } ];
+              nodeModules.publisher = [ { registry = contribution; } ];
             };
             direct = lib.evalModules {
               modules = [
@@ -107,7 +107,7 @@ in
               };
             }
           ];
-          participantModules.publisher = [
+          nodeModules.publisher = [
             {
               registry.assertions = [
                 {
@@ -137,10 +137,10 @@ in
         consumer = mkConsumer {
           schemaModules = throw "An unrelated read forced the schema.";
           centralModules = throw "An unrelated read forced central definitions.";
-          participantModules.reader = [ { networking.hostName = "independent"; } ];
+          nodeModules.reader = [ { networking.hostName = "independent"; } ];
           modules = [
             {
-              registry.settings.participants = lib.mkForce (throw "An unrelated read collected participants.");
+              registry.settings.nodes = lib.mkForce (throw "An unrelated read collected nodes.");
               flake.unrelated = "independent project value";
             }
           ];
@@ -148,11 +148,11 @@ in
       in
       {
         projectValue = consumer.unrelated;
-        participantName = consumer.nixosConfigurations.reader.config.networking.hostName;
+        nodeName = consumer.nixosConfigurations.reader.config.networking.hostName;
       };
     expected = {
       projectValue = "independent project value";
-      participantName = "independent";
+      nodeName = "independent";
     };
   };
 
@@ -165,13 +165,13 @@ in
             consumer = mkConsumer {
               schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
               centralModules = [ { domain = "example.test"; } ];
-              participantModules."unused service" = [ { registry.services.api = service; } ];
+              nodeModules."unused service" = [ { registry.services.api = service; } ];
             };
           in
           {
             domain = consumer.lib.registry.combined.domain;
             validates = (builtins.tryEval consumer.lib.registry.validate).success;
-            participantValidates =
+            nodeValidates =
               (builtins.tryEval consumer.nixosConfigurations."unused service".config.registry.validate).success;
             checkEvaluates = (builtins.tryEval consumer.checks.${system}.registry.drvPath).success;
           }
@@ -196,7 +196,7 @@ in
     expected = lib.genAttrs [ "invalidType" "missingRequired" "unknownOption" "readOnly" ] (_: {
       domain = "example.test";
       validates = false;
-      participantValidates = false;
+      nodeValidates = false;
       checkEvaluates = false;
     });
   };
@@ -212,23 +212,23 @@ in
               services.api.port = 8443;
             }
           ];
-          participantModules.publisher = [
+          nodeModules.publisher = [
             ({ config, ... }: {
               registry.services.api.host = "api.${config.registry.combined.domain}";
               environment.etc."api-endpoint".text = config.registry.combined.services.api.endpoint;
             })
           ];
         };
-        participant = consumer.nixosConfigurations.publisher.config;
+        node = consumer.nixosConfigurations.publisher.config;
       in
       {
         inherit (consumer.lib.registry) combined validate;
         centralPort = consumer.lib.registry.central.services.api.port;
-        localHost = participant.registry.services.api.host;
-        localPortExists = (builtins.tryEval participant.registry.services.api.port).success;
+        localHost = node.registry.services.api.host;
+        localPortExists = (builtins.tryEval node.registry.services.api.port).success;
         centralHostExists = (builtins.tryEval consumer.lib.registry.central.services.api.host).success;
-        endpoint = participant.environment.etc."api-endpoint".text;
-        participantValidates = participant.registry.validate;
+        endpoint = node.environment.etc."api-endpoint".text;
+        nodeValidates = node.registry.validate;
         checkEvaluates = (builtins.tryEval consumer.checks.${system}.registry.drvPath).success;
       };
     expected = {
@@ -246,26 +246,26 @@ in
       localPortExists = false;
       centralHostExists = false;
       endpoint = "api.example.test:8443";
-      participantValidates = true;
+      nodeValidates = true;
       checkEvaluates = true;
     };
   };
 
-  testStaticCentralReadsAndResultShapeLeaveParticipantsUnused = {
+  testStaticCentralReadsAndResultShapeLeaveNodesUnused = {
     expr =
       let
         consumer = mkConsumer {
           schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
-          participantModules.reader = [
+          nodeModules.reader = [
             ({ config, ... }: {
               registry.services.api.host = "api.${config.registry.central.domain}";
             })
           ];
           modules = [
             {
-              registry.settings.participants = lib.mkForce (
-                throw "Central reads and schema keys must not collect participants."
+              registry.settings.nodes = lib.mkForce (
+                throw "Central reads and schema keys must not collect nodes."
               );
             }
           ];
@@ -273,7 +273,7 @@ in
         shapeOnly = mkConsumer {
           schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
           centralModules = [ (throw "Listing schema keys must not evaluate central modules.") ];
-          participantModules.unused = [ (throw "Listing schema keys must not evaluate participants.") ];
+          nodeModules.unused = [ (throw "Listing schema keys must not evaluate nodes.") ];
         };
       in
       {
@@ -304,7 +304,7 @@ in
         consumer = mkConsumer {
           schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
-          participantModules.publisher = [
+          nodeModules.publisher = [
             ({ config, ... }: {
               registry.services.api = {
                 host = "api.${config.registry.combined.domain}";
@@ -314,15 +314,15 @@ in
             })
           ];
         };
-        participant = consumer.nixosConfigurations.publisher.config;
+        node = consumer.nixosConfigurations.publisher.config;
       in
       {
         domain = consumer.lib.registry.combined.domain;
-        localHost = participant.registry.services.api.host;
+        localHost = node.registry.services.api.host;
         sharedHost = consumer.lib.registry.combined.services.api.host;
-        clientDomain = participant.environment.etc."registry-domain".text;
+        clientDomain = node.environment.etc."registry-domain".text;
         validates = (builtins.tryEval consumer.lib.registry.validate).success;
-        participantValidates = (builtins.tryEval participant.registry.validate).success;
+        nodeValidates = (builtins.tryEval node.registry.validate).success;
       };
     expected = {
       domain = "example.test";
@@ -330,7 +330,7 @@ in
       sharedHost = "api.example.test";
       clientDomain = "example.test";
       validates = false;
-      participantValidates = false;
+      nodeValidates = false;
     };
   };
 }

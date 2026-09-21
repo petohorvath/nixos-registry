@@ -7,7 +7,7 @@ let
         inherit lib;
         schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
         centralModules = [ { domain = "example.test"; } ];
-        participants."unused service" = lib.evalModules {
+        nodes."unused service" = lib.evalModules {
           modules = [
             registry.module
             { registry.services.api = service; }
@@ -18,17 +18,17 @@ let
     registry;
 in
 {
-  testMalformedParticipantsLeaveCentralReadsIndependent = {
+  testMalformedNodesLeaveCentralReadsIndependent = {
     expr =
       map
         (
-          participant:
+          node:
           let
             registry = mkRegistry {
               inherit lib;
               schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
               centralModules = [ { domain = "example.test"; } ];
-              participants."invalid participant" = participant;
+              nodes."invalid node" = node;
             };
           in
           {
@@ -115,7 +115,7 @@ in
       let
         registry = mkRegistry {
           inherit lib;
-          participants = { };
+          nodes = { };
           schemaModules = [
             {
               options.assertions = lib.mkOption {

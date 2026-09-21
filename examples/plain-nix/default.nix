@@ -1,8 +1,8 @@
-# Plain module participants publish backups and read the shared views.
+# Plain module nodes publish backups and read the shared views.
 { lib, mkRegistry }:
 let
   registry = mkRegistry {
-    inherit lib participants;
+    inherit lib nodes;
     schemaModules = [ ./schema.nix ];
     centralModules = [
       {
@@ -15,8 +15,8 @@ let
     ];
   };
 
-  participants = {
-    "document backup job" = mkParticipant (
+  nodes = {
+    "document backup job" = mkNode (
       { config, registry, ... }:
       {
         options = {
@@ -48,7 +48,7 @@ let
         };
       }
     );
-    "photo backup job" = mkParticipant {
+    "photo backup job" = mkNode {
       registry.backupDestinations.local = {
         host = "local.example.test";
         port = 8022;
@@ -57,7 +57,7 @@ let
     };
   };
 
-  mkParticipant =
+  mkNode =
     module:
     lib.evalModules {
       specialArgs = { inherit registry; };
@@ -69,5 +69,5 @@ let
 in
 {
   inherit (registry) central combined validate;
-  backupCommand = participants."document backup job".config.backupCommand;
+  backupCommand = nodes."document backup job".config.backupCommand;
 }

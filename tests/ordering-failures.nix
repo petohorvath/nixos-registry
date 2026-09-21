@@ -15,7 +15,7 @@ let
       inherit lib mkRegistry;
     }
     // lib.optionalAttrs useStaticModule {
-      mkParticipant =
+      mkNode =
         {
           registry,
           schemaModules,
@@ -48,7 +48,7 @@ let
     if source == "central" then
       {
         central = [ ordered ];
-        publications.publisher = [ { backupPaths = [ "/participant" ]; } ];
+        publications.publisher = [ { backupPaths = [ "/node" ]; } ];
       }
     else
       {

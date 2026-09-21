@@ -1,4 +1,4 @@
-# Compose a shared registry with the consumer's module library and named participants.
+# Compose a shared registry with the consumer's module library and named nodes.
 {
   config,
   lib,
@@ -10,7 +10,7 @@ let
     inherit lib;
     inherit (config.registry.settings)
       centralModules
-      participants
+      nodes
       schemaModules
       specialArgs
       ;
@@ -29,22 +29,22 @@ in
       schemaModules = lib.mkOption {
         type = lib.types.listOf lib.types.deferredModule;
         apply = requireSetting "schemaModules";
-        description = "Shared schema modules, also supplied to each participant.";
+        description = "Shared schema modules, also supplied to each node.";
       };
-      participants = lib.mkOption {
+      nodes = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.raw;
-        apply = requireSetting "participants";
-        description = "Named, complete participant evaluation results; an empty set is valid.";
+        apply = requireSetting "nodes";
+        description = "Named, complete node evaluation results; an empty set is valid.";
       };
       centralModules = lib.mkOption {
         type = lib.types.listOf lib.types.deferredModule;
         default = [ ];
-        description = "Modules defining shared values outside participant contributions.";
+        description = "Modules defining shared values outside node contributions.";
       };
       specialArgs = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.raw;
         default = { };
-        description = "Arguments for schema and central modules, separate from participant module arguments.";
+        description = "Arguments for schema and central modules, separate from node module arguments.";
       };
     };
     central = lib.mkOption {
@@ -55,7 +55,7 @@ in
     combined = lib.mkOption {
       type = lib.types.raw;
       readOnly = true;
-      description = "Shared data merged from central modules and the selected participants.";
+      description = "Shared data merged from central modules and the selected nodes.";
     };
     validate = lib.mkOption {
       type = lib.types.bool;

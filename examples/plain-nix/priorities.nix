@@ -23,7 +23,7 @@ let
             };
           }
         ];
-        participants."backup policy" = lib.evalModules {
+        nodes."backup policy" = lib.evalModules {
           modules = [
             registry.module
             {

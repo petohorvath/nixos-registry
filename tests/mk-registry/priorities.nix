@@ -47,7 +47,7 @@ in
         evaluations = mkEvaluations {
           central = [ (lib.mkForce { backupHost = "central.example.test"; }) ];
           publications.publisher = [
-            (lib.mkForce { backupHost = "participant.example.test"; })
+            (lib.mkForce { backupHost = "node.example.test"; })
           ];
         };
       in
@@ -80,7 +80,7 @@ in
             })
             (lib.mkDefault {
               backupHost = lib.mkOverride 40 "selected.example.test";
-              backupPaths = [ "/participant" ];
+              backupPaths = [ "/node" ];
             })
           ];
         };
@@ -93,7 +93,7 @@ in
       combined = {
         backupHost = "selected.example.test";
         backupPaths = [
-          "/participant"
+          "/node"
           "/central"
         ];
       };
@@ -102,7 +102,7 @@ in
     };
   };
 
-  testCompetingDefinitionsWithinAParticipantKeepRootPriorities = {
+  testCompetingDefinitionsWithinANodeKeepRootPriorities = {
     expr =
       let
         evaluations = mkEvaluations {
@@ -174,15 +174,15 @@ in
     };
   };
 
-  testCentralAndParticipantsShareRootPrecedence = {
+  testCentralAndNodesShareRootPrecedence = {
     expr =
       let
         evaluations = mkEvaluations {
           central = [ (lib.mkForce { backupHost = "central.example.test"; }) ];
           publications.publisher = [
             {
-              backupHost = lib.mkOverride 10 "participant.example.test";
-              backupPaths = [ "/participant" ];
+              backupHost = lib.mkOverride 10 "node.example.test";
+              backupPaths = [ "/node" ];
             }
           ];
         };
@@ -212,7 +212,7 @@ in
             }
           ];
           publications = {
-            ordinary = [ { backupPaths = lib.mkForce [ "/participant" ]; } ];
+            ordinary = [ { backupPaths = lib.mkForce [ "/node" ]; } ];
             forced = [ (lib.mkForce { backupHost = "forced.example.test"; }) ];
           };
         };
@@ -237,7 +237,7 @@ in
         evaluations = mkEvaluations {
           central = [ { backupHost = "central.example.test"; } ];
           publications.publisher = [
-            (lib.mkDefault { backupHost = "participant.example.test"; })
+            (lib.mkDefault { backupHost = "node.example.test"; })
           ];
         };
       in
@@ -258,7 +258,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ { backupHost = lib.mkDefault "central.example.test"; } ];
-          publications.publisher = [ { backupHost = "participant.example.test"; } ];
+          publications.publisher = [ { backupHost = "node.example.test"; } ];
         };
       in
       {
@@ -267,7 +267,7 @@ in
         inherit (evaluations) validate;
       };
     expected = {
-      host = "participant.example.test";
+      host = "node.example.test";
       matchesDirect = true;
       validate = true;
     };

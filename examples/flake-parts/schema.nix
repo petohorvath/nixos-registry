@@ -31,7 +31,7 @@
         )
       );
       default = { };
-      description = "Service records contributed by named participants.";
+      description = "Service records contributed by named nodes.";
     };
   };
 }

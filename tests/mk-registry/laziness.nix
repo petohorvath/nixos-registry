@@ -20,7 +20,7 @@ let
         inherit lib;
         schemaModules = [ schema ];
         centralModules = [ central ];
-        participants.publisher = lib.evalModules {
+        nodes.publisher = lib.evalModules {
           modules = [
             registry.module
             { registry = publication; }
@@ -47,7 +47,7 @@ in
           inherit lib;
           schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
-          participants.publisher = lib.evalModules {
+          nodes.publisher = lib.evalModules {
             modules = [
               registry.module
               {

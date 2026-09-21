@@ -1,11 +1,11 @@
 /*
-  Aggregates central declarations and named participant contributions using
+  Aggregates central declarations and named node contributions using
   the caller's module library and relative shared schema.
 */
 {
   lib,
   schemaModules,
-  participants,
+  nodes,
   centralModules ? [ ],
   specialArgs ? { },
 }:
@@ -69,11 +69,11 @@ let
     modules = schemaModules;
   };
 
-  contributions = lib.pipe participants [
+  contributions = lib.pipe nodes [
     (lib.mapAttrsToList (
-      name: participant:
+      name: node:
       let
-        option = getContributionOption name participant;
+        option = getContributionOption name node;
       in
       map
         (
@@ -84,12 +84,12 @@ let
             ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
           in
           {
-            _file = "participant ${name}: ${definition.file}";
+            _file = "node ${name}: ${definition.file}";
             config.registry = lib.mkOverride option.highestPrio ordered;
           }
         )
         (
-          builtins.addErrorContext "while collecting registry data from participant `${name}':" (
+          builtins.addErrorContext "while collecting registry data from node `${name}':" (
             (option._nixosRegistrySelectContributions or (_: lib.id)) schemaOptions
               option.definitionsWithLocations
           )
@@ -99,14 +99,14 @@ let
   ];
 
   getContributionOption =
-    name: participant:
-    builtins.addErrorContext "while collecting registry data from participant `${name}':" (
+    name: node:
+    builtins.addErrorContext "while collecting registry data from node `${name}':" (
       let
-        option = participant.options.registry;
+        option = node.options.registry;
       in
-      if !(participant ? options.registry) then
+      if !(node ? options.registry) then
         throw (
-          "nixos-registry: participant `${name}` is missing options.registry; "
+          "nixos-registry: node `${name}` is missing options.registry; "
           + "import registry.module or configure the static nixosModules.default."
         )
       else if
@@ -116,7 +116,7 @@ let
         || !(option ? definitionsWithLocations && option ? highestPrio)
       then
         throw (
-          "nixos-registry: participant `${name}` has an incompatible options.registry; "
+          "nixos-registry: node `${name}` has an incompatible options.registry; "
           + "import registry.module or configure the static nixosModules.default."
         )
       else
@@ -132,7 +132,7 @@ let
           shorthandOnlyDefinesConfig = true;
         };
         default = { };
-        description = "This participant's contribution to the shared registry.";
+        description = "This node's contribution to the shared registry.";
       }
       // {
         # Identify the generated interface without forcing local values.

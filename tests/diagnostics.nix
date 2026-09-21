@@ -33,7 +33,7 @@ let
       }
     ];
 
-  mkStaticParticipant =
+  mkStaticNode =
     settings: registry: modules:
     nixpkgs.lib.nixosSystem {
       modules = [
@@ -56,10 +56,10 @@ let
         inherit lib;
         inherit (settings) schemaModules;
         centralModules = [ { domain = "example.test"; } ];
-        participants = lib.mapAttrs (
+        nodes = lib.mapAttrs (
           _: modules:
           if useStaticModule then
-            mkStaticParticipant settings registry modules
+            mkStaticNode settings registry modules
           else
             lib.evalModules {
               modules = [ registry.module ] ++ modules;
@@ -84,27 +84,27 @@ in
     ((import ./fixtures/static-flake-consumer.nix { inherit flakeParts nixpkgs system; }) {
       schemaModules = [ serviceSchema ];
       centralModules = [ { domain = "example.test"; } ];
-      participantModules."static service publisher" = [ ./fixtures/invalid-service.nix ];
+      nodeModules."static service publisher" = [ ./fixtures/invalid-service.nix ];
     }).checks.${system}.registry.drvPath;
 
   flakeMissingSchema =
     (mkProjectRegistry [
       {
-        registry.settings.participants = { };
+        registry.settings.nodes = { };
       }
     ]).validate;
 
-  flakeMissingParticipants =
+  flakeMissingNodes =
     (mkProjectRegistry [
       {
         registry.settings.schemaModules = [ ];
       }
     ]).validate;
 
-  flakeDuplicateParticipant =
+  flakeDuplicateNode =
     (duplicateProjectSettings {
       schemaModules = [ ];
-      participants."duplicate participant" = { };
+      nodes."duplicate node" = { };
     }).validate;
 
   flakeDuplicateArgument =
@@ -118,7 +118,7 @@ in
         _file = "/modules/first-project.nix";
         registry.settings = {
           schemaModules = [ serviceSchema ];
-          participants = { };
+          nodes = { };
           centralModules = [ { domain = "first.example.test"; } ];
         };
       }
@@ -136,7 +136,7 @@ in
         // {
           inherit lib;
           centralModules = [ { domain = "example.test"; } ];
-          participants."static service publisher" = mkStaticParticipant settings registry [
+          nodes."static service publisher" = mkStaticNode settings registry [
             ./fixtures/invalid-service.nix
           ];
         }
@@ -145,7 +145,7 @@ in
     {
       shared = registry.validate;
       local =
-        (mkStaticParticipant settings registry [ ./fixtures/invalid-service.nix ])
+        (mkStaticNode settings registry [ ./fixtures/invalid-service.nix ])
         .config.registry.services.api.port;
     };
 
@@ -160,7 +160,7 @@ in
         settings
         // {
           inherit lib;
-          participants."colliding static participant" = mkStaticParticipant settings registry [ ];
+          nodes."colliding static node" = mkStaticNode settings registry [ ];
         }
       );
     in
@@ -336,7 +336,7 @@ in
       inherit lib;
       schemaModules = [ serviceSchema ];
       centralModules = [ { domain = "example.test"; } ];
-      participants."handwritten contribution root" = lib.evalModules {
+      nodes."handwritten contribution root" = lib.evalModules {
         modules = [
           {
             options.registry = lib.mkOption {
@@ -359,7 +359,7 @@ in
       inherit lib;
       schemaModules = [ serviceSchema ];
       centralModules = [ { domain = "example.test"; } ];
-      participants."unrelated registry option" = lib.evalModules {
+      nodes."unrelated registry option" = lib.evalModules {
         modules = [
           {
             options.registry = lib.mkOption {
@@ -377,7 +377,7 @@ in
       inherit lib;
       schemaModules = [ serviceSchema ];
       centralModules = [ { domain = "example.test"; } ];
-      participants."missing publication interface" = lib.evalModules {
+      nodes."missing publication interface" = lib.evalModules {
         modules = [ ];
       };
     }).validate;

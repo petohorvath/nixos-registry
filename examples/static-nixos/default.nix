@@ -11,7 +11,7 @@ let
   registry = registryFlake.lib.mkRegistry (
     settings
     // {
-      inherit lib participants;
+      inherit lib nodes;
       centralModules = [ { domain = "example.test"; } ];
     }
   );
@@ -24,7 +24,7 @@ let
     };
   };
 
-  participants."metrics publisher" = lib.nixosSystem {
+  nodes."metrics publisher" = lib.nixosSystem {
     modules = [
       commonModule
       ./publish-service.nix
@@ -41,9 +41,9 @@ let
   };
 in
 {
-  inherit participants registry;
+  inherit nodes registry;
   result = {
     inherit (registry) central combined validate;
-    endpoint = participants."metrics publisher".config.environment.etc."metrics-endpoint".text;
+    endpoint = nodes."metrics publisher".config.environment.etc."metrics-endpoint".text;
   };
 }

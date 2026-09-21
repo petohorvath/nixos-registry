@@ -1,4 +1,4 @@
-# Participate in a caller-owned registry through static settings and shared results.
+# Connect a NixOS node to a caller-owned registry through static settings and shared results.
 { lib, options, ... }:
 let
   interface = import ../lib/static-interface.nix { inherit lib; };
@@ -25,7 +25,7 @@ in
               };
             };
             default = { };
-            description = "Shared schema configuration for this participant.";
+            description = "Shared schema configuration for this node.";
           };
           central = lib.mkOption {
             type = lib.types.raw;

@@ -1,28 +1,28 @@
 /*
-  Completes backup destinations from partial central and participant data.
+  Completes backup destinations from partial central and node data.
   Local reads select supplied fields; the combined view holds complete records.
 */
 { lib, mkRegistry }:
 let
   registry = mkRegistry {
-    inherit lib participants;
+    inherit lib nodes;
     schemaModules = [ ./partial-schema.nix ];
     centralModules = [
       { backupDestinations.archive.host = "archive.example.test"; }
     ];
   };
 
-  participants = {
-    "address book" = mkParticipant {
+  nodes = {
+    "address book" = mkNode {
       backupDestinations.offsite.host = "offsite.example.test";
     };
-    "transport settings" = mkParticipant {
+    "transport settings" = mkNode {
       backupDestinations.archive.port = 2222;
       backupDestinations.offsite.port = 8022;
     };
   };
 
-  mkParticipant =
+  mkNode =
     publication:
     lib.evalModules {
       modules = [
@@ -34,5 +34,5 @@ in
 {
   inherit (registry) combined validate;
   centralHost = registry.central.backupDestinations.archive.host;
-  localPort = participants."transport settings".config.registry.backupDestinations.archive.port;
+  localPort = nodes."transport settings".config.registry.backupDestinations.archive.port;
 }

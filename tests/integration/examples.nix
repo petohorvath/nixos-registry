@@ -1,6 +1,6 @@
 { lib, mkRegistry }:
 {
-  testParticipantPublishesFromCombinedDomainExample = {
+  testNodePublishesFromCombinedDomainExample = {
     expr = import ../../examples/plain-nix/combined-reads.nix { inherit lib mkRegistry; };
     expected = {
       centralDomain = "example.test";

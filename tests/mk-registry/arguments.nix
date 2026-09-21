@@ -29,19 +29,19 @@ let
     specialArgs = {
       defaultPort = 22;
       centralHost = "archive.example.test";
-      participantPort = 1111;
+      nodePort = 1111;
     };
-    participants."backup job" = selectedLib.evalModules {
-      specialArgs.participantPort = 2222;
+    nodes."backup job" = selectedLib.evalModules {
+      specialArgs.nodePort = 2222;
       modules = [
         registry.module
-        ({ participantPort, ... }: { registry.port = participantPort; })
+        ({ nodePort, ... }: { registry.port = nodePort; })
       ];
     };
   };
 in
 {
-  testUsesCallerLibraryAndKeepsParticipantArgumentsSeparate = {
+  testUsesCallerLibraryAndKeepsNodeArgumentsSeparate = {
     expr = { inherit (registry) central combined; };
     expected = {
       central = {

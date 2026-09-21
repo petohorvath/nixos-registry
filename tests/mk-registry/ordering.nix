@@ -19,21 +19,21 @@ in
           ])
         ];
         centralModules = map (config: { inherit config; }) definitions;
-        participantModules = map (registry: { inherit registry; }) definitions;
+        nodeModules = map (registry: { inherit registry; }) definitions;
         centralRegistry = mkRegistry {
           inherit centralModules lib;
           schemaModules = [ schema ];
-          participants = { };
+          nodes = { };
         };
-        participantRegistry = mkRegistry {
+        nodeRegistry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          participants.publisher = lib.evalModules {
-            modules = [ participantRegistry.module ] ++ participantModules;
+          nodes.publisher = lib.evalModules {
+            modules = [ nodeRegistry.module ] ++ nodeModules;
           };
         };
         directCentral = lib.evalModules { modules = [ schema ] ++ centralModules; };
-        directParticipant = lib.evalModules {
+        directNode = lib.evalModules {
           modules = [
             {
               options.registry = lib.mkOption {
@@ -46,15 +46,15 @@ in
               };
             }
           ]
-          ++ participantModules;
+          ++ nodeModules;
         };
       in
       {
         centralPaths = centralRegistry.combined.backupPaths;
-        participantPaths = participantRegistry.combined.backupPaths;
+        nodePaths = nodeRegistry.combined.backupPaths;
         centralMatchesDirect = centralRegistry.combined == directCentral.config;
-        participantMatchesDirect = participantRegistry.combined == directParticipant.config.registry;
-        valid = centralRegistry.validate && participantRegistry.validate;
+        nodeMatchesDirect = nodeRegistry.combined == directNode.config.registry;
+        valid = centralRegistry.validate && nodeRegistry.validate;
       };
     expected = {
       centralPaths = [
@@ -62,13 +62,13 @@ in
         "/third"
         "/first"
       ];
-      participantPaths = [
+      nodePaths = [
         "/first"
         "/third"
         "/second"
       ];
       centralMatchesDirect = true;
-      participantMatchesDirect = true;
+      nodeMatchesDirect = true;
       valid = true;
     };
   };
@@ -113,7 +113,7 @@ in
             discarded = lib.mkBefore (throw "A discarded ordered contribution was forced.");
             evaluations = mkEvaluations {
               central = [ (if source == "central" then discarded else selected) ];
-              publications.publisher = [ (if source == "participant" then discarded else selected) ];
+              publications.publisher = [ (if source == "node" then discarded else selected) ];
             };
           in
           {
@@ -124,7 +124,7 @@ in
         )
         [
           "central"
-          "participant"
+          "node"
         ];
     expected = [
       {

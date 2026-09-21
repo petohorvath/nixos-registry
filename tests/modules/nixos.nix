@@ -6,9 +6,9 @@ let
   registry = registryFlake.lib.mkRegistry {
     inherit lib schemaModules;
     centralModules = [ { domain = "example.test"; } ];
-    participants."metrics publisher" = participant;
+    nodes."metrics publisher" = node;
   };
-  participant = lib.nixosSystem {
+  node = lib.nixosSystem {
     modules = [
       registryFlake.nixosModules.default
       {
@@ -34,7 +34,7 @@ in
   testStaticNixosModuleRejectsUnknownSettings = {
     expr =
       (builtins.tryEval
-        (participant.extendModules {
+        (node.extendModules {
           modules = [ { registry.settings.unknown = true; } ];
         }).config.registry.settings
       ).success;
@@ -83,18 +83,18 @@ in
           ];
           specialArgs = {
             schemaLabel = "shared schema";
-            participantPort = 1111;
+            nodePort = 1111;
           };
         };
         shared = registryFlake.lib.mkRegistry (
           settings
           // {
             lib = selectedLib;
-            participants."argument owner" = configured;
+            nodes."argument owner" = configured;
           }
         );
         configured = selectedLib.nixosSystem {
-          specialArgs.participantPort = 2222;
+          specialArgs.nodePort = 2222;
           modules = [
             registryFlake.nixosModules.default
             {
@@ -104,10 +104,10 @@ in
                 inherit (shared) central combined validate;
               };
             }
-            ({ participantPort, ... }: {
+            ({ nodePort, ... }: {
               registry = {
-                port = participantPort;
-                schemaModules = "participant schema label";
+                port = nodePort;
+                schemaModules = "node schema label";
               };
             })
           ];
@@ -120,11 +120,11 @@ in
         inherit (configured.config.registry) combined validate;
       };
     expected = {
-      localLabel = "participant schema label";
+      localLabel = "node schema label";
       centralLabel = "shared schema";
       localPort = 2222;
       combined = {
-        schemaModules = "participant schema label";
+        schemaModules = "node schema label";
         port = 2222;
       };
       validate = true;
@@ -149,9 +149,9 @@ in
             collisionRegistry = registryFlake.lib.mkRegistry {
               inherit lib;
               schemaModules = collisionSchema;
-              participants."colliding participant" = collisionParticipant;
+              nodes."colliding node" = collisionNode;
             };
-            collisionParticipant = lib.nixosSystem {
+            collisionNode = lib.nixosSystem {
               modules = [
                 registryFlake.nixosModules.default
                 {
@@ -163,7 +163,7 @@ in
             };
           in
           {
-            local = (builtins.tryEval collisionParticipant.config.registry).success;
+            local = (builtins.tryEval collisionNode.config.registry).success;
             shared = (builtins.tryEval collisionRegistry.validate).success;
           }
         )
@@ -181,10 +181,10 @@ in
 
   testStaticNixosModuleContributesAndReadsSharedResults = {
     expr = {
-      inherit (participant.config.registry) central combined validate;
-      local = participant.config.registry.services.metrics;
-      endpoint = participant.config.environment.etc."metrics-endpoint".text;
-      port = participant.config.services.prometheus.port;
+      inherit (node.config.registry) central combined validate;
+      local = node.config.registry.services.metrics;
+      endpoint = node.config.environment.etc."metrics-endpoint".text;
+      port = node.config.services.prometheus.port;
     };
     expected = {
       central = {

@@ -12,7 +12,7 @@ let
         };
       }
     ];
-    participants =
+    nodes =
       lib.mapAttrs
         (
           name: peer:

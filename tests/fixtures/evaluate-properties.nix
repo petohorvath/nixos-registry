@@ -1,7 +1,7 @@
 {
   lib,
   mkRegistry,
-  mkParticipant ?
+  mkNode ?
     { registry, definitions, ... }:
     lib.evalModules {
       modules = [ registry.module ] ++ map (registry: { inherit registry; }) definitions;
@@ -23,9 +23,9 @@ let
     inherit lib;
     schemaModules = [ schema ];
     centralModules = map (config: { inherit config; }) central;
-    participants = lib.mapAttrs (
+    nodes = lib.mapAttrs (
       _: definitions:
-      mkParticipant {
+      mkNode {
         inherit definitions registry;
         schemaModules = [ schema ];
       }
