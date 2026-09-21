@@ -1,8 +1,8 @@
 { nixpkgs, system }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../../flake.nix).outputs { };
-  schemaModules = [ ../../examples/plain-nix/partial-schema.nix ];
+  registryFlake = (import ../flake.nix).outputs { };
+  schemaModules = [ ../examples/plain-nix/partial-schema.nix ];
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 
   mkEvaluations =
@@ -220,7 +220,7 @@ in
     };
   };
 
-  testStaticRootOverridesCannotCompleteRecordsFromWeakerContributions = {
+  testStaticRootOverridesDiscardWeakerFields = {
     expr =
       let
         evaluations = mkEvaluations {
@@ -304,7 +304,7 @@ in
     };
   };
 
-  testStaticConditionsUseLocalConfigurationAndPreserveListOrdering = {
+  testStaticLocalConditionsPreserveListOrder = {
     expr =
       map
         (
@@ -445,7 +445,7 @@ in
         ];
   };
 
-  testStaticScalarConflictsAndReadOnlyValuesMatchDirectEvaluation = {
+  testStaticScalarAndReadOnlyConflictsMatchDirect = {
     expr =
       map
         (
@@ -629,7 +629,7 @@ in
       lib.nameValuePair "testStatic${lib.replaceStrings [ "Publication" ] [ "Contribution" ] (lib.removePrefix "test" name)}" value
     )
     (
-      import ../schema-ownership.nix {
+      import ./check-publication.nix {
         inherit lib;
         inherit (registryFlake.lib) mkRegistry;
         mkParticipant =

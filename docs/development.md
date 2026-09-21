@@ -24,6 +24,8 @@ nix flake check --no-update-lock-file
 
 The suite evaluates the public `lib.mkRegistry` function, generated participant module, central data, combined data, and validation using the selected root Nixpkgs module system. Merge tests compare behavior with direct evaluation using the same library. A plain-import check constructs and uses a registry with a caller-provided library and no development inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
 
+Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `tests/mk-registry.nix`, the other `lib/` helpers have matching files under `tests/`, and public `modules/` map to `tests/modules/`. The constructor entrypoint collects smaller case files from `tests/mk-registry/`. Helper behavior is exercised through the public registry interfaces. Cross-module examples and static shared-read cases live in `tests/integration/`; shared fixtures stay in `tests/fixtures/`. `tests/default.nix` registers these suites and exposes their cases as the flat `lib.tests.<system>` result.
+
 The root checks also cover formatting, statix, deadnix, and workflow validation. Workflow validation checks every `.yml` and `.yaml` file in `.github/workflows` when present; a repository without workflows needs no placeholder. NixOS checks evaluate the affected configuration options for the selected system without building a full system or executing a VM. Normal checks have no VM build dependencies.
 
 Run the evaluation suite or a focused test, replacing `x86_64-linux` with the required system:
@@ -31,6 +33,7 @@ Run the evaluation suite or a focused test, replacing `x86_64-linux` with the re
 ```sh
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux --json
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testCollectsCentralAndNamedParticipants
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStrictCollectionsForceUnusedEntries
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceParticipantsKeepLocalContributionsDistinct
@@ -47,9 +50,9 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeChecksVal
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
 
-The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS participants, composed project settings, explicit membership, empty participants, and separate schema/central and participant arguments. The [separate-source example tests](../tests/flake-parts.nix) also check the maintained consumer's configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its participants are evaluation-only `x86_64-linux` configurations; check derivations run on the selected host. The diagnostic check covers missing required settings, duplicate participant names and argument keys, and source attribution for central conflicts.
+The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS participants, composed project settings, explicit membership, empty participants, and separate schema/central and participant arguments. The [separate-source example tests](../tests/integration/flake-parts.nix) also check the maintained consumer's configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its participants are evaluation-only `x86_64-linux` configurations; check derivations run on the selected host. The diagnostic check covers missing required settings, duplicate participant names and argument keys, and source attribution for central conflicts.
 
-The [static read tests](../tests/modules/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data and reject unused schema errors, while ordinary reads leave validation unevaluated. The diagnostic check verifies error attribution through this flake-check path; the recursion check also covers static collection forcing, value cycles, and participant imports selected from their own registry configuration.
+The [static read tests](../tests/integration/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data and reject unused schema errors, while ordinary reads leave validation unevaluated. The diagnostic check verifies error attribution through this flake-check path; the recursion check also covers static collection forcing, value cycles, and participant imports selected from their own registry configuration.
 
 The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results. The standalone flake-parts example also uses its own committed lock:
 
@@ -62,7 +65,7 @@ nix flake check --no-update-lock-file ./examples/flake-parts
 
 Native ordering and recursion errors require separate evaluator processes because `builtins.tryEval` cannot catch them. [Ordering checks](../tests/ordering-failures.sh) exercise whole-contribution ordering, [recursion checks](../tests/recursion.sh) demand strict collection reads and cyclic values, and [diagnostic checks](../tests/diagnostics.sh) assert option paths, participant identities, and available source filenames rather than complete error snapshots.
 
-The ordering and contribution diagnostic cases run through both the generated module and actual NixOS participants importing the static module. The [static contribution suite](../tests/modules/static-contributions.nix) compares partial records and definition properties with direct module evaluation, checks the separation of shared wiring from contributions, and reuses the schema-ownership cases through the static public interface.
+The ordering and contribution diagnostic cases run through both the generated module and actual NixOS participants importing the static module. The [static contribution suite](../tests/static-interface.nix) compares partial records and definition properties with direct module evaluation, checks the separation of shared wiring from contributions, and reuses the schema-ownership cases through the static public interface.
 
 Run a focused derivation, replacing `x86_64-linux` with the current system:
 

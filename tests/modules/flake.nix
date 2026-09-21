@@ -208,7 +208,7 @@ in
     ];
   };
 
-  testStaticFlakeModuleAcceptsEmptyParticipantsAndDefaultSettings = {
+  testStaticFlakeDefaultsAllowEmptyParticipants = {
     expr =
       let
         empty =

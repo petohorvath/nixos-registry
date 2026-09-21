@@ -5,7 +5,7 @@ let
     let
       registry = mkRegistry {
         inherit lib;
-        schemaModules = [ ../examples/plain-nix/service-schema.nix ];
+        schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
         centralModules = [ { domain = "example.test"; } ];
         participants."unused service" = lib.evalModules {
           modules = [
@@ -26,7 +26,7 @@ in
           let
             registry = mkRegistry {
               inherit lib;
-              schemaModules = [ ../examples/plain-nix/service-schema.nix ];
+              schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
               centralModules = [ { domain = "example.test"; } ];
               participants."invalid participant" = participant;
             };
@@ -68,7 +68,7 @@ in
   testExplicitDefinitionOriginsPreservePrioritiesAndOrdering = {
     expr =
       let
-        mkEvaluations = import ./fixtures/evaluate-properties.nix { inherit lib mkRegistry; };
+        mkEvaluations = import ../fixtures/evaluate-properties.nix { inherit lib mkRegistry; };
         evaluations = mkEvaluations {
           central = [ { backupPaths = lib.mkDefault [ "/discarded" ]; } ];
           publications.publisher = [

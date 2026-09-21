@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Breaking test-name cleanup
+
+Shorten the longest evaluation test names. Focused commands under `lib.tests.<system>` must use the replacements below. The suite retains all 145 cases and their assertions.
+
+| Previous test name                                                        | Replacement                                               |
+| ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `testCentralContributionHasTheSameRootPrecedenceAsParticipants`           | `testCentralAndParticipantsShareRootPrecedence`           |
+| `testCentralViewUsesTheSameContributionRootWithoutParticipants`           | `testCentralRootPrioritiesIgnoreParticipants`             |
+| `testCollectionTypesDoNotAllowPublicationSchemaDeclarations`              | `testCollectionsRejectContributionSchemaExtensions`       |
+| `testLazyCollectionAllowsAContributionToReadAnotherEntryExample`          | `testLazyCollectionExampleReadsSiblingEntries`            |
+| `testPublicationsCanDisableModulesRelativeToModulesPath`                  | `testDisablesContributionModulesByRelativePath`           |
+| `testPublicationsCannotDisableSchemaModulesNamedByTheirOptionPath`        | `testRejectsDisablingSchemaModulesByOptionPath`           |
+| `testPublicationsCannotDisableSchemaModulesRelativeToModulesPath`         | `testRejectsDisablingSchemaModulesByRelativePath`         |
+| `testStaticCollectionTypesDoNotAllowContributionSchemaDeclarations`       | `testStaticCollectionsRejectContributionSchemaExtensions` |
+| `testStaticConditionsUseLocalConfigurationAndPreserveListOrdering`        | `testStaticLocalConditionsPreserveListOrder`              |
+| `testStaticContributionsCanDisableModulesRelativeToModulesPath`           | `testStaticDisablesContributionModulesByRelativePath`     |
+| `testStaticContributionsCannotDisableSchemaModulesNamedByTheirOptionPath` | `testStaticRejectsDisablingSchemaModulesByOptionPath`     |
+| `testStaticContributionsCannotDisableSchemaModulesRelativeToModulesPath`  | `testStaticRejectsDisablingSchemaModulesByRelativePath`   |
+| `testStaticFlakeModuleAcceptsEmptyParticipantsAndDefaultSettings`         | `testStaticFlakeDefaultsAllowEmptyParticipants`           |
+| `testStaticModuleImportsAndUnrelatedReadsDoNotDemandSettingsOrValidation` | `testStaticUnrelatedReadsLeaveRegistryUnevaluated`        |
+| `testStaticRootOverridesCannotCompleteRecordsFromWeakerContributions`     | `testStaticRootOverridesDiscardWeakerFields`              |
+| `testStaticScalarConflictsAndReadOnlyValuesMatchDirectEvaluation`         | `testStaticScalarAndReadOnlyConflictsMatchDirect`         |
+| `testStrictCollectionForcesAnUnrelatedThrowLikeDirectEvaluation`          | `testStrictCollectionsForceUnusedEntries`                 |
+
+For example, use `nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStrictCollectionsForceUnusedEntries`. Test entrypoints now mirror the library and public modules; constructor case files live under `tests/mk-registry/`, and cross-module examples and shared-read tests live under `tests/integration/`.
+
 ### Static consumer examples
 
 Use both static public imports in the maintained [separate-source flake-parts example](docs/examples.md#flake-parts-and-separate-source-repositories). Project-level `registry.settings` selects the schema, central definitions, and caller-constructed NixOS participants. A common module supplies schema settings and the shared `central`, `combined`, and `validate` results; participant modules read `config.registry` and contribute at direct schema paths. Its flake check explicitly validates the completed combined data.

@@ -139,3 +139,12 @@ in
     expected = true;
   };
 }
+// import ./mk-registry/arguments.nix { inherit lib mkRegistry; }
+// import ./mk-registry/conditions.nix { inherit lib mkRegistry; }
+// import ./mk-registry/laziness.nix { inherit lib mkRegistry; }
+// import ./mk-registry/merging.nix { inherit lib mkRegistry; }
+// import ./mk-registry/ordering.nix { inherit lib mkRegistry; }
+// import ./mk-registry/partial-contributions.nix { inherit lib mkRegistry; }
+// import ./mk-registry/priorities.nix { inherit lib mkRegistry; }
+// import ./mk-registry/schema.nix { inherit lib mkRegistry; }
+// import ./mk-registry/validation.nix { inherit lib mkRegistry; }

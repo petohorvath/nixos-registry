@@ -1,6 +1,6 @@
 { lib, mkRegistry }:
 let
-  mkEvaluations = import ./fixtures/evaluate-properties.nix { inherit lib mkRegistry; };
+  mkEvaluations = import ../fixtures/evaluate-properties.nix { inherit lib mkRegistry; };
 in
 {
   testLocallyConfiguredConditionsMatchDirectEvaluation = {

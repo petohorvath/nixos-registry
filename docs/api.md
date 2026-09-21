@@ -292,7 +292,7 @@ participants = {
 };
 ```
 
-Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/modules/static-contributions.nix) evaluate this split with actual NixOS participants and compare the completed record with direct module evaluation.
+Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/static-interface.nix) evaluate this split with actual NixOS participants and compare the completed record with direct module evaluation.
 
 Schema defaults apply once per shared evaluation, regardless of participant count. An explicit list definition, including `[ ]`, replaces its schema default. Multiple explicit lists merge normally. Derived values use the fields from that evaluation; read-only defaults in the combined data therefore use the combined fields. Additional definitions of read-only values fail under normal module rules.
 
@@ -387,7 +387,7 @@ With the static NixOS module, read the same shared values through the participan
 
 Here the project's `registry.settings.centralModules` supplies `domain = "example.test"` and `services.api.port = 8443`. The local contribution at `config.registry.services.api.host` is `api.example.test`; its local port remains undefined. `config.registry.central.services.api.port` reads the central port, while `config.registry.combined.services.api.endpoint` reads the completed endpoint `api.example.test:8443`. `config.registry.validate` validates that completed record without requiring a complete local or central record.
 
-An unrelated invalid contribution can remain unused while reading an independent combined field. Central reads do not collect participants. Supplying shared results through the common module does not itself force validation; importing either static module and reading unrelated configuration can leave the registry unevaluated. The [static consumer tests](../tests/modules/static-reads.nix) exercise these reads and explicit validation through both public modules.
+An unrelated invalid contribution can remain unused while reading an independent combined field. Central reads do not collect participants. Supplying shared results through the common module does not itself force validation; importing either static module and reading unrelated configuration can leave the registry unevaluated. The [static consumer tests](../tests/integration/static-reads.nix) exercise these reads and explicit validation through both public modules.
 
 Collection types can force related definitions during merging. In the [collection example](../examples/plain-nix/collection-laziness.nix), both values are under one `settings` option:
 

@@ -131,7 +131,7 @@ in
     };
   };
 
-  testStaticModuleImportsAndUnrelatedReadsDoNotDemandSettingsOrValidation = {
+  testStaticUnrelatedReadsLeaveRegistryUnevaluated = {
     expr =
       let
         consumer = mkConsumer {

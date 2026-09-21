@@ -8,33 +8,25 @@ let
   inherit (nixpkgs) lib;
 
   tests =
-    import ./arguments.nix { inherit lib mkRegistry; }
-    // import ./conditions.nix { inherit lib mkRegistry; }
-    // import ./flake-parts.nix { example = flakePartsExample; }
-    // import ./laziness.nix { inherit lib mkRegistry; }
-    // import ./minimal.nix { inherit lib mkRegistry; }
-    // import ./merging.nix { inherit lib mkRegistry; }
+    import ./mk-registry.nix { inherit lib mkRegistry; }
+    // import ./check-publication.nix { inherit lib mkRegistry; }
+    // import ./wrap-central-module.nix { inherit lib mkRegistry; }
+    // import ./static-interface.nix { inherit nixpkgs system; }
+    // import ./flake.nix { inherit lib; }
     // import ./modules/flake.nix {
       inherit nixpkgs system;
       flakeParts = flakePartsExample.inputs.flake-parts;
     }
     // import ./modules/nixos.nix { inherit nixpkgs system; }
-    // import ./modules/static-contributions.nix { inherit nixpkgs system; }
-    // import ./modules/static-reads.nix {
+    // import ./integration/static-reads.nix {
       inherit nixpkgs system;
       flakeParts = flakePartsExample.inputs.flake-parts;
     }
-    // import ./nixos.nix {
+    // import ./integration/nixos.nix {
       inherit mkRegistry nixpkgs system;
     }
-    // import ./ordering.nix { inherit lib mkRegistry; }
-    // import ./partial-contributions.nix { inherit lib mkRegistry; }
-    // import ./plain-import.nix { inherit lib; }
-    // import ./priorities.nix { inherit lib mkRegistry; }
-    // import ./schema.nix { inherit lib mkRegistry; }
-    // import ./schema-ownership.nix { inherit lib mkRegistry; }
-    // import ./validation.nix { inherit lib mkRegistry; }
-    // import ./examples.nix { inherit lib mkRegistry; };
+    // import ./integration/flake-parts.nix { example = flakePartsExample; }
+    // import ./integration/examples.nix { inherit lib mkRegistry; };
 in
 lib.mapAttrs (
   name: test:
