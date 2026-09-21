@@ -1,6 +1,6 @@
 # API reference
 
-The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named participants. The consuming project supplies the option declarations and evaluates the participant configurations.
+The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named participants, and `nixosModules.default`, a static participant module. The consuming project supplies the option declarations and evaluates the participant configurations.
 
 Start with the complete [README example](../README.md#quickstart). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
 
@@ -59,7 +59,7 @@ Schema modules can declare types, defaults, and derived values. Keep the declara
 
 ### `participants`
 
-Each value must be an evaluated configuration that imports the returned `registry.module`. Both `nixpkgs.lib.nixosSystem` and `lib.evalModules` produce suitable results. Pass the whole evaluation result, including its `options`, rather than only its `config` attribute.
+Each value must be an evaluated configuration that imports the returned `registry.module`, or a NixOS configuration using the [static module](#static-nixos-module). Both `nixpkgs.lib.nixosSystem` and `lib.evalModules` produce suitable results for the generated module. Pass the whole evaluation result, including its `options`, rather than only its `config` attribute.
 
 The attribute name identifies the participant in diagnostics. It need not match a hostname, service name, or source repository. For example:
 
@@ -71,7 +71,7 @@ participants = {
 };
 ```
 
-An independently declared option named `registry` does not replace the generated module. A participant with a missing or incompatible option produces an error naming the participant and the required import.
+An independently declared option named `registry` does not replace either supported module. A participant with a missing or incompatible option produces an error naming the participant and the required import.
 
 ### `centralModules`
 
@@ -113,6 +113,51 @@ This example uses the `endpoint` field from the [service schema](../examples/pla
 
 ## Option paths and shared reads
 
+### Static NixOS module
+
+Import `inputs.nixos-registry.nixosModules.default` directly in each participating NixOS configuration. The import needs no constructor application. Configure the shared schema and supply the existing registry's results through options:
+
+```nix
+settings = {
+  schemaModules = [ ./schema.nix ];
+  specialArgs = { };
+};
+registry = inputs.nixos-registry.lib.mkRegistry (settings // {
+  lib = inputs.nixpkgs.lib;
+  participants = nixosConfigurations;
+  centralModules = [ ./central.nix ];
+});
+commonModule = {
+  imports = [ inputs.nixos-registry.nixosModules.default ];
+  registry = {
+    inherit settings;
+    inherit (registry) central combined validate;
+  };
+};
+```
+
+Import `commonModule` when constructing each participant with `inputs.nixpkgs.lib.nixosSystem`. The caller chooses the participants and supplies one shared registry. The static module neither discovers participants nor performs shared aggregation. Flake-parts is optional; the [runnable ordinary-flake example](examples.md#static-nixos-module) uses this wiring.
+
+| Participant option                | Meaning                                                                                        | Default            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------ |
+| `registry.settings.schemaModules` | Shared schema modules; supply the same modules to `mkRegistry`. Lists compose normally.        | Required           |
+| `registry.settings.specialArgs`   | Schema arguments; supply the same arguments to `mkRegistry` for schema and central evaluation. | `{ }`              |
+| `registry.central`                | Central data supplied from the shared registry.                                                | Required when read |
+| `registry.combined`               | Combined data supplied from the shared registry.                                               | Required when read |
+| `registry.validate`               | Explicit validation supplied from the shared registry.                                         | Required when read |
+
+The three result options accept one definition each. `central` and `combined` retain the supplied values without recursively merging their data; `validate` is a Boolean. Reading `config.registry.validate` demands the supplied validation value. Importing the module alone does not demand validation. Configure `participants` and `centralModules` on the project-level constructor, rather than in participant settings.
+
+The static module obtains its module-system library from the enclosing NixOS evaluator. Keep that evaluator and `mkRegistry.lib` on the same Nixpkgs revision. Schema `specialArgs` do not supply arguments to ordinary participant modules; continue using `nixosSystem.specialArgs` for those.
+
+Contributions still use direct schema paths such as `registry.services.metrics.port`. Read the local value at `config.registry.services.metrics.port`, central data at `config.registry.central.services.metrics.port`, and combined data at `config.registry.combined.services.metrics.port`. Only contribution definitions enter shared data; settings, shared results, and completed local defaults are excluded.
+
+The complete library-reserved name list for this static interface is **`settings`, `central`, `combined`, and `validate`**, immediately beneath `registry`. A schema declaring any of those names, including as an option group, fails with a reserved-name error. `schemaModules` is permitted as a schema field because its library setting is nested beneath `settings`. The usual `_module` controls also remain unavailable for contributions. These restrictions do not apply to the constructor's generated module: existing schemas using the four names remain supported there.
+
+Keep schema structure and settings independent of participant values. Read shared results through `config.registry` after NixOS has assembled its imports; using these configuration values to choose those imports introduces a module-system cycle. For setup that needs independent central values or schema keys during import discovery, retain the constructor's explicit module-argument route described [below](#schema-and-central-data-during-participant-setup). Whole-root properties such as `registry = lib.mkForce { ... };` also select the settings and result wiring, so include that wiring in the selected definition or apply properties to individual contribution fields.
+
+### Constructor-generated module
+
 The schema determines the available shared options. The `registry` prefix is added only in participant configurations:
 
 | Place                             | Example path                              | Meaning                                         |
@@ -124,7 +169,7 @@ The schema determines the available shared options. The `registry` prefix is add
 | Registry passed as an argument    | `registry.central.services.metrics.port`  | Read the central value.                         |
 | Registry passed as an argument    | `registry.combined.services.metrics.port` | Read the merged value.                          |
 
-Setting `registry.services.metrics.port` in a module contributes data. Reading `registry.combined.services.metrics.port` reads shared data through the module argument. `config.registry` contains only the participant's local contribution evaluated against the schema.
+With the generated module, setting `registry.services.metrics.port` contributes data. Reading `registry.combined.services.metrics.port` reads shared data through the module argument. `config.registry` contains only the participant's local contribution evaluated against the schema.
 
 Participants can add entries beneath declared collection options. For example, declaring a `services` option with `attrsOf (submodule ...)` allows a participant to add `services.metrics` without a central declaration for that entry.
 

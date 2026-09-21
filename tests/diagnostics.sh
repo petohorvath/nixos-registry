@@ -4,7 +4,9 @@ set -euo pipefail
 lib_path=$1
 registry_path=$2
 test_path=$3
+system=$4
 output_dir=$(mktemp -d)
+evaluation_store=dummy://
 trap 'rm -rf "$output_dir"' EXIT
 
 expect_failure() {
@@ -12,9 +14,12 @@ expect_failure() {
   shift
 
   if nix eval --extra-experimental-features nix-command \
-    --impure --json --store dummy:// \
+    --impure --json --store "$evaluation_store" \
     --arg lib "import $lib_path" \
+    --arg nixpkgs "(import $lib_path/../flake.nix).outputs { self.outPath = $lib_path/..; }" \
     --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
+    --arg staticModule "((import $registry_path/flake.nix).outputs {}).nixosModules.default" \
+    --argstr system "$system" \
     --arg serviceSchema "$registry_path/examples/plain-nix/service-schema.nix" \
     --file "$test_path/diagnostics.nix" "$attribute" \
     >"$output_dir/stdout" 2>"$output_dir/stderr"; then
@@ -54,5 +59,13 @@ expect_failure importedSchemaDeclaration "registry.services.api" "importing sche
   "shared-schema-data.nix" "schemaModules"
 expect_failure definitionSchemaDeclaration "registry.services.api" "generated schema publisher" \
   "/generated/offending-publication.nix" "schemaModules"
+# NixOS evaluation creates store files while initializing its package set.
+evaluation_store="local?root=$output_dir/store"
+expect_failure staticInvalidPort.shared "services.api.port" "static service publisher" "invalid-service.nix"
+expect_failure staticInvalidPort.local "registry.services.api.port" "invalid-service.nix"
+for name in settings central combined validate; do
+  expect_failure "staticReservedSchema.$name" "registry.$name" "reserved" \
+    "static-schema-collision.nix" "colliding static participant"
+done
 
 echo "Registry diagnostics retain participant identities and source origins."

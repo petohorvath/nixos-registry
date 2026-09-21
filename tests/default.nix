@@ -14,6 +14,7 @@ let
     // import ./laziness.nix { inherit lib mkRegistry; }
     // import ./minimal.nix { inherit lib mkRegistry; }
     // import ./merging.nix { inherit lib mkRegistry; }
+    // import ./modules/nixos.nix { inherit nixpkgs system; }
     // import ./nixos.nix {
       inherit mkRegistry nixpkgs system;
     }

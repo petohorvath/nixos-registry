@@ -1,9 +1,28 @@
 {
   lib,
   mkRegistry,
+  nixpkgs,
+  staticModule,
+  system,
   serviceSchema ? ../examples/plain-nix/service-schema.nix,
 }:
 let
+  mkStaticParticipant =
+    settings: registry: modules:
+    nixpkgs.lib.nixosSystem {
+      modules = [
+        staticModule
+        {
+          nixpkgs.hostPlatform = system;
+          registry = {
+            inherit settings;
+            inherit (registry) central combined validate;
+          };
+        }
+      ]
+      ++ modules;
+    };
+
   mkValidation =
     publications:
     let
@@ -31,6 +50,45 @@ let
     registry.validate;
 in
 {
+  staticInvalidPort =
+    let
+      settings.schemaModules = [ serviceSchema ];
+      registry = mkRegistry (
+        settings
+        // {
+          inherit lib;
+          centralModules = [ { domain = "example.test"; } ];
+          participants."static service publisher" = mkStaticParticipant settings registry [
+            ./fixtures/invalid-service.nix
+          ];
+        }
+      );
+    in
+    {
+      shared = registry.validate;
+      local =
+        (mkStaticParticipant settings registry [ ./fixtures/invalid-service.nix ])
+        .config.registry.services.api.port;
+    };
+
+  staticReservedSchema = lib.genAttrs [ "settings" "central" "combined" "validate" ] (
+    reservedName:
+    let
+      settings = {
+        schemaModules = [ ./fixtures/static-schema-collision.nix ];
+        specialArgs = { inherit reservedName; };
+      };
+      registry = mkRegistry (
+        settings
+        // {
+          inherit lib;
+          participants."colliding static participant" = mkStaticParticipant settings registry [ ];
+        }
+      );
+    in
+    registry.validate
+  );
+
   definitionSchemaDeclaration = mkValidation {
     "generated schema publisher" = [
       {

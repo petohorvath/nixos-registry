@@ -57,6 +57,8 @@
       );
     in
     {
+      nixosModules.default = import ./modules/nixos.nix;
+
       lib = {
         inherit mkRegistry tests;
         examples = evalExample ./examples/plain-nix;
@@ -69,6 +71,9 @@
           (import ./examples/nixos {
             inherit mkRegistry nixpkgs system;
           }).result
+        );
+        staticNixosExamples = forAllSystems (
+          system: (import ./examples/static-nixos { inherit nixpkgs system; }).result
         );
         partialContributions = evalExample ./examples/plain-nix/partial-contributions.nix;
         priorities = evalExample ./examples/plain-nix/priorities.nix;
