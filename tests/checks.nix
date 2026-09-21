@@ -22,7 +22,7 @@ pkgs.lib.mapAttrs
   (
     name: script:
     pkgs.runCommand "registry-${name}" { nativeBuildInputs = [ pkgs.nix ]; } ''
-      bash ${script} ${nixpkgs}/lib ${../.} ${../tests}
+      bash ${script} ${nixpkgs}/lib ${../.} ${../tests} ${system}
       touch "$out"
     ''
   )

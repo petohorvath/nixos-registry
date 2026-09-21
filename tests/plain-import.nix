@@ -22,6 +22,51 @@ let
   };
 in
 {
+  testConstructorKeepsSchemaNamesReservedByStaticModules = {
+    expr =
+      let
+        legacy = mkRegistry {
+          inherit lib;
+          schemaModules = [
+            {
+              options = lib.genAttrs [ "settings" "central" "combined" "validate" ] (
+                name:
+                lib.mkOption {
+                  type = lib.types.str;
+                  description = "Schema-owned ${name} through the constructor.";
+                }
+              );
+            }
+          ];
+          participants.generic = lib.evalModules {
+            modules = [
+              legacy.module
+              {
+                registry = {
+                  settings = "local settings";
+                  central = "local central";
+                  combined = "local combined";
+                  validate = "local validate";
+                };
+              }
+            ];
+          };
+        };
+      in
+      {
+        inherit (legacy) combined validate;
+      };
+    expected = {
+      combined = {
+        settings = "local settings";
+        central = "local central";
+        combined = "local combined";
+        validate = "local validate";
+      };
+      validate = true;
+    };
+  };
+
   testPlainImportUsesCallerLibraryWithoutDevelopmentInputs = {
     expr = {
       inherit (registry) central combined validate;

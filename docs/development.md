@@ -34,6 +34,8 @@ nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testCollectsCentralAndNa
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
 nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceParticipantsKeepLocalContributionsDistinct
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleContributesAndReadsSharedResults
+nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleRejectsReservedSchemaNames
 ```
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.

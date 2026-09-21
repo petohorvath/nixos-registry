@@ -16,6 +16,8 @@ Keep usage, design, and architectural decisions in repository documentation. Kee
 
 The public API comprises `lib.mkRegistry`; its `lib`, `schemaModules`, `participants`, `centralModules`, and `specialArgs` arguments and defaults; the generated participant `registry` option; and the returned `module`, `central`, `combined`, and `validate` attributes. The [API reference](docs/api.md) defines contribution merging, schema ownership, priorities, ordering, laziness, validation, and diagnostic behavior. Callers own schemas, participant construction, and module-system selection.
 
+The static `nixosModules.default` export is also public, including `registry.settings.schemaModules`, `registry.settings.specialArgs`, the `registry.central`, `registry.combined`, and `registry.validate` result options, and direct schema contribution paths. Its [reserved names and wiring](docs/api.md#static-nixos-module) are part of that interface; the generated constructor module retains its existing namespace.
+
 Keep the constructor usable through `((import ./flake.nix).outputs { }).lib.mkRegistry` without supplying or evaluating development inputs. Root development inputs can enter normal consumer lock graphs. This packaging contract replaces the original v1 input-free-flake promise while preserving the library contract.
 
 Root `devShells`, `formatter`, and `checks` supply development entrypoints. Root `lib.tests.<system>` and the documented `lib` example attributes provide focused evaluation using the selected root `nixpkgs`. Removing or renaming these entrypoints or input overrides is a breaking tooling change and requires migration guidance.

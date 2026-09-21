@@ -31,6 +31,21 @@ import ./examples/nixos {
 
 This changes `services.prometheus.package`. The caller's `nixpkgs` input still selects the module system through `nixpkgs.lib.nixosSystem`. Every participant and the registry must use the same module-system revision. The repository's root flake has only the selected `nixpkgs` input; its alternate-package test uses an extended package set from that revision.
 
+## Static NixOS module
+
+The [ordinary-flake consumer](../examples/static-nixos/default.nix) imports the public `nixosModules.default` through a common NixOS module. It keeps one project-level `lib.mkRegistry` call and supplies the same schema through `registry.settings.schemaModules`. The common module assigns the shared registry's `central`, `combined`, and `validate` values to the corresponding participant options.
+
+The [contributing module](../examples/static-nixos/publish-service.nix) reads `config.registry.central.domain`, contributes the complete `registry.services.metrics` record using the configured Prometheus port, and reads `config.registry.combined.services.metrics.endpoint` into `/etc/metrics-endpoint`. It receives shared data entirely through options.
+
+```sh
+nix eval --no-update-lock-file .#lib.staticNixosExamples.x86_64-linux --json
+nix eval --no-update-lock-file .#lib.staticNixosExamples.x86_64-linux.validate
+```
+
+The endpoint is `monitor.example.test:9191`, combined data contains the complete metrics record, and validation returns `true`. Settings and shared results do not appear in combined data. The example uses the root's committed lock and needs no flake-parts dependency or separate lockfile.
+
+The example function accepts `nixpkgs`, optional `system` (default `x86_64-linux`), and optional `registryFlake` (default the local public exports, accessed without development inputs). It returns the named `participants`, shared `registry`, and JSON-compatible `result`. The [API reference](api.md#static-nixos-module) documents argument ownership, result paths, reserved names, and setup constraints. The constructor-generated NixOS example above and the generic examples below remain supported.
+
 ## Plain Nix modules
 
 The [plain Nix example](../examples/plain-nix/default.nix) uses `lib.evalModules` with a [backup-destination schema](../examples/plain-nix/schema.nix). It has two participants, with no NixOS configuration or hostname requirement.

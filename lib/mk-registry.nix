@@ -78,7 +78,10 @@ let
       map (
         definition:
         let
-          value = checkPublication name definition.file schemaOptions [ "registry" ] definition.value;
+          contribution =
+            builtins.addErrorContext "while collecting registry data from participant `${name}':"
+              ((option._nixosRegistrySelectContribution or (_: value: value)) schemaOptions definition.value);
+          value = checkPublication name definition.file schemaOptions [ "registry" ] contribution;
           # Root ordering is separate from the contribution's override priority.
           ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
         in
@@ -100,7 +103,7 @@ let
       if !(participant ? options.registry) then
         throw (
           "nixos-registry: participant `${name}` is missing options.registry; "
-          + "import the generated registry.module."
+          + "import registry.module or configure the static nixosModules.default."
         )
       else if
         !(lib.isOption option)
@@ -110,7 +113,7 @@ let
       then
         throw (
           "nixos-registry: participant `${name}` has an incompatible options.registry; "
-          + "import the generated registry.module."
+          + "import registry.module or configure the static nixosModules.default."
         )
       else
         option
