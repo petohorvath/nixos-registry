@@ -46,6 +46,89 @@ The endpoint is `monitor.example.test:9191`, combined data contains the complete
 
 The example function accepts `nixpkgs`, optional `system` (default `x86_64-linux`), and optional `registryFlake` (default the local public exports, accessed without development inputs). It returns the named `participants`, shared `registry`, and JSON-compatible `result`. The [API reference](api.md#static-nixos-module) documents argument ownership, result paths, reserved names, and setup constraints. The constructor-generated NixOS example above and the generic examples below remain supported.
 
+## Static flake module
+
+This flake-parts consumer imports `flakeModules.default` for project settings and `nixosModules.default` for participants. Copy the [service schema](../examples/plain-nix/service-schema.nix) to `schema.nix` beside this `flake.nix`:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    nixos-registry.url = "github:petohorvath/nixos-registry";
+  };
+
+  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; }
+    ({ config, ... }:
+      let
+        shared = config.registry;
+        commonModule = {
+          imports = [ inputs.nixos-registry.nixosModules.default ];
+          nixpkgs.hostPlatform = "x86_64-linux";
+          system.stateVersion = "26.05";
+          registry = {
+            settings = {
+              inherit (shared.settings) schemaModules specialArgs;
+            };
+            inherit (shared) central combined validate;
+          };
+        };
+      in
+      {
+        imports = [ inputs.nixos-registry.flakeModules.default ];
+        systems = [ "x86_64-linux" ];
+        registry.settings = {
+          schemaModules = [ ./schema.nix ];
+          centralModules = [ { domain = "example.test"; } ];
+          participants = {
+            "metrics publisher" = config.flake.nixosConfigurations.monitor;
+            "metrics reader" = config.flake.nixosConfigurations.client;
+          };
+        };
+        flake.nixosConfigurations = {
+          monitor = inputs.nixpkgs.lib.nixosSystem {
+            modules = [
+              commonModule
+              ({ config, ... }: {
+                networking.hostName = "monitor";
+                services.prometheus.port = 9191;
+                registry.services.metrics = {
+                  host = "${config.networking.hostName}.${config.registry.central.domain}";
+                  port = config.services.prometheus.port;
+                };
+              })
+            ];
+          };
+          client = inputs.nixpkgs.lib.nixosSystem {
+            modules = [
+              commonModule
+              ({ config, ... }: {
+                environment.etc."metrics-endpoint".text =
+                  config.registry.combined.services.metrics.endpoint;
+              })
+            ];
+          };
+        };
+        flake.lib.registry = { inherit (shared) central combined validate; };
+      });
+}
+```
+
+Run these commands in the consumer directory after recording its inputs with `nix flake lock`:
+
+```sh
+nix eval --no-update-lock-file .#lib.registry.combined --json
+nix eval --no-update-lock-file .#lib.registry.validate
+nix eval --no-update-lock-file .#nixosConfigurations.client.config.environment.etc.metrics-endpoint.text
+```
+
+Combined data contains the metrics endpoint `monitor.example.test:9191`, validation returns `true`, and the client's file contains that endpoint. The participant names differ from the configuration names; membership is explicit. Both participants reuse the same project registry and receive shared data through options.
+
+Additional project modules can append schema and central modules and supply distinct participant names. Duplicate names at the same priority fail when demanded. The [API reference](api.md#static-flake-module) documents argument ownership and composition. The [consumer tests](../tests/modules/flake.nix) exercise this wiring with two contributing NixOS participants, including a participant reading another participant's data; they also cover an empty participant set and required settings. No NixOS system build or VM boot is needed.
+
 ## Plain Nix modules
 
 The [plain Nix example](../examples/plain-nix/default.nix) uses `lib.evalModules` with a [backup-destination schema](../examples/plain-nix/schema.nix). It has two participants, with no NixOS configuration or hostname requirement.

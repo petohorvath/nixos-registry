@@ -22,7 +22,11 @@ pkgs.lib.mapAttrs
   (
     name: script:
     pkgs.runCommand "registry-${name}" { nativeBuildInputs = [ pkgs.nix ]; } ''
-      bash ${script} ${nixpkgs}/lib ${../.} ${../tests} ${system}
+      bash ${script} ${nixpkgs}/lib ${../.} ${../tests} ${system} ${
+        pkgs.lib.optionalString (name == "diagnostics") (
+          toString flakePartsExample.inputs.flake-parts.outPath
+        )
+      }
       touch "$out"
     ''
   )

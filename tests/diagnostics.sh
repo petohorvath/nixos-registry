@@ -5,6 +5,7 @@ lib_path=$1
 registry_path=$2
 test_path=$3
 system=$4
+flake_parts_path=$5
 output_dir=$(mktemp -d)
 evaluation_store=dummy://
 trap 'rm -rf "$output_dir"' EXIT
@@ -19,6 +20,8 @@ expect_failure() {
     --arg nixpkgs "(import $lib_path/../flake.nix).outputs { self.outPath = $lib_path/..; }" \
     --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
     --arg staticModule "((import $registry_path/flake.nix).outputs {}).nixosModules.default" \
+    --arg flakeModule "((import $registry_path/flake.nix).outputs {}).flakeModules.default" \
+    --arg flakeParts "(import $flake_parts_path/flake.nix).outputs { self.outPath = $flake_parts_path; nixpkgs-lib.lib = import $lib_path; }" \
     --argstr system "$system" \
     --arg serviceSchema "$registry_path/examples/plain-nix/service-schema.nix" \
     --file "$test_path/diagnostics.nix" "$attribute" \
@@ -59,6 +62,13 @@ expect_failure importedSchemaDeclaration "registry.services.api" "importing sche
   "shared-schema-data.nix" "schemaModules"
 expect_failure definitionSchemaDeclaration "registry.services.api" "generated schema publisher" \
   "/generated/offending-publication.nix" "schemaModules"
+expect_failure flakeMissingSchema "registry.settings.schemaModules" "must be set explicitly"
+expect_failure flakeMissingParticipants "registry.settings.participants" "must be set explicitly"
+expect_failure flakeDuplicateParticipant "registry.settings.participants" "duplicate participant" \
+  "first-project.nix" "second-project.nix"
+expect_failure flakeCentralConflict "domain" "first-project.nix" "second-project.nix"
+expect_failure flakeDuplicateArgument "registry.settings.specialArgs.schemaLabel" \
+  "first-project.nix" "second-project.nix"
 # NixOS evaluation creates store files while initializing its package set.
 evaluation_store="local?root=$output_dir/store"
 expect_failure staticInvalidPort.shared "services.api.port" "static service publisher" "invalid-service.nix"

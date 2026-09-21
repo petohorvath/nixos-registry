@@ -3,10 +3,35 @@
   mkRegistry,
   nixpkgs,
   staticModule,
+  flakeModule,
+  flakeParts,
   system,
   serviceSchema ? ../examples/plain-nix/service-schema.nix,
 }:
 let
+  mkProjectRegistry =
+    modules:
+    (flakeParts.lib.mkFlake { inputs.self.outPath = ../.; } (
+      { config, ... }: {
+        imports = [ flakeModule ] ++ modules;
+        systems = [ ];
+        flake.lib.registry = config.registry;
+      }
+    )).lib.registry;
+
+  duplicateProjectSettings =
+    settings:
+    mkProjectRegistry [
+      {
+        _file = "/modules/first-project.nix";
+        registry.settings = settings;
+      }
+      {
+        _file = "/modules/second-project.nix";
+        registry.settings = settings;
+      }
+    ];
+
   mkStaticParticipant =
     settings: registry: modules:
     nixpkgs.lib.nixosSystem {
@@ -50,6 +75,47 @@ let
     registry.validate;
 in
 {
+  flakeMissingSchema =
+    (mkProjectRegistry [
+      {
+        registry.settings.participants = { };
+      }
+    ]).validate;
+
+  flakeMissingParticipants =
+    (mkProjectRegistry [
+      {
+        registry.settings.schemaModules = [ ];
+      }
+    ]).validate;
+
+  flakeDuplicateParticipant =
+    (duplicateProjectSettings {
+      schemaModules = [ ];
+      participants."duplicate participant" = { };
+    }).validate;
+
+  flakeDuplicateArgument =
+    (duplicateProjectSettings {
+      specialArgs.schemaLabel = "shared schema";
+    }).settings.specialArgs.schemaLabel;
+
+  flakeCentralConflict =
+    (mkProjectRegistry [
+      {
+        _file = "/modules/first-project.nix";
+        registry.settings = {
+          schemaModules = [ serviceSchema ];
+          participants = { };
+          centralModules = [ { domain = "first.example.test"; } ];
+        };
+      }
+      {
+        _file = "/modules/second-project.nix";
+        registry.settings.centralModules = [ { domain = "second.example.test"; } ];
+      }
+    ]).validate;
+
   staticInvalidPort =
     let
       settings.schemaModules = [ serviceSchema ];
