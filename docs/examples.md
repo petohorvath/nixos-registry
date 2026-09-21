@@ -113,6 +113,13 @@ This flake-parts consumer imports `flakeModules.default` for project settings an
           };
         };
         flake.lib.registry = { inherit (shared) central combined validate; };
+        perSystem = { pkgs, ... }: {
+          checks.registry =
+            assert shared.validate;
+            pkgs.runCommand "registry-validation" { } ''
+              touch "$out"
+            '';
+        };
       });
 }
 ```
@@ -123,9 +130,12 @@ Run these commands in the consumer directory after recording its inputs with `ni
 nix eval --no-update-lock-file .#lib.registry.combined --json
 nix eval --no-update-lock-file .#lib.registry.validate
 nix eval --no-update-lock-file .#nixosConfigurations.client.config.environment.etc.metrics-endpoint.text
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry
 ```
 
 Combined data contains the metrics endpoint `monitor.example.test:9191`, validation returns `true`, and the client's file contains that endpoint. The participant names differ from the configuration names; membership is explicit. Both participants reuse the same project registry and receive shared data through options.
+
+The `registry` check demands `shared.validate`. A port changed to a string, a missing required field, an unknown option, or a conflicting read-only definition causes the check to fail during evaluation. Merely defining the check leaves independent reads lazy: for example, `lib.registry.combined.domain` remains readable with an invalid service port. Use the focused command above for these evaluation-only NixOS participants. Full `nix flake check --no-update-lock-file` also validates NixOS system outputs and requires machine-specific boot and filesystem settings, which this example omits.
 
 Additional project modules can append schema and central modules and supply distinct participant names. Duplicate names at the same priority fail when demanded. The [API reference](api.md#static-flake-module) documents argument ownership and composition. The [consumer tests](../tests/modules/flake.nix) exercise this wiring with two contributing NixOS participants, including a participant reading another participant's data; they also cover an empty participant set and required settings. No NixOS system build or VM boot is needed.
 

@@ -3,7 +3,16 @@ set -euo pipefail
 
 lib_path=$1
 registry_path=$2
+test_path=$3
+system=$4
+flake_parts_path=$5
 output_dir=$(mktemp -d)
+evaluation_store=dummy://
+evaluation_dir="$registry_path/examples/plain-nix"
+evaluation_args=(
+  --arg lib "import $lib_path"
+  --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry"
+)
 trap 'rm -rf "$output_dir"' EXIT
 
 expect_recursion() {
@@ -12,10 +21,9 @@ expect_recursion() {
 
   # Native recursion errors escape builtins.tryEval.
   if nix eval --extra-experimental-features nix-command \
-    --impure --json --store dummy:// \
-    --arg lib "import $lib_path" \
-    --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
-    --file "$registry_path/examples/plain-nix/$example.nix" "$attribute" \
+    --impure --json --store "$evaluation_store" \
+    "${evaluation_args[@]}" \
+    --file "$evaluation_dir/$example.nix" "$attribute" \
     >"$output_dir/stdout" 2>"$output_dir/stderr"; then
     echo "$example/$attribute: expected native recursion to fail" >&2
     exit 1
@@ -32,4 +40,18 @@ expect_recursion collection-laziness strict.validate
 expect_recursion value-cycle combined.services.east
 expect_recursion value-cycle validate
 
-echo "Schema forcing and value cycles retain native recursion (4 evaluations)."
+# NixOS evaluation initializes its package set in a writable store.
+evaluation_store="local?root=$output_dir/store"
+evaluation_dir=$test_path
+evaluation_args=(
+  --arg nixpkgs "(import $lib_path/../flake.nix).outputs { self.outPath = $lib_path/..; }"
+  --arg flakeParts "(import $flake_parts_path/flake.nix).outputs { self.outPath = $flake_parts_path; nixpkgs-lib.lib = import $lib_path; }"
+  --argstr system "$system"
+)
+expect_recursion static-recursion strict.lib.registry.combined.endpoints.domain
+expect_recursion static-recursion strict.lib.registry.validate
+expect_recursion static-recursion valueCycle.lib.registry.combined.services.east
+expect_recursion static-recursion valueCycle.lib.registry.validate
+expect_recursion static-recursion importCycle.lib.registry.validate
+
+echo "Constructor and static shared reads retain native recursion (9 evaluations)."

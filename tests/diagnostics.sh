@@ -80,6 +80,7 @@ use_static_module=true
 check_contribution_diagnostics
 expect_failure staticInvalidPort.shared "services.api.port" "static service publisher" "invalid-service.nix"
 expect_failure staticInvalidPort.local "registry.services.api.port" "invalid-service.nix"
+expect_failure flakeStaticInvalidPort "services.api.port" "static service publisher" "invalid-service.nix"
 for name in settings central combined validate; do
   expect_failure "staticReservedSchema.$name" "registry.$name" "reserved" \
     "static-schema-collision.nix" "colliding static participant"
