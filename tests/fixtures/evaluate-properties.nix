@@ -1,6 +1,11 @@
 {
   lib,
   mkRegistry,
+  mkParticipant ?
+    { registry, definitions, ... }:
+    lib.evalModules {
+      modules = [ registry.module ] ++ map (registry: { inherit registry; }) definitions;
+    },
   schema ? {
     options.backupPaths = lib.mkOption {
       type = lib.types.listOf lib.types.str;
@@ -20,8 +25,9 @@ let
     centralModules = map (config: { inherit config; }) central;
     participants = lib.mapAttrs (
       _: definitions:
-      lib.evalModules {
-        modules = [ registry.module ] ++ map (registry: { inherit registry; }) definitions;
+      mkParticipant {
+        inherit definitions registry;
+        schemaModules = [ schema ];
       }
     ) publications;
   };

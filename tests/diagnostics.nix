@@ -6,6 +6,7 @@
   flakeModule,
   flakeParts,
   system,
+  useStaticModule ? false,
   serviceSchema ? ../examples/plain-nix/service-schema.nix,
 }:
 let
@@ -53,24 +54,28 @@ let
     let
       registry = mkRegistry {
         inherit lib;
-        schemaModules = [
-          serviceSchema
-          {
-            options.backupPaths = lib.mkOption {
-              type = lib.types.listOf lib.types.str;
-              default = [ ];
-              description = "Ordered backup paths.";
-            };
-          }
-        ];
+        inherit (settings) schemaModules;
         centralModules = [ { domain = "example.test"; } ];
         participants = lib.mapAttrs (
           _: modules:
-          lib.evalModules {
-            modules = [ registry.module ] ++ modules;
-          }
+          if useStaticModule then
+            mkStaticParticipant settings registry modules
+          else
+            lib.evalModules {
+              modules = [ registry.module ] ++ modules;
+            }
         ) publications;
       };
+      settings.schemaModules = [
+        serviceSchema
+        {
+          options.backupPaths = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+            description = "Ordered backup paths.";
+          };
+        }
+      ];
     in
     registry.validate;
 in

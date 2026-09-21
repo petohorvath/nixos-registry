@@ -191,7 +191,26 @@ Contributions still use direct schema paths such as `registry.services.metrics.p
 
 The complete library-reserved name list for this static interface is **`settings`, `central`, `combined`, and `validate`**, immediately beneath `registry`. A schema declaring any of those names, including as an option group, fails with a reserved-name error. `schemaModules` is permitted as a schema field because its library setting is nested beneath `settings`. The usual `_module` controls also remain unavailable for contributions. These restrictions do not apply to the constructor's generated module: existing schemas using the four names remain supported there.
 
-Keep schema structure and settings independent of participant values. Read shared results through `config.registry` after NixOS has assembled its imports; using these configuration values to choose those imports introduces a module-system cycle. For setup that needs independent central values or schema keys during import discovery, retain the constructor's explicit module-argument route described [below](#schema-and-central-data-during-participant-setup). Whole-root properties such as `registry = lib.mkForce { ... };` also select the settings and result wiring, so include that wiring in the selected definition or apply properties to individual contribution fields.
+Keep schema structure and settings independent of participant values. Read shared results through `config.registry` after NixOS has assembled its imports; using these configuration values to choose those imports introduces a module-system cycle. For setup that needs independent central values or schema keys during import discovery, retain the constructor's explicit module-argument route described [below](#schema-and-central-data-during-participant-setup).
+
+#### Properties at the static contribution root
+
+Nix first selects definitions of the participant's whole `registry` option. A root override therefore selects the local settings and result wiring too. An ordinary common-module definition overrides a separate `registry = lib.mkDefault { ... };` contribution locally; `registry = lib.mkForce { ... };` discards ordinary wiring. Apply priorities to individual contribution fields when only those fields should change. For a whole-root override, include the wiring at the selected priority:
+
+```nix
+registry = lib.mkForce {
+  inherit settings;
+  inherit (sharedRegistry) central combined validate;
+  backupDestinations.archive = {
+    host = "replacement.example.test";
+    port = 2222;
+  };
+};
+```
+
+Here `settings` contains the common schema configuration and `sharedRegistry` is the caller's constructor result. The root priority applies to the whole contribution during shared aggregation. Nested priorities apply within the contributions that remain; fields from discarded contributions cannot complete a selected partial record.
+
+Collection removes settings and results from the selected definitions, including inside `mkMerge` and other definition properties. Definitions containing only that wiring do not become empty contributions: a participant that only reads shared data cannot suppress another source's default contribution. An explicitly empty contribution, such as a separate `registry = lib.mkForce { };`, still participates in whole-root selection. Preserve local wiring separately at the same priority when using it. List ordering belongs on schema list fields; ordering the whole root retains the module system's native failure.
 
 ### Constructor-generated module
 
@@ -239,6 +258,39 @@ With the [partial-record schema](../examples/plain-nix/partial-schema.nix), `reg
 ```
 
 The participant's local record still lacks a host. Its port can be read from `config.registry`, but reading its missing host or derived endpoint fails. The central record likewise lacks a port. Use `registry.combined` to read the completed record.
+
+The same split works with static NixOS participants. Using the common module from [static NixOS wiring](#static-nixos-module) with the partial-record schema, the caller can construct two participants:
+
+```nix
+# Pass this list as centralModules to the shared constructor:
+centralModules = [ { backupDestinations.archive.host = "archive.example.test"; } ];
+
+participants = {
+  transport = inputs.nixpkgs.lib.nixosSystem {
+    modules = [
+      commonModule
+      ({ config, ... }: {
+        nixpkgs.hostPlatform = "x86_64-linux";
+        services.prometheus.port = 2222;
+        registry.backupDestinations.archive.port = config.services.prometheus.port;
+      })
+    ];
+  };
+  paths = inputs.nixpkgs.lib.nixosSystem {
+    modules = [
+      commonModule
+      ({ config, ... }: {
+        nixpkgs.hostPlatform = "x86_64-linux";
+        registry.backupDestinations.archive.paths = [ "/documents" ];
+        environment.etc."backup-command".text =
+          config.registry.combined.backupDestinations.archive.command;
+      })
+    ];
+  };
+};
+```
+
+Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/modules/static-contributions.nix) evaluate this split with actual NixOS participants and compare the completed record with direct module evaluation.
 
 Schema defaults apply once per shared evaluation, regardless of participant count. An explicit list definition, including `[ ]`, replaces its schema default. Multiple explicit lists merge normally. Derived values use the fields from that evaluation; read-only defaults in the combined data therefore use the combined fields. Additional definitions of read-only values fail under normal module rules.
 

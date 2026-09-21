@@ -1,4 +1,15 @@
-{ lib, mkRegistry }:
+{
+  lib,
+  mkRegistry,
+  mkParticipant ?
+    { registry, publication, ... }:
+    lib.evalModules {
+      modules = [
+        registry.module
+        { registry = publication; }
+      ];
+    },
+}:
 let
   entryType = lib.types.submodule {
     options.endpoint = lib.mkOption {
@@ -51,21 +62,19 @@ let
   mkPublicationRegistry =
     shape: publication:
     let
+      schemaModules = [
+        {
+          options.service = lib.mkOption {
+            inherit (shape) type;
+            description = "Published service data.";
+          };
+        }
+      ];
       registry = mkRegistry {
-        inherit lib;
-        schemaModules = [
-          {
-            options.service = lib.mkOption {
-              inherit (shape) type;
-              description = "Published service data.";
-            };
-          }
-        ];
-        participants.publisher = lib.evalModules {
-          modules = [
-            registry.module
-            { registry.service = shape.wrap publication; }
-          ];
+        inherit lib schemaModules;
+        participants.publisher = mkParticipant {
+          inherit registry schemaModules;
+          publication.service = shape.wrap publication;
         };
       };
     in

@@ -23,9 +23,51 @@ let
         + lib.optionalString (declarations != [ ]) " declared in ${lib.showFiles declarations}"
         + ". Rename the schema field or use the generated registry.module interface."
       );
+
+  stripWiring =
+    value:
+    if
+      builtins.elem (value._type or null) [
+        "if"
+        "override"
+        "order"
+      ]
+    then
+      value // { content = stripWiring value.content; }
+    else if value._type or null == "merge" then
+      value // { contents = map stripWiring value.contents; }
+    else if value._type or null == "definition" then
+      value // { value = stripWiring value.value; }
+    else
+      removeAttrs value reservedNames;
+
+  isWiringOnly =
+    value:
+    if value._type or null == "merge" then
+      value.contents != [ ] && lib.all isWiringOnly value.contents
+    else if value._type or null == "if" then
+      # A disabled definition must not demand its payload to classify its fields.
+      value.condition && isWiringOnly value.content
+    else if value._type or null == "override" then
+      isWiringOnly value.content
+    else if value._type or null == "definition" then
+      isWiringOnly value.value
+    else
+      removeAttrs value reservedNames == { } && lib.any (name: value ? ${name}) reservedNames;
 in
 {
   inherit checkSchema reservedNames;
-  selectContribution =
-    schemaOptions: value: checkSchema schemaOptions (removeAttrs value reservedNames);
+  selectContributions =
+    schemaOptions: definitions:
+    checkSchema schemaOptions (
+      lib.concatMap (
+        definition:
+        let
+          value = stripWiring definition.value;
+          # An ordered root must reach the caller's type, including its native failure.
+          wiringOnly = !(definition ? priority) && isWiringOnly definition.value;
+        in
+        lib.optional (!wiringOnly) (definition // { inherit value; })
+      ) definitions
+    );
 }

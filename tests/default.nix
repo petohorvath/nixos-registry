@@ -19,6 +19,7 @@ let
       flakeParts = flakePartsExample.inputs.flake-parts;
     }
     // import ./modules/nixos.nix { inherit nixpkgs system; }
+    // import ./modules/static-contributions.nix { inherit nixpkgs system; }
     // import ./nixos.nix {
       inherit mkRegistry nixpkgs system;
     }

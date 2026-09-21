@@ -75,21 +75,25 @@ let
       let
         option = getContributionOption name participant;
       in
-      map (
-        definition:
-        let
-          contribution =
-            builtins.addErrorContext "while collecting registry data from participant `${name}':"
-              ((option._nixosRegistrySelectContribution or (_: value: value)) schemaOptions definition.value);
-          value = checkPublication name definition.file schemaOptions [ "registry" ] contribution;
-          # Root ordering is separate from the contribution's override priority.
-          ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
-        in
-        {
-          _file = "participant ${name}: ${definition.file}";
-          config.registry = lib.mkOverride option.highestPrio ordered;
-        }
-      ) option.definitionsWithLocations
+      map
+        (
+          definition:
+          let
+            value = checkPublication name definition.file schemaOptions [ "registry" ] definition.value;
+            # Root ordering is separate from the contribution's override priority.
+            ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
+          in
+          {
+            _file = "participant ${name}: ${definition.file}";
+            config.registry = lib.mkOverride option.highestPrio ordered;
+          }
+        )
+        (
+          builtins.addErrorContext "while collecting registry data from participant `${name}':" (
+            (option._nixosRegistrySelectContributions or (_: lib.id)) schemaOptions
+              option.definitionsWithLocations
+          )
+        )
     ))
     lib.concatLists
   ];
