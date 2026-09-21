@@ -6,7 +6,9 @@ The public library entrypoint is `lib.mkRegistry`. The function takes shared opt
 
 NixOS consumers can also import the static `nixosModules.default` and configure its schema through `registry.settings`. Contributions keep paths such as `registry.services.metrics.port`; shared reads use `config.registry.central` and `config.registry.combined`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires these options to one caller-owned registry without flake-parts.
 
-Flake-parts consumers can import `flakeModules.default` to compose the shared registry through project-level `registry.settings` options. The [static flake-module example](docs/examples.md#static-flake-module) shows both imports and the common NixOS module that passes settings and shared results to explicitly selected participants.
+Flake-parts consumers can import `flakeModules.default` to compose the shared registry through project-level `registry.settings` options. The [separate-source example](docs/examples.md#flake-parts-and-separate-source-repositories) uses both static imports, constructs its own NixOS participants, and passes schema settings and shared results through a common module. Central definitions and a participant complete an API record that another participant reads while contributing its own service.
+
+The static participant interface reserves `settings`, `central`, `combined`, and `validate` beneath `registry`; schema contributions keep their other direct paths. Shared validation uses `config.registry.validate`. These interfaces are additive: ordinary flakes can use the static NixOS module without flake-parts, and the constructor retains generic participants, plain-import access, and schemas using those names. See the [API reference](docs/api.md#static-nixos-module) for wiring and setup restrictions.
 
 Data is shared during Nix evaluation. All participating configurations must be available in the same Nix evaluation, including configurations defined in separate repositories. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry) is a separate feature for looking up flake names.
 
@@ -155,7 +157,7 @@ The function returns an attribute set:
 | `registry.combined` | Read data merged from central modules and all participants.                  |
 | `registry.validate` | Evaluate all combined data. Returns `true` or raises a Nix evaluation error. |
 
-`config.registry` is local to one participant. `registry.combined` contains the shared data. Pass `registry` to a participant through that configuration's `specialArgs` when its modules need shared reads; the `specialArgs` argument to `mkRegistry` does not do this.
+With the constructor's generated module, `config.registry` is local to one participant and `registry.combined` contains the shared data. Pass `registry` to a participant through that configuration's `specialArgs` when its modules need shared reads; the `specialArgs` argument to `mkRegistry` does not do this. Static participants instead receive the common settings and shared results through options and read `config.registry.combined`.
 
 Central definitions and participant contributions use the same merge rules. Lists normally merge; conflicting scalar values fail. Reading one field does not check every other field. Use `registry.validate` to check all combined data.
 

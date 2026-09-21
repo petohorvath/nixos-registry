@@ -1,29 +1,34 @@
 # The caller evaluates source-owned modules and exposes registry validation.
-{ inputs, lib, ... }:
+{ config, inputs, ... }:
 let
-  mkRegistry = ((import "${inputs.nixos-registry}/flake.nix").outputs { }).lib.mkRegistry;
-  registry = mkRegistry {
-    inherit lib participants;
-    schemaModules = [ ./schema.nix ];
-    centralModules = [ { domain = "example.test"; } ];
+  registryFlake = (import "${inputs.nixos-registry}/flake.nix").outputs { };
+  shared = config.registry;
+  commonModule = {
+    imports = [ registryFlake.nixosModules.default ];
+    nixpkgs.hostPlatform = "x86_64-linux";
+    system.stateVersion = "26.05";
+    registry = {
+      settings = { inherit (shared.settings) schemaModules specialArgs; };
+      inherit (shared) central combined validate;
+    };
   };
 
   participants = {
-    "api publisher" = mkParticipant inputs.servicePublisher.modules.generic.default;
-    "backup consumer" = mkParticipant inputs.backupClient.modules.generic.default;
+    "api publisher" = mkParticipant inputs.servicePublisher.nixosModules.default;
+    "backup consumer" = mkParticipant inputs.backupClient.nixosModules.default;
   };
 
   mkParticipant =
     participantModule:
-    lib.evalModules {
-      specialArgs = { inherit registry; };
+    inputs.nixpkgs.lib.nixosSystem {
       modules = [
-        registry.module
+        commonModule
         participantModule
       ];
     };
 in
 {
+  imports = [ registryFlake.flakeModules.default ];
   systems = [
     "x86_64-linux"
     "aarch64-linux"
@@ -31,11 +36,28 @@ in
     "aarch64-darwin"
   ];
 
+  registry.settings = {
+    inherit participants;
+    schemaModules = [ ./schema.nix ];
+    centralModules = [
+      ({ config, ... }: {
+        domain = "example.test";
+        services.api.host = "api.${config.domain}";
+      })
+    ];
+  };
+
   flake.lib = {
-    inherit participants registry;
+    inherit participants;
+    registry = shared;
     result = {
-      inherit (registry) central combined validate;
-      backupCommand = participants."backup consumer".config.backupCommand;
+      # The central API record lacks its participant's port and derived endpoint.
+      central = {
+        inherit (shared.central) domain;
+        services.api.host = shared.central.services.api.host;
+      };
+      inherit (shared) combined validate;
+      backupCommand = participants."backup consumer".config.environment.etc."backup-command".text;
     };
   };
 
@@ -43,7 +65,7 @@ in
     { pkgs, ... }:
     {
       checks.registry =
-        assert registry.validate;
+        assert shared.validate;
         pkgs.runCommand "flake-parts-registry-validation" { } ''
           touch "$out"
         '';

@@ -47,7 +47,7 @@ registry = mkRegistry {
 };
 ```
 
-Use the same caller-provided `lib` for participant evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) demonstrates this.
+Use the same caller-provided `lib` for participant evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way. The static module exports are also available from `(import ./flake.nix).outputs { }`; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) obtains both static imports from its source-only input without evaluating development inputs.
 
 Normal flake consumption can add the root development inputs to a consumer's lock graph. This packaging change supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md).
 
@@ -148,7 +148,7 @@ commonModule = {
 
 The [complete usage example](examples.md#static-flake-module) shows both imports and participant construction. Align `flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs"` with the input used by `nixosSystem`, so the enclosing evaluator and participants use the same module-system revision. The producer's development input does not select registry semantics.
 
-Project-level `registry` contains settings and results; schema contributions belong to the participants' direct `registry` paths. Their static interface reserves the names described below and excludes settings and results from contributions. Keep schema structure and settings independent of participant values, and do not choose imports from these configuration results. Reading a result demands only that value; importing the flake module does not install or force a validation check. Existing constructor-based [flake-check wiring](examples.md#flake-parts-and-separate-source-repositories) also applies to the explicit validation value. Flake-parts remains optional for constructor and ordinary-flake consumers.
+Project-level `registry` contains settings and results; schema contributions belong to the participants' direct `registry` paths. Their static interface reserves the names described below and excludes settings and results from contributions. Keep schema structure and settings independent of participant values, and do not choose imports from these configuration results. Reading a result demands only that value; importing the flake module does not install or force a validation check. The [separate-source example](examples.md#flake-parts-and-separate-source-repositories) explicitly demands `registry.validate` in its flake check. Flake-parts remains optional for constructor and ordinary-flake consumers.
 
 ### Static NixOS module
 
