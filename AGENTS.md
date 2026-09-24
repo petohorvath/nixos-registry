@@ -2,7 +2,7 @@
 
 ## Development and review
 
-Before implementation, read [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and the selected [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md). Use the root shell, formatter, and ordinary checks with committed locks; run shared-pin compatibility through the selected policy runner. Preserve plain-import access and the caller-owned module system. Keep validation evidence on the PR and leave policy activation, merge, and release approval to a human.
+Before implementation, read [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and the selected [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Use the root shell, formatter, and ordinary checks with committed locks; run shared-pin compatibility through the selected policy runner. Preserve plain-import access and the caller-owned module system. Keep validation evidence on the PR and leave policy activation, merge, and release approval to a human.
 
 ## Agent skills
 

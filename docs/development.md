@@ -1,6 +1,6 @@
 # Development
 
-The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
+The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
 
 ## Host prerequisites
 
@@ -94,12 +94,12 @@ The independent [example lock](../examples/flake-parts/flake.lock) retains its s
 
 The constructor still works through a [plain import](api.md#plain-import-access), while normal flake consumers can acquire the root development input in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and renamed evaluation paths. Compatibility pins live in policy records, without an additional root input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off.
 
-The immutable v0.3.0 release supplies the policy rules, checker, and workflow. Current [pin records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/pins.json) and [project records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/projects.json) supply approved compatibility revisions, required architectures, policy selection, and enrollment state. Independently locked examples still use the approved shared pins. Pin changes follow the shared maintenance procedure and require renewed validation; they do not change the selected policy release.
+The immutable v0.4.0 release supplies the policy rules, checker, and workflow. The [policy caller](../.github/workflows/check.yml) owns release selection, required architectures, and additional required checks. Current [pin records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/pins.json) supply approved compatibility revisions; the [member roster](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/members.json) records enrolled repository identities. Independently locked examples still use the approved shared pins. Pin changes follow the shared maintenance procedure and require renewed validation; they do not change the selected policy release.
 
-The policy repository is not a flake input, shell dependency, or build dependency. Run the release's shell probe externally to check effective tools in a cleared inherited environment:
+The policy repository is not a flake input, shell dependency, or build dependency. Run the release's shell probe externally to check default-shell startup and command execution in a cleared inherited environment and evaluate the root formatter:
 
 ```sh
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- shell "$PWD"
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- shell "$PWD"
 ```
 
 ### Policy records and compliance
@@ -109,48 +109,50 @@ Policy checking requires an explicit trusted checkout of current records. Create
 ```sh
 git clone --branch main --single-branch https://github.com/petohorvath/nixos-project-policy.git ../nixos-project-policy-records
 git -C ../nixos-project-policy-records rev-parse HEAD
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- \
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
   --policy-root ../nixos-project-policy-records \
   check "$PWD" --project nixos-registry --shell
 ```
 
-Current records select `policyVersion: v0.3.0` with `adopted: true`. The normal check must report `pass` against approved pins. Static reports identify compatibility as `not-run`; execute the separate compatibility checks below for that evidence. For future enrollment changes, follow the selected release's [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/docs/maintenance.md#enrollment). A readiness result against proposed records does not change active enrollment.
+The caller selects `policy_version: v0.4.0` and declares `required_architectures` as a literal JSON list containing `x86_64-linux` and `aarch64-linux`. Its `additional_required_checks` retains both formatting/lint statuses. VM targets default to an empty list. The normal check must report `pass` against approved pins and separately report `enrollment: "enrolled"` from the current roster. Static reports identify compatibility as `not-run`; execute the separate compatibility checks below for that evidence. For future enrollment changes, follow the selected release's [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#enrollment). Successful checks against proposed records neither change enrollment nor approve pins.
 
 ### Compatibility checks
 
 Commit any deliberate root lock changes before compatibility validation: the runner requires the root lock to match its committed copy. Use the same trusted records for both runs:
 
 ```sh
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- \
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
   --policy-root ../nixos-project-policy-records \
   compatibility "$PWD" --project nixos-registry --channel stable
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- \
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
   --policy-root ../nixos-project-policy-records \
   compatibility "$PWD" --project nixos-registry --channel unstable
 ```
 
-The runner verifies the effective root input through Nix metadata and executes full root host checks with an exact `--override-input nixpkgs`. It checks that the member source and lock remain unchanged and saves metadata and result artifacts. These runs intentionally use a different effective graph from the committed-lock check; they do not update the member lock. Keep both kinds of evidence on the PR, with the member, checker, and record commits and record digest. Run compatibility on each recorded Linux architecture; cached builds can satisfy checks. See the [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/docs/checker.md#compatibility-execution-and-evidence) for replay instructions.
+The runner verifies the effective root input through Nix metadata and executes full root host checks with an exact `--override-input nixpkgs`. It checks that the member source and lock remain unchanged and saves metadata and result artifacts. These runs intentionally use a different effective graph from the committed-lock check; they do not update the member lock. Keep both kinds of evidence on the PR, with the member, checker, and record commits and record digest. Run compatibility on each recorded Linux architecture; cached builds can satisfy checks. See the [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/checker.md#compatibility-execution-and-evidence) for replay instructions.
 
 ### Hosted checks
 
-[Project checks](../.github/workflows/check.yml) calls the immutable v0.3.0 reusable workflow with read-only repository permissions. Its unconditional job is named `Policy` and runs for every opened, synchronized, reopened, or edited PR, including title edits, with no PR branch or path filters. Pushes to `main` and manual dispatch also run the workflow.
+[Project checks](../.github/workflows/check.yml) calls the immutable v0.4.0 reusable workflow with read-only repository permissions. Its unconditional job is named `Policy` and runs for every opened, synchronized, reopened, or edited PR, including title edits, with no PR branch or path filters. Pushes to `main` and manual dispatch also run the workflow.
 
-The workflow verifies the published immutable release and captures one checker commit and one current-record commit for the run. Job logs identify the exact member revision, normally GitHub's candidate merge commit for a PR. The member's `requiredArchitectures` record retains `x86_64-linux` and `aarch64-linux` for both ordinary and compatibility checks.
+The workflow verifies the published immutable release and captures one checker commit and one current-record commit for the run. Job logs identify the exact member revision, normally GitHub's candidate merge commit for a PR. The caller's `required_architectures` input retains `x86_64-linux` and `aarch64-linux` for both ordinary and compatibility checks.
 
-After the shared snapshot job, compliance, formatting/lint, project tests, and stable/unstable compatibility run independently on each architecture. Compliance includes the cleared-environment shell probe and applicable Conventional Commit title validation. Project tests use the committed lock; compatibility runs override the selected input. Registry has no VM targets, so the VM result is `not-applicable` and provides no VM-suite evidence.
+After the shared snapshot job, compliance, project tests, and stable/unstable compatibility run independently on each architecture. Compliance includes the cleared-environment shell smoke test. Project tests use the committed lock and include the repository-owned formatting, lint, and workflow checks; compatibility runs override the selected input. Review verifies the Conventional Commit PR title. Registry has no VM targets, so the VM result is `not-applicable` and provides no VM-suite evidence.
 
-The selected checker derives required gates from the release, architectures, VM targets, and any `additionalRequiredChecks`. Registry has no additional project gates. Generate the complete list with:
+The member-owned formatting/lint job runs independently on both Linux architectures against the same event revision as Policy. It builds the root formatting, lint, and workflow checks with the committed lock and retains the existing `Policy / Formatting and lint (<architecture>)` status names. These two additional gates preserve the existing merge contract now that the reusable policy workflow delegates formatting and lint to members.
+
+The selected checker derives required gates from the release and the caller settings, including `additional_required_checks`. Generate the complete list with:
 
 ```sh
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.3.0 -- \
-  --policy-root ../nixos-project-policy-records ci --project nixos-registry
+nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
+  --policy-root ../nixos-project-policy-records ci "$PWD" --project nixos-registry
 ```
 
-The mandatory statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. All 11 statuses are bound to GitHub Actions and required on an up-to-date PR before a human approves its squash merge. Protection applies to administrators. No VM gate is required.
+The required statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. All 11 statuses are bound to GitHub Actions and required on an up-to-date PR before a human approves its squash merge. Protection applies to administrators. No VM gate is required.
 
-The central drift audit inspects adopted members and their GitHub merge controls using the read-only access described in the [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/docs/maintenance.md#audit-access). Keep member, checker, and record revisions and hosted job links on the relevant PRs.
+The central drift audit inspects adopted members and their GitHub merge controls using the read-only access described in the [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#audit-access). Keep member, checker, and record revisions and hosted job links on the relevant PRs.
 
-Future policy upgrades require coordinated member and central-record PRs, verified hosted statuses, and human approval of activation and gate changes. The hosted workflow reads policy `main`; proposed records remain separate until their PR is merged. The selected release's maintenance procedure defines the enrollment and record-compatibility requirements.
+Future policy upgrades use reviewed member PRs that update the caller and policy links together. Verify hosted statuses and obtain human approval for merge and any gate changes. Ordinary upgrades leave the central roster unchanged; enrollment changes and shared-pin approval require reviewed central PRs. The hosted workflow captures current records from policy `main`; proposed records remain separate until their PR is merged.
 
 ## Documentation and issues
 

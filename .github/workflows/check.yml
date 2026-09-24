@@ -13,7 +13,37 @@ permissions:
 jobs:
   policy:
     name: Policy
-    uses: petohorvath/nixos-project-policy/.github/workflows/check.yml@v0.3.0
+    uses: petohorvath/nixos-project-policy/.github/workflows/check.yml@v0.4.0
     with:
       project: nixos-registry
-      policy_version: v0.3.0
+      policy_version: v0.4.0
+      required_architectures: '["x86_64-linux", "aarch64-linux"]'
+      additional_required_checks: '["Policy / Formatting and lint (x86_64-linux)", "Policy / Formatting and lint (aarch64-linux)"]'
+
+  formatting:
+    name: Policy / Formatting and lint (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.34.6/install
+      - name: Check formatting, lint, and workflows
+        env:
+          SYSTEM: ${{ matrix.system }}
+        run: |
+          git rev-parse HEAD
+          nix build --no-update-lock-file --no-link --print-build-logs \
+            ".#checks.$SYSTEM.formatting" \
+            ".#checks.$SYSTEM.lint" \
+            ".#checks.$SYSTEM.workflows"

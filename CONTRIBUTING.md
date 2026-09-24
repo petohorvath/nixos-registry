@@ -1,6 +1,6 @@
 # Contributing
 
-Follow the selected [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md) and the local [development guide](docs/development.md). Policy enrollment is active, and GitHub enforces the required policy checks on `main`.
+Follow the selected [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md) and the local [development guide](docs/development.md). Policy enrollment is active, and GitHub enforces the required policy checks on `main`.
 
 ## Changes and review
 

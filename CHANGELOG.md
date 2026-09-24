@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Policy v0.4.0
+
+Select nixos-project-policy v0.4.0 and declare both required Linux architectures in the member workflow. Keep the existing 11 merge statuses by declaring both formatting/lint checks as additional gates and running them in a member-owned job. Root checks, dependency locks, and public interfaces remain unchanged.
+
+Policy selection and settings now belong to the caller; current central records hold enrollment identities and approved compatibility pins. Ordinary policy upgrades need no central activation change. Local `ci` planning reads the member checkout; use `ci "$PWD" --project nixos-registry` with the selected checker and trusted records.
+
 ### Breaking rename to nodes
 
 Rename participants to **nodes** throughout the public API, examples, diagnostics, and documentation. A node remains a named, evaluated configuration included in a registry; generic `lib.evalModules` configurations remain supported, and node names need not be hostnames.
