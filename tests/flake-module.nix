@@ -5,13 +5,13 @@
 }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../../flake.nix).outputs { };
+  registryFlake = import ./helpers/plain-exports.nix;
   mkConsumer =
     modules:
     flakeParts.lib.mkFlake
       {
         inputs = {
-          self.outPath = ../..;
+          self.outPath = ../.;
           inherit nixpkgs;
         };
       }
@@ -39,7 +39,7 @@ let
       in
       {
         registry.settings = {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ ../examples/plain-nix/service-schema.nix ];
           centralModules = [
             {
               domain = "example.test";
@@ -109,7 +109,7 @@ in
           flakeParts.lib.mkFlake
             {
               inputs = {
-                self.outPath = ../..;
+                self.outPath = ../.;
                 inherit nixpkgs;
               };
               specialArgs.lib = selectedLib;

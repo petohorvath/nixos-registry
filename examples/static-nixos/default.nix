@@ -2,7 +2,10 @@
 {
   nixpkgs,
   system ? "x86_64-linux",
-  registryFlake ? (import ../../flake.nix).outputs { },
+  registryFlake ? {
+    lib = import ../../lib;
+    nixosModules.default = ../../nixos/module.nix;
+  },
 }:
 let
   inherit (nixpkgs) lib;

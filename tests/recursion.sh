@@ -11,7 +11,7 @@ evaluation_store=dummy://
 evaluation_dir="$registry_path/examples/plain-nix"
 evaluation_args=(
   --arg lib "import $lib_path"
-  --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry"
+  --arg mkRegistry "(import $registry_path/lib).mkRegistry"
 )
 trap 'rm -rf "$output_dir"' EXIT
 

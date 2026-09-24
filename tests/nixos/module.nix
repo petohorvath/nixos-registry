@@ -1,7 +1,7 @@
 { nixpkgs, system }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../../flake.nix).outputs { };
+  registryFlake = import ../helpers/plain-exports.nix;
   schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
   registry = registryFlake.lib.mkRegistry {
     inherit lib schemaModules;

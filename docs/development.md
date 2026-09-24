@@ -2,7 +2,7 @@
 
 The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
 
-The root keeps input selection, supported systems, and public output wiring explicit. [Development assembly](../dev/default.nix) supplies the shell, formatter, and checks; [development library exports](../dev/library.nix) retain the focused test and example entrypoints. [The library entrypoint](../lib/default.nix) exposes the constructor independently of development inputs. Lazy output assembly preserves plain-import access without a flake framework.
+The root uses flake-parts and explicitly declares supported systems and public exports. Its `dev` partition loads [development wiring](../dev/default.nix) for the shell, formatter, and checks. The public [library](../lib/default.nix) exports only `mkRegistry`; tests and examples have separate file entrypoints. There is no development flake or development lockfile.
 
 ## Host prerequisites
 
@@ -26,28 +26,28 @@ nix flake check --no-update-lock-file
 
 The suite evaluates the public `lib.mkRegistry` function, generated node module, central data, combined data, and validation using the selected root Nixpkgs module system. Merge tests compare behavior with direct evaluation using the same library. A plain-import check constructs and uses a registry with a caller-provided library and no development inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
 
-Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `tests/mk-registry.nix`, the other `lib/` helpers have matching files under `tests/`, and public `modules/` map to `tests/modules/`. The constructor entrypoint collects smaller case files from `tests/mk-registry/`. Helper behavior is exercised through the public registry interfaces. Cross-module examples and static shared-read cases live in `tests/integration/`; shared fixtures stay in `tests/fixtures/`. `tests/default.nix` registers these suites and exposes their cases as the flat `lib.tests.<system>` result.
+Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `tests/mk-registry.nix`, the other `lib/` helpers have matching files under `tests/`, `nixos/module.nix` maps to `tests/nixos/module.nix`, and `flake-module.nix` maps to `tests/flake-module.nix`. The constructor entrypoint collects smaller case files from `tests/mk-registry/`. Helper behavior is exercised through the public registry interfaces. Cross-module examples and static shared-read cases live in `tests/integration/`; shared fixtures stay in `tests/fixtures/`. `tests/default.nix` registers these suites; `tests/entrypoint.nix` loads them with the root inputs for direct evaluation.
 
 The root checks also cover formatting, statix, deadnix, and workflow validation. Workflow validation checks every `.yml` and `.yaml` file in `.github/workflows` when present; a repository without workflows needs no placeholder. NixOS checks evaluate the affected configuration options for the selected system without building a full system or executing a VM. Normal checks have no VM build dependencies.
 
-Run the evaluation suite or a focused test, replacing `x86_64-linux` with the required system:
+Run the evaluation suite or a focused test. These file entrypoints use the committed root inputs through `builtins.getFlake`; `--impure` permits resolving the checkout path. The system defaults to the host; use `--argstr system aarch64-linux` to select another system.
 
 ```sh
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux --json
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testCollectsCentralAndNamedNodes
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStrictCollectionsForceUnusedEntries
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceNodesKeepLocalContributionsDistinct
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testSeparateSourceExampleCompletesPartialRecords
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleContributesAndReadsSharedResults
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNixosModuleRejectsReservedSchemaNames
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticNodesCompletePartialRecords
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticWiringDoesNotSuppressDefaultContributions
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleSharesOneRegistryWithNixosNodes
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeModuleRequiresSchemaAndNodeSettings
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticCombinedReadsLeaveAnInvalidServiceUnused
-nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStaticFlakeChecksValidateCompletedRecords
+nix eval --impure --file tests/entrypoint.nix --json
+nix eval --impure --file tests/entrypoint.nix testCollectsCentralAndNamedNodes
+nix eval --impure --file tests/entrypoint.nix testStrictCollectionsForceUnusedEntries
+nix eval --impure --file tests/entrypoint.nix testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
+nix eval --impure --file tests/entrypoint.nix testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
+nix eval --impure --file tests/entrypoint.nix testSeparateSourceNodesKeepLocalContributionsDistinct
+nix eval --impure --file tests/entrypoint.nix testSeparateSourceExampleCompletesPartialRecords
+nix eval --impure --file tests/entrypoint.nix testStaticNixosModuleContributesAndReadsSharedResults
+nix eval --impure --file tests/entrypoint.nix testStaticNixosModuleRejectsReservedSchemaNames
+nix eval --impure --file tests/entrypoint.nix testStaticNodesCompletePartialRecords
+nix eval --impure --file tests/entrypoint.nix testStaticWiringDoesNotSuppressDefaultContributions
+nix eval --impure --file tests/entrypoint.nix testStaticFlakeModuleSharesOneRegistryWithNixosNodes
+nix eval --impure --file tests/entrypoint.nix testStaticFlakeModuleRequiresSchemaAndNodeSettings
+nix eval --impure --file tests/entrypoint.nix testStaticCombinedReadsLeaveAnInvalidServiceUnused
+nix eval --impure --file tests/entrypoint.nix testStaticFlakeChecksValidateCompletedRecords
 ```
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
@@ -90,9 +90,9 @@ nix build --no-update-lock-file --no-link .#checks.x86_64-linux.workflows
 
 ## Dependencies and policy
 
-The root declares one input, `nixpkgs`, whose exact revision is recorded in [flake.lock](../flake.lock). Development tools, formatting, NixOS examples, and all root checks use that selection. It may differ from the shared compatibility pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
+The root declares `nixpkgs` and `flake-parts`, with exact revisions recorded in [flake.lock](../flake.lock). The flake-parts `nixpkgs-lib` input follows the root `nixpkgs` selection. Development tools, formatting, NixOS examples, and all root checks use that selection. It may differ from the shared compatibility pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
 
-The independent [example lock](../examples/flake-parts/flake.lock) retains its shared stable pin, flake-parts revision, and separate node sources. Its registry input is source-only, preventing recursive development inputs. [The root integration helper](../tests/flake-parts-example.nix) fetches only the flake-parts source using that lock's exact revision and content hash, instantiates its public outputs with the root's module library, and assembles the example's public outputs. It does not load the example's independent Nixpkgs selection. Validate the standalone flake separately because this assembly does not exercise Nix's resolution of its actual input graph.
+The independent [example lock](../examples/flake-parts/flake.lock) retains its shared stable pin, flake-parts revision, and separate node sources. Its registry input is source-only, preventing recursive development inputs. [The example evaluation helper](../examples/flake-parts/evaluate.nix) fetches only the flake-parts source using that lock's exact revision and content hash, instantiates its public outputs with the root's module library, and assembles the example's public outputs. It does not load the example's independent Nixpkgs selection. Validate the standalone flake separately because this assembly does not exercise Nix's resolution of its actual input graph.
 
 The constructor still works through a [plain import](api.md#plain-import-access), while normal flake consumers can acquire the root development input in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and renamed evaluation paths. Compatibility pins live in policy records, without an additional root input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off.
 

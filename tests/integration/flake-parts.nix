@@ -78,7 +78,7 @@ in
     expr =
       let
         inherit (example.inputs.nixpkgs) lib;
-        registryFlake = (import "${example.inputs.nixos-registry}/flake.nix").outputs { };
+        registryFlake = import ../helpers/plain-exports.nix;
         registry = registryFlake.lib.mkRegistry {
           inherit lib nodes;
           schemaModules = [ ../../examples/flake-parts/schema.nix ];

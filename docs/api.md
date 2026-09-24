@@ -41,13 +41,13 @@ Package selection is separate from module-system selection. A NixOS configuratio
 The constructor remains available without supplying or evaluating any development inputs:
 
 ```nix
-mkRegistry = ((import ./flake.nix).outputs { }).lib.mkRegistry;
+mkRegistry = (import ./lib).mkRegistry;
 registry = mkRegistry {
   inherit lib nodes schemaModules;
 };
 ```
 
-Use the same caller-provided `lib` for node evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way. The static module exports are also available from `(import ./flake.nix).outputs { }`; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) obtains both static imports from its source-only input without evaluating development inputs.
+Use the same caller-provided `lib` for node evaluation. A source-only flake input (`flake = false`) supports `(import "${inputs.nixos-registry}/lib").mkRegistry`. Import `nixos/module.nix` and `flake-module.nix` directly for the static modules. These entrypoints require no development inputs; evaluating the root flake requires its declared Nixpkgs and flake-parts inputs.
 
 Normal flake consumption can add the root development inputs to a consumer's lock graph. This packaging change supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md).
 
