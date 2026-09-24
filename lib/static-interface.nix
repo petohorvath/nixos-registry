@@ -19,9 +19,11 @@ let
       value
     else
       throw (
-        "nixos-registry: schema option `registry.${name}` conflicts with a reserved static interface name"
+        "nixos-registry: schema option `registry.${name}` "
+        + "conflicts with a reserved static interface name"
         + lib.optionalString (declarations != [ ]) " declared in ${lib.showFiles declarations}"
-        + ". Rename the schema field or use the generated registry.module interface."
+        + ". Rename the schema field "
+        + "or use the generated registry.module interface."
       );
 
   stripWiring =
@@ -55,7 +57,10 @@ in
         definition:
         let
           value = stripWiring definition.value;
-          # An ordered root must reach the caller's type, including its native failure.
+          /*
+            An ordered root must reach the caller's type, including its native
+            failure.
+          */
           wiringOnly = !(definition ? priority) && isWiringOnly definition.value;
         in
         lib.optional (!wiringOnly) (definition // { inherit value; })

@@ -10,7 +10,7 @@
   modules ? [ ],
 }:
 let
-  registryFlake = (import ../../flake.nix).outputs { };
+  registryFlake = import ../helpers/plain-exports.nix;
   inputs = {
     inherit nixpkgs;
     self = consumer // {

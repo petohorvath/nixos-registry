@@ -23,11 +23,15 @@ let
           port = lib.mkOption {
             type = lib.types.port;
             default = 2222;
-            description = "Port published for the offsite destination.";
+            description = ''
+              Port published for the offsite destination.
+            '';
           };
           backupCommand = lib.mkOption {
             type = lib.types.str;
-            description = "Example command consuming both shared views.";
+            description = ''
+              Example command consuming both shared views.
+            '';
           };
         };
         config = {

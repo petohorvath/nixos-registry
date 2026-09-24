@@ -42,7 +42,7 @@
             "/srv/snapshots"
           ];
         };
-        backupCommand = "backup archive.example.test /srv/documents /srv/central /srv/snapshots";
+        backupCommand = "backup archive.example.test /srv/documents " + "/srv/central /srv/snapshots";
         validate = true;
       };
       disabled = {

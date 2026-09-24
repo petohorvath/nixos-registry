@@ -7,7 +7,9 @@ let
         options.settings = lib.mkOption {
           type = collectionType lib.types.str;
           default = { };
-          description = "Shared settings with an unused failing entry.";
+          description = ''
+            Shared settings with an unused failing entry.
+          '';
         };
       };
       central = {

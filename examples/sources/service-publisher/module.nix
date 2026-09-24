@@ -9,7 +9,9 @@
   options.port = lib.mkOption {
     type = lib.types.port;
     default = 8443;
-    description = "Listening port published for the API service.";
+    description = ''
+      Listening port published for the API service.
+    '';
   };
 
   config.registry.services.api = {

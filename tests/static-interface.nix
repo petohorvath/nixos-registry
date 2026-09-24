@@ -1,7 +1,7 @@
 { nixpkgs, system }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../flake.nix).outputs { };
+  registryFlake = import ./helpers/plain-exports.nix;
   schemaModules = [ ../examples/plain-nix/partial-schema.nix ];
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 
@@ -43,7 +43,9 @@ let
                 shorthandOnlyDefinesConfig = true;
               };
               default = { };
-              description = "The independent reference's typed contribution root.";
+              description = ''
+                The independent reference's typed contribution root.
+              '';
             };
             config.registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues publications));
           }

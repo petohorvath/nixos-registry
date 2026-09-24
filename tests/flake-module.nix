@@ -5,13 +5,13 @@
 }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../../flake.nix).outputs { };
+  registryFlake = import ./helpers/plain-exports.nix;
   mkConsumer =
     modules:
     flakeParts.lib.mkFlake
       {
         inputs = {
-          self.outPath = ../..;
+          self.outPath = ../.;
           inherit nixpkgs;
         };
       }
@@ -39,7 +39,7 @@ let
       in
       {
         registry.settings = {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ ../examples/plain-nix/service-schema.nix ];
           centralModules = [
             {
               domain = "example.test";
@@ -88,7 +88,9 @@ let
             options.backupPaths = lib.mkOption {
               type = lib.types.listOf lib.types.str;
               default = [ ];
-              description = "Shared backup paths.";
+              description = ''
+                Shared backup paths.
+              '';
             };
           })
         ];
@@ -107,7 +109,7 @@ in
           flakeParts.lib.mkFlake
             {
               inputs = {
-                self.outPath = ../..;
+                self.outPath = ../.;
                 inherit nixpkgs;
               };
               specialArgs.lib = selectedLib;
@@ -141,15 +143,21 @@ in
                         schemaModules = lib.mkOption {
                           type = lib.types.str;
                           default = schemaLabel;
-                          description = "A schema-owned label.";
+                          description = ''
+                            A schema-owned label.
+                          '';
                         };
                         port = lib.mkOption {
                           type = lib.registryPortType;
-                          description = "The node's port.";
+                          description = ''
+                            The node's port.
+                          '';
                         };
                         centralPort = lib.mkOption {
                           type = lib.types.port;
-                          description = "A port supplied by a central module.";
+                          description = ''
+                            A port supplied by a central module.
+                          '';
                         };
                       };
                     })
@@ -220,7 +228,9 @@ in
                     options.domain = lib.mkOption {
                       type = lib.types.str;
                       default = "central.example.test";
-                      description = "The shared domain.";
+                      description = ''
+                        The shared domain.
+                      '';
                     };
                   })
                 ];

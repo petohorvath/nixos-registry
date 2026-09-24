@@ -1,21 +1,17 @@
 # The caller evaluates source-owned modules and exposes registry validation.
 { config, inputs, ... }:
 let
-  registryFlake = (import "${inputs.nixos-registry}/flake.nix").outputs { };
+
   shared = config.registry;
+
   commonModule = {
-    imports = [ registryFlake.nixosModules.default ];
+    imports = [ "${inputs.nixos-registry}/nixos/module.nix" ];
     nixpkgs.hostPlatform = "x86_64-linux";
     system.stateVersion = "26.05";
     registry = {
       settings = { inherit (shared.settings) schemaModules specialArgs; };
       inherit (shared) central combined validate;
     };
-  };
-
-  nodes = {
-    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
-    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
   };
 
   mkNode =
@@ -26,9 +22,14 @@ let
         nodeModule
       ];
     };
+
+  nodes = {
+    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
+    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
+  };
 in
 {
-  imports = [ registryFlake.flakeModules.default ];
+  imports = [ "${inputs.nixos-registry}/flake-module.nix" ];
   systems = [
     "x86_64-linux"
     "aarch64-linux"

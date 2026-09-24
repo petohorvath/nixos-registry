@@ -1,6 +1,71 @@
 { lib }:
 nodeName: sourceFile:
 let
+  addPublicationContext =
+    file:
+    builtins.addErrorContext ("while checking publication from node `${nodeName}' " + "in `${file}':");
+
+  # Keep checks beneath module properties lazy until those definitions are used.
+  mapProperties =
+    check: file: value:
+    if
+      builtins.isAttrs value
+      && builtins.elem (value._type or null) [
+        "if"
+        "override"
+        "order"
+      ]
+    then
+      value // { content = mapProperties check file value.content; }
+    else if builtins.isAttrs value && value._type or null == "merge" then
+      value // { contents = map (mapProperties check file) value.contents; }
+    else if builtins.isAttrs value && value._type or null == "definition" then
+      value
+      // {
+        file = "node ${nodeName}: ${value.file}";
+        value = mapProperties check value.file value.value;
+      }
+    else
+      check file value;
+
+  getActiveModuleKeys =
+    graph:
+    lib.pipe graph [
+      (lib.filter (module: !module.disabled))
+      (
+        modules:
+        builtins.genericClosure {
+          startSet = modules;
+          operator = module: lib.filter (imported: !imported.disabled) module.imports;
+        }
+      )
+      (map (module: module.key))
+    ];
+
+  checkDisabledModules =
+    schema: file: disabledModules:
+    let
+      evaluation = schema.evaluate schema.context;
+      /*
+        Let Nix resolve relative paths and explicit keys before checking schema
+        ownership.
+      */
+      remaining = evaluation.extendModules { modules = [ { inherit disabledModules; } ]; };
+      removedKeys = lib.subtractLists (getActiveModuleKeys remaining.graph) (
+        getActiveModuleKeys evaluation.graph
+      );
+    in
+    addPublicationContext file (
+      if removedKeys == [ ] then
+        disabledModules
+      else
+        throw (
+          "nixos-registry: publication at `${lib.showOption schema.path}` "
+          + "disables schema module `${builtins.head removedKeys}`; "
+          + "use schemaModules to control the shared schema."
+        )
+    );
+
   checkOptions =
     {
       options,
@@ -18,7 +83,7 @@ let
           name: definition:
           if name == "_module" then
             addPublicationContext file (
-              throw "nixos-registry: publication at `${lib.showOption path}` changes module controls."
+              throw ("nixos-registry: publication at `${lib.showOption path}` " + "changes module controls.")
             )
           else if !(options ? ${name}) then
             if freeformType == null then definition else freeform.${name}
@@ -44,7 +109,10 @@ let
             options = type.getSubOptions path;
             inherit path;
             freeformType = type.nestedTypes.freeformType or null;
-            # Schema identities can depend on the submodule's real name and option path.
+            /*
+              Schema identities can depend on the submodule's real name and
+              option path.
+            */
             evaluate =
               args:
               lib.evalModules {
@@ -126,9 +194,15 @@ let
       else if !(builtins.isAttrs value) then
         value
       else if value.options or { } != { } then
-        throw "nixos-registry: publication at `${lib.showOption schema.path}` declares options; use schemaModules."
+        throw (
+          "nixos-registry: publication at `${lib.showOption schema.path}` "
+          + "declares options; use schemaModules."
+        )
       else if value.freeformType or null != null then
-        throw "nixos-registry: publication at `${lib.showOption schema.path}` sets freeformType; use schemaModules."
+        throw (
+          "nixos-registry: publication at `${lib.showOption schema.path}` "
+          + "sets freeformType; use schemaModules."
+        )
       else if value.disabledModules or [ ] != [ ] && !(schema ? context) then
         args: checkModule (schema // { context = args; }) file value
       else
@@ -168,65 +242,5 @@ let
           require = map (checkModule schema file) value.require;
         }
     );
-
-  checkDisabledModules =
-    schema: file: disabledModules:
-    let
-      evaluation = schema.evaluate schema.context;
-      # Let Nix resolve relative paths and explicit keys before checking schema ownership.
-      remaining = evaluation.extendModules { modules = [ { inherit disabledModules; } ]; };
-      removedKeys = lib.subtractLists (getActiveModuleKeys remaining.graph) (
-        getActiveModuleKeys evaluation.graph
-      );
-    in
-    addPublicationContext file (
-      if removedKeys == [ ] then
-        disabledModules
-      else
-        throw (
-          "nixos-registry: publication at `${lib.showOption schema.path}` "
-          + "disables schema module `${builtins.head removedKeys}`; use schemaModules to control the shared schema."
-        )
-    );
-
-  getActiveModuleKeys =
-    graph:
-    lib.pipe graph [
-      (lib.filter (module: !module.disabled))
-      (
-        modules:
-        builtins.genericClosure {
-          startSet = modules;
-          operator = module: lib.filter (imported: !imported.disabled) module.imports;
-        }
-      )
-      (map (module: module.key))
-    ];
-
-  addPublicationContext =
-    file: builtins.addErrorContext "while checking publication from node `${nodeName}' in `${file}':";
-
-  # Keep checks beneath module properties lazy until those definitions are used.
-  mapProperties =
-    check: file: value:
-    if
-      builtins.isAttrs value
-      && builtins.elem (value._type or null) [
-        "if"
-        "override"
-        "order"
-      ]
-    then
-      value // { content = mapProperties check file value.content; }
-    else if builtins.isAttrs value && value._type or null == "merge" then
-      value // { contents = map (mapProperties check file) value.contents; }
-    else if builtins.isAttrs value && value._type or null == "definition" then
-      value
-      // {
-        file = "node ${nodeName}: ${value.file}";
-        value = mapProperties check value.file value.value;
-      }
-    else
-      check file value;
 in
 options: path: checkOptions { inherit options path; } sourceFile

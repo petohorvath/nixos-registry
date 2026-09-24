@@ -1,5 +1,6 @@
 {
   nixpkgs,
+  flakeParts,
   flakePartsExample,
   mkRegistry,
   system,
@@ -12,12 +13,12 @@ let
     // import ./check-publication.nix { inherit lib mkRegistry; }
     // import ./wrap-central-module.nix { inherit lib mkRegistry; }
     // import ./static-interface.nix { inherit nixpkgs system; }
-    // import ./flake.nix { inherit lib; }
-    // import ./modules/flake.nix {
+    // import ./flake.nix { inherit lib flakeParts nixpkgs; }
+    // import ./flake-module.nix {
       inherit nixpkgs system;
       flakeParts = flakePartsExample.inputs.flake-parts;
     }
-    // import ./modules/nixos.nix { inherit nixpkgs system; }
+    // import ./nixos/module.nix { inherit nixpkgs system; }
     // import ./integration/static-reads.nix {
       inherit nixpkgs system;
       flakeParts = flakePartsExample.inputs.flake-parts;
@@ -33,5 +34,5 @@ lib.mapAttrs (
   if test.expr == test.expected then
     true
   else
-    throw "${name}: expected ${builtins.toJSON test.expected}, got ${builtins.toJSON test.expr}"
+    throw ("${name}: expected ${builtins.toJSON test.expected}, " + "got ${builtins.toJSON test.expr}")
 ) tests

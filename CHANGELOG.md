@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Breaking flake and tooling cleanup
+
+Use flake-parts for the single root flake, with `checks`, `devShells`, and `formatter` in its `dev` partition. The public library now contains only `mkRegistry`. Remove the root `lib.tests` and example exports. The root lock adds flake-parts; its `nixpkgs-lib` follows the existing Nixpkgs selection.
+
+- Replace `((import ./flake.nix).outputs { }).lib.mkRegistry` with `(import ./lib).mkRegistry`.
+- Import `nixos/module.nix` and `flake-module.nix` directly for source-only consumers; normal flake exports retain their names.
+- Replace `nix eval .#lib.tests.<system>.<test>` with `nix eval --impure --file tests/entrypoint.nix <test> --argstr system <system>`.
+- Evaluate examples with `nix eval --impure --file examples <name>`; `examples`, `nixosExamples.<system>`, `staticNixosExamples.<system>`, and `flakePartsExamples` become `plainNix`, `nixos`, `staticNixos`, and `flakeParts`. Other example names remain unchanged.
+
+These entrypoints supersede the earlier tooling migration below. Registry semantics and caller-owned evaluation are unchanged. Linux and best-effort Darwin development outputs remain available.
+
 ### Policy v0.4.0
 
 Select nixos-project-policy v0.4.0 and declare both required Linux architectures in the member workflow. Keep the existing 11 merge statuses by declaring both formatting/lint checks as additional gates and running them in a member-owned job. Root checks, dependency locks, and public interfaces remain unchanged.

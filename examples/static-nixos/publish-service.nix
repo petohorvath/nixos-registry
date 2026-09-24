@@ -1,4 +1,7 @@
-# Contribute a configured service and read shared data through the static options.
+/*
+  Contribute a configured service and read shared data through the static
+  options.
+*/
 { config, ... }:
 {
   networking.domain = config.registry.central.domain;

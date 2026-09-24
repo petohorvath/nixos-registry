@@ -1,6 +1,20 @@
-{ lib }:
+{
+  lib,
+  flakeParts,
+  nixpkgs,
+}:
 let
-  mkRegistry = ((import ../flake.nix).outputs { }).lib.mkRegistry;
+  inputs = {
+    flake-parts = flakeParts;
+    nixpkgs = nixpkgs // {
+      legacyPackages = throw "Public exports must not evaluate development tools.";
+    };
+  };
+  self = (import ../flake.nix).outputs (inputs // { inherit self; }) // {
+    outPath = ../.;
+    inherit inputs;
+  };
+  inherit (import ../lib) mkRegistry;
   registry = mkRegistry {
     inherit lib nodes;
     schemaModules = [
@@ -8,7 +22,9 @@ let
         options.paths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [ ];
-          description = "Paths shared by the plain-import nodes.";
+          description = ''
+            Paths shared by the plain-import nodes.
+          '';
         };
       }
     ];
@@ -22,6 +38,35 @@ let
   };
 in
 {
+  testPublicFlakeExportsWithoutDevelopmentEvaluation = {
+    expr = {
+      libraryNames = builtins.attrNames self.lib;
+      nodeValidation =
+        (lib.evalModules {
+          modules = [
+            self.nixosModules.default
+            {
+              registry.settings.schemaModules = [ ];
+              registry.validate = true;
+            }
+          ];
+        }).config.registry.validate;
+      flakeModule = self.flakeModules.default == ../flake-module.nix;
+      data =
+        (self.lib.mkRegistry {
+          inherit lib;
+          schemaModules = [ ];
+          nodes = { };
+        }).combined;
+    };
+    expected = {
+      libraryNames = [ "mkRegistry" ];
+      nodeValidation = true;
+      flakeModule = true;
+      data = { };
+    };
+  };
+
   testConstructorKeepsSchemaNamesReservedByStaticModules = {
     expr =
       let
@@ -33,7 +78,9 @@ in
                 name:
                 lib.mkOption {
                   type = lib.types.str;
-                  description = "Schema-owned ${name} through the constructor.";
+                  description = ''
+                    Schema-owned ${name} through the constructor.
+                  '';
                 }
               );
             }

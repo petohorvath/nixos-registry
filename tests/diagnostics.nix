@@ -72,7 +72,9 @@ let
           options.backupPaths = lib.mkOption {
             type = lib.types.listOf lib.types.str;
             default = [ ];
-            description = "Ordered backup paths.";
+            description = ''
+              Ordered backup paths.
+            '';
           };
         }
       ];
@@ -177,7 +179,9 @@ in
             options.injected = lib.mkOption {
               type = lib.types.str;
               default = "undeclared shared option";
-              description = "An option absent from the caller's schema.";
+              description = ''
+                An option absent from the caller's schema.
+              '';
             };
           };
         };
@@ -211,7 +215,9 @@ in
           options.injected = lib.mkOption {
             type = lib.types.str;
             default = "undeclared shared option";
-            description = "An option absent from the caller's schema.";
+            description = ''
+              An option absent from the caller's schema.
+            '';
           };
         };
       }
@@ -343,11 +349,15 @@ in
               type = lib.types.submodule {
                 options.domain = lib.mkOption {
                   type = lib.types.str;
-                  description = "An independently declared domain.";
+                  description = ''
+                    An independently declared domain.
+                  '';
                 };
               };
               default = { };
-              description = "A root declared without the generated module.";
+              description = ''
+                A root declared without the generated module.
+              '';
             };
           }
         ];
@@ -365,7 +375,9 @@ in
             options.registry = lib.mkOption {
               type = lib.types.str;
               default = "unrelated data";
-              description = "An incompatible publication interface.";
+              description = ''
+                An incompatible publication interface.
+              '';
             };
           }
         ];

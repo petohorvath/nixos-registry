@@ -6,12 +6,16 @@ let
     options = {
       backupHost = lib.mkOption {
         type = lib.types.str;
-        description = "Backup destination host.";
+        description = ''
+          Backup destination host.
+        '';
       };
       backupPaths = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
-        description = "Paths included in the backup.";
+        description = ''
+          Paths included in the backup.
+        '';
       };
     };
   };

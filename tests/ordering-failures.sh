@@ -24,8 +24,8 @@ for use_static_module in false true; do
         if nix eval --extra-experimental-features nix-command \
           --impure --json --store "$evaluation_store" \
           --arg lib "import $lib_path" \
-          --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
-          --arg staticModule "((import $registry_path/flake.nix).outputs {}).nixosModules.default" \
+          --arg mkRegistry "(import $registry_path/lib).mkRegistry" \
+          --arg staticModule "$registry_path/nixos/module.nix" \
           --arg nixpkgs "(import $lib_path/../flake.nix).outputs { self.outPath = $lib_path/..; }" \
           --argstr system "$system" --arg useStaticModule "$use_static_module" \
           --argstr source "$source" --argstr order "$order" --argstr view "$view" \

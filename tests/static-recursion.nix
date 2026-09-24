@@ -16,7 +16,9 @@ let
           options.endpoints = lib.mkOption {
             type = collectionType lib.types.str;
             default = { };
-            description = "Shared domain and service endpoint.";
+            description = ''
+              Shared domain and service endpoint.
+            '';
           };
         }
       ];
@@ -37,7 +39,9 @@ in
         options.services = lib.mkOption {
           type = lib.types.lazyAttrsOf lib.types.str;
           default = { };
-          description = "Named service endpoints.";
+          description = ''
+            Named service endpoints.
+          '';
         };
       }
     ];

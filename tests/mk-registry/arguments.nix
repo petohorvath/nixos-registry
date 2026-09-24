@@ -14,12 +14,16 @@ let
           options = {
             host = lib.mkOption {
               type = lib.types.str;
-              description = "Backup destination host.";
+              description = ''
+                Backup destination host.
+              '';
             };
             port = lib.mkOption {
               type = lib.backupPortType;
               default = defaultPort;
-              description = "Backup destination port.";
+              description = ''
+                Backup destination port.
+              '';
             };
           };
         }

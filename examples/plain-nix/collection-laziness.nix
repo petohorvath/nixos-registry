@@ -11,7 +11,9 @@ let
             options.settings = lib.mkOption {
               type = collectionType lib.types.str;
               default = { };
-              description = "Shared domain and service endpoint.";
+              description = ''
+                Shared domain and service endpoint.
+              '';
             };
           }
         ];

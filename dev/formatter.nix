@@ -14,6 +14,7 @@ writeShellApplication {
     prettier
   ];
   text = ''
-    exec treefmt --tree-root . --walk filesystem --config-file ${./treefmt.toml} "$@"
+    exec treefmt --tree-root . --walk filesystem \
+      --config-file ${../treefmt.toml} "$@"
   '';
 }

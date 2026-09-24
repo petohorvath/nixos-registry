@@ -14,7 +14,9 @@ let
   entryType = lib.types.submodule {
     options.endpoint = lib.mkOption {
       type = lib.types.str;
-      description = "Service endpoint.";
+      description = ''
+        Service endpoint.
+      '';
     };
   };
   shapes = {
@@ -46,7 +48,9 @@ let
       type = lib.types.attrTag {
         entry = lib.mkOption {
           type = entryType;
-          description = "Service entry.";
+          description = ''
+            Service entry.
+          '';
         };
       };
       wrap = value: { entry = value; };
@@ -66,7 +70,9 @@ let
         {
           options.service = lib.mkOption {
             inherit (shape) type;
-            description = "Published service data.";
+            description = ''
+              Published service data.
+            '';
           };
         }
       ];
@@ -107,7 +113,9 @@ in
               type = lib.types.submodule {
                 options.endpoints = lib.mkOption {
                   type = lib.types.listOf lib.types.str;
-                  description = "Service endpoints.";
+                  description = ''
+                    Service endpoints.
+                  '';
                 };
               };
               wrap = lib.id;
@@ -140,7 +148,9 @@ in
                   {
                     options.endpoints = lib.mkOption {
                       type = lib.types.listOf lib.types.str;
-                      description = "Service endpoints.";
+                      description = ''
+                        Service endpoints.
+                      '';
                     };
                   }
                 ];
@@ -245,7 +255,9 @@ in
           type = lib.types.submodule {
             options.meta = lib.mkOption {
               type = entryType;
-              description = "Service metadata.";
+              description = ''
+                Service metadata.
+              '';
             };
           };
           wrap = lib.id;
@@ -258,7 +270,9 @@ in
               options.injected = lib.mkOption {
                 type = lib.types.str;
                 default = "node-owned schema";
-                description = "An option absent from schemaModules.";
+                description = ''
+                  An option absent from schemaModules.
+                '';
               };
               config.endpoint = "backup.example.test:443";
             };
@@ -318,7 +332,9 @@ in
                     options.injected = lib.mkOption {
                       type = lib.types.str;
                       default = "node-owned schema";
-                      description = "An option absent from schemaModules.";
+                      description = ''
+                        An option absent from schemaModules.
+                      '';
                     };
                     config.endpoint = "backup.example.test:443";
                   }
@@ -346,7 +362,9 @@ in
                 options.injected = lib.mkOption {
                   type = lib.types.str;
                   default = "node-owned schema";
-                  description = "An option absent from schemaModules.";
+                  description = ''
+                    An option absent from schemaModules.
+                  '';
                 };
                 config = { inherit endpoint; };
               }
@@ -382,7 +400,9 @@ in
           type = lib.types.submodule {
             options.endpoints = lib.mkOption {
               type = lib.types.listOf lib.types.str;
-              description = "Service endpoints.";
+              description = ''
+                Service endpoints.
+              '';
             };
           };
           wrap = lib.id;
@@ -401,7 +421,9 @@ in
               type = lib.types.submodule {
                 options.endpoints = lib.mkOption {
                   type = lib.types.listOf lib.types.str;
-                  description = "Service endpoints.";
+                  description = ''
+                    Service endpoints.
+                  '';
                 };
               };
               wrap = lib.id;
@@ -461,7 +483,9 @@ in
             options.injected = lib.mkOption {
               type = lib.types.str;
               default = "node-owned schema";
-              description = "An option absent from schemaModules.";
+              description = ''
+                An option absent from schemaModules.
+              '';
             };
             config.endpoint = "backup.example.test:443";
           }
