@@ -18,7 +18,7 @@ Development supports `x86_64-linux` and `aarch64-linux`. Existing `x86_64-darwin
 
 ## Run checks
 
-Run commands from the repository root. Reject lock updates during ordinary validation so tests use the committed dependencies:
+Run the full test suite and ordinary checks from the repository root with the committed dependencies:
 
 ```sh
 nix flake check --no-update-lock-file
@@ -30,38 +30,13 @@ Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `test
 
 The root checks also cover formatting, statix, deadnix, and workflow validation. Workflow validation checks every `.yml` and `.yaml` file in `.github/workflows` when present; a repository without workflows needs no placeholder. NixOS checks evaluate the affected configuration options for the selected system without building a full system or executing a VM. Normal checks have no VM build dependencies.
 
-Run the evaluation suite or a focused test. These file entrypoints use the committed root inputs through `builtins.getFlake`; `--impure` permits resolving the checkout path. The system defaults to the host; use `--argstr system aarch64-linux` to select another system.
-
-```sh
-nix eval --impure --file tests/entrypoint.nix --json
-nix eval --impure --file tests/entrypoint.nix testCollectsCentralAndNamedNodes
-nix eval --impure --file tests/entrypoint.nix testStrictCollectionsForceUnusedEntries
-nix eval --impure --file tests/entrypoint.nix testPlainImportUsesCallerLibraryWithoutDevelopmentInputs
-nix eval --impure --file tests/entrypoint.nix testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
-nix eval --impure --file tests/entrypoint.nix testSeparateSourceNodesKeepLocalContributionsDistinct
-nix eval --impure --file tests/entrypoint.nix testSeparateSourceExampleCompletesPartialRecords
-nix eval --impure --file tests/entrypoint.nix testStaticNixosModuleContributesAndReadsSharedResults
-nix eval --impure --file tests/entrypoint.nix testStaticNixosModuleRejectsReservedSchemaNames
-nix eval --impure --file tests/entrypoint.nix testStaticNodesCompletePartialRecords
-nix eval --impure --file tests/entrypoint.nix testStaticWiringDoesNotSuppressDefaultContributions
-nix eval --impure --file tests/entrypoint.nix testStaticFlakeModuleSharesOneRegistryWithNixosNodes
-nix eval --impure --file tests/entrypoint.nix testStaticFlakeModuleRequiresSchemaAndNodeSettings
-nix eval --impure --file tests/entrypoint.nix testStaticCombinedReadsLeaveAnInvalidServiceUnused
-nix eval --impure --file tests/entrypoint.nix testStaticFlakeChecksValidateCompletedRecords
-```
-
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
 
 The static flake-module tests use the existing example lock's flake-parts source with the selected root module library. They evaluate both public static imports with real NixOS nodes, composed project settings, explicit membership, empty nodes, and separate schema/central and node arguments. The [separate-source example tests](../tests/integration/flake-parts.nix) also check the maintained consumer's configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its nodes are evaluation-only `x86_64-linux` configurations; check derivations run on the selected host. The diagnostic check covers missing required settings, duplicate node names and argument keys, and source attribution for central conflicts.
 
 The [static read tests](../tests/integration/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data and reject unused schema errors, while ordinary reads leave validation unevaluated. The diagnostic check verifies error attribution through this flake-check path; the recursion check also covers static collection forcing, value cycles, and node imports selected from their own registry configuration.
 
-The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results. The standalone flake-parts example also uses its own committed lock:
-
-```sh
-nix eval --no-update-lock-file ./examples/flake-parts#lib.result --json
-nix flake check --no-update-lock-file ./examples/flake-parts
-```
+The [example guide](examples.md) documents the plain-Nix, NixOS, and flake-parts examples, including standalone validation with the example’s own committed lock.
 
 ### Failure and diagnostic checks
 
@@ -69,21 +44,11 @@ Native ordering and recursion errors require separate evaluator processes becaus
 
 The ordering and contribution diagnostic cases run through both the generated module and actual NixOS nodes importing the static module. The [static contribution suite](../tests/static-interface.nix) compares partial records and definition properties with direct module evaluation, checks the separation of shared wiring from contributions, and reuses the schema-ownership cases through the static public interface.
 
-Run a focused derivation, replacing `x86_64-linux` with the current system:
-
-```sh
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.diagnostics
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.ordering
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.recursion
-```
-
 ## Formatting and lint
 
 ```sh
 nix fmt --no-update-lock-file
 nix fmt --no-update-lock-file -- --ci
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.lint
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.workflows
 ```
 
 [treefmt.toml](../treefmt.toml) covers first-party Nix, shell (including `.envrc`), Markdown, YAML, and JSON. Add any new extensionless shell scripts to its shell includes. Git and direnv state, result links, lockfiles, and generated or vendored trees are excluded. Current fixtures are Nix modules whose exact text is not asserted, so they remain formatted; exclude future exact-text fixtures explicitly. Prettier preserves existing prose wrapping; new prose uses one source line per paragraph.
