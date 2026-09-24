@@ -2,6 +2,8 @@
 
 The [root flake](../flake.nix) supplies the development shell, formatter, and checks under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
 
+The root keeps input selection, supported systems, and public output wiring explicit. [Development assembly](../dev/default.nix) supplies the shell, formatter, and checks; [development library exports](../dev/library.nix) retain the focused test and example entrypoints. [The library entrypoint](../lib/default.nix) exposes the constructor independently of development inputs. Lazy output assembly preserves plain-import access without a flake framework.
+
 ## Host prerequisites
 
 Install Nix with the `nix-command` and `flakes` experimental features enabled, Git for the checkout, and direnv with flake support and shell integration. Flake support may come from direnv itself or nix-direnv. Run `direnv allow` at the repository root after reviewing `.envrc`, or enter the shell directly:

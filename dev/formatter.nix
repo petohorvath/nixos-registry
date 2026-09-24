@@ -15,6 +15,6 @@ writeShellApplication {
   ];
   text = ''
     exec treefmt --tree-root . --walk filesystem \
-      --config-file ${./treefmt.toml} "$@"
+      --config-file ${../treefmt.toml} "$@"
   '';
 }
