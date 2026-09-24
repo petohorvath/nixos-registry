@@ -10,7 +10,9 @@
     options.backupPaths = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      description = "Paths included in the backup.";
+      description = ''
+        Paths included in the backup.
+      '';
     };
   },
 }:
@@ -41,7 +43,9 @@ let
             shorthandOnlyDefinesConfig = true;
           };
           default = { };
-          description = "The independent reference's typed contribution root.";
+          description = ''
+            The independent reference's typed contribution root.
+          '';
         };
         config.registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues publications));
       }

@@ -7,21 +7,29 @@
         options = {
           host = lib.mkOption {
             type = lib.types.str;
-            description = "Backup destination host.";
+            description = ''
+              Backup destination host.
+            '';
           };
           port = lib.mkOption {
             type = lib.types.port;
-            description = "Backup destination port.";
+            description = ''
+              Backup destination port.
+            '';
           };
           paths = lib.mkOption {
             type = lib.types.listOf lib.types.str;
             default = [ ];
-            description = "Paths included in the backup.";
+            description = ''
+              Paths included in the backup.
+            '';
           };
         };
       }
     );
     default = { };
-    description = "Named backup destinations.";
+    description = ''
+      Named backup destinations.
+    '';
   };
 }

@@ -22,7 +22,9 @@ let
         {
           options.clientEndpoint = lib.mkOption {
             type = lib.types.str;
-            description = "Client endpoint read from the completed shared record.";
+            description = ''
+              Client endpoint read from the completed shared record.
+            '';
           };
           config = {
             registry.services.api.host = "api.${registry.combined.domain}";

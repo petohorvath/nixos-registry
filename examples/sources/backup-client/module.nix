@@ -10,11 +10,15 @@
     port = lib.mkOption {
       type = lib.types.port;
       default = 8022;
-      description = "Listening port published for the backup service.";
+      description = ''
+        Listening port published for the backup service.
+      '';
     };
     backupCommand = lib.mkOption {
       type = lib.types.str;
-      description = "Backup command consuming both shared data views.";
+      description = ''
+        Backup command consuming both shared data views.
+      '';
     };
   };
 

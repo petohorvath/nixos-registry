@@ -12,26 +12,36 @@
           options = {
             host = lib.mkOption {
               type = lib.types.str;
-              description = "Backup destination host.";
+              description = ''
+                Backup destination host.
+              '';
             };
             port = lib.mkOption {
               type = lib.types.port;
-              description = "Backup destination port.";
+              description = ''
+                Backup destination port.
+              '';
             };
             paths = lib.mkOption {
               type = lib.types.listOf lib.types.str;
               default = [ "/srv/default" ];
-              description = "Paths included in the backup.";
+              description = ''
+                Paths included in the backup.
+              '';
             };
             endpoint = lib.mkOption {
               type = lib.types.str;
               readOnly = true;
               default = "${config.host}:${toString config.port}";
-              description = "Endpoint derived from the completed destination.";
+              description = ''
+                Endpoint derived from the completed destination.
+              '';
             };
             command = lib.mkOption {
               type = lib.types.str;
-              description = "Backup command derived from the shared endpoint.";
+              description = ''
+                Backup command derived from the shared endpoint.
+              '';
             };
           };
           config.command = "backup ${config.endpoint}";
@@ -39,6 +49,8 @@
       )
     );
     default = { };
-    description = "Named backup destinations.";
+    description = ''
+      Named backup destinations.
+    '';
   };
 }

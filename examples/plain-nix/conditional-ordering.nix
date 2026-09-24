@@ -34,12 +34,16 @@ let
                   paths = lib.mkOption {
                     type = lib.types.listOf lib.types.str;
                     default = [ "/srv/documents" ];
-                    description = "Locally configured document paths.";
+                    description = ''
+                      Locally configured document paths.
+                    '';
                   };
                 };
                 backupCommand = lib.mkOption {
                   type = lib.types.str;
-                  description = "Example command consuming the combined paths.";
+                  description = ''
+                    Example command consuming the combined paths.
+                  '';
                 };
               };
               config = {

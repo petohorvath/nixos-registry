@@ -8,8 +8,19 @@
     inputs:
     let
       inherit (inputs) nixpkgs;
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+
       mkRegistry = import ./lib/mk-registry.nix;
+
       flakePartsExample = import ./tests/flake-parts-example.nix { inherit nixpkgs; };
+
       tests = forAllSystems (
         system:
         import ./tests {
@@ -21,19 +32,14 @@
             ;
         }
       );
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
-      ];
+
       evalExample =
         modulePath:
         import modulePath {
           inherit (nixpkgs) lib;
           inherit mkRegistry;
         };
-      forAllSystems = nixpkgs.lib.genAttrs systems;
+
       development = forAllSystems (
         system:
         let

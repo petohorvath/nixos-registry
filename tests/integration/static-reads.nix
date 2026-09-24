@@ -20,7 +20,9 @@ in
               options.endpoints = lib.mkOption {
                 type = collectionType lib.types.str;
                 default = { };
-                description = "Shared endpoints with an unused failing value.";
+                description = ''
+                  Shared endpoints with an unused failing value.
+                '';
               };
             };
             central.endpoints.domain = "example.test";
@@ -93,17 +95,23 @@ in
                     options = {
                       assertion = lib.mkOption {
                         type = lib.types.bool;
-                        description = "A stored assertion result.";
+                        description = ''
+                          A stored assertion result.
+                        '';
                       };
                       message = lib.mkOption {
                         type = lib.types.str;
-                        description = "A stored assertion message.";
+                        description = ''
+                          A stored assertion message.
+                        '';
                       };
                     };
                   }
                 );
                 default = [ ];
-                description = "Caller-owned assertion data.";
+                description = ''
+                  Caller-owned assertion data.
+                '';
               };
             }
           ];

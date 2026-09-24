@@ -8,7 +8,9 @@ let
         options.paths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [ ];
-          description = "Paths shared by the plain-import nodes.";
+          description = ''
+            Paths shared by the plain-import nodes.
+          '';
         };
       }
     ];
@@ -33,7 +35,9 @@ in
                 name:
                 lib.mkOption {
                   type = lib.types.str;
-                  description = "Schema-owned ${name} through the constructor.";
+                  description = ''
+                    Schema-owned ${name} through the constructor.
+                  '';
                 }
               );
             }

@@ -72,11 +72,15 @@ in
                 schemaModules = lib.mkOption {
                   type = lib.types.str;
                   default = schemaLabel;
-                  description = "A schema-owned field beside the settings group.";
+                  description = ''
+                    A schema-owned field beside the settings group.
+                  '';
                 };
                 port = lib.mkOption {
                   type = lib.registryPortType;
-                  description = "A port checked with the consumer's extended library.";
+                  description = ''
+                    A port checked with the consumer's extended library.
+                  '';
                 };
               };
             })
@@ -142,7 +146,9 @@ in
                 options.${name} = lib.mkOption {
                   type = lib.types.str;
                   default = "schema-owned value";
-                  description = "A field that collides with the static interface.";
+                  description = ''
+                    A field that collides with the static interface.
+                  '';
                 };
               }
             ];

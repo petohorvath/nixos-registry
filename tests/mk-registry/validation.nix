@@ -49,7 +49,9 @@ in
                 options.registry.unrelated = lib.mkOption {
                   type = lib.types.str;
                   default = "a namespace instead of the generated option";
-                  description = "An incompatible registry namespace.";
+                  description = ''
+                    An incompatible registry namespace.
+                  '';
                 };
               }
             ];
@@ -124,17 +126,23 @@ in
                     options = {
                       assertion = lib.mkOption {
                         type = lib.types.bool;
-                        description = "A stored assertion result.";
+                        description = ''
+                          A stored assertion result.
+                        '';
                       };
                       message = lib.mkOption {
                         type = lib.types.str;
-                        description = "A stored assertion message.";
+                        description = ''
+                          A stored assertion message.
+                        '';
                       };
                     };
                   }
                 );
                 default = [ ];
-                description = "Caller-owned assertion data.";
+                description = ''
+                  Caller-owned assertion data.
+                '';
               };
             }
           ];

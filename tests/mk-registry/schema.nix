@@ -3,7 +3,9 @@ let
   schema = {
     options.domain = lib.mkOption {
       type = lib.types.str;
-      description = "Domain used by published services.";
+      description = ''
+        Domain used by published services.
+      '';
     };
   };
 
@@ -14,12 +16,16 @@ let
           config._module.args.port = 443;
           options.endpoint = lib.mkOption {
             type = lib.types.str;
-            description = "Service endpoint.";
+            description = ''
+              Service endpoint.
+            '';
           };
         }
       );
       default = { };
-      description = "Named services.";
+      description = ''
+        Named services.
+      '';
     };
   };
 in
@@ -107,7 +113,9 @@ in
                 options.${collectionName} = lib.mkOption {
                   type = lib.types.attrsOf lib.types.str;
                   default = { };
-                  description = "Named service endpoints.";
+                  description = ''
+                    Named service endpoints.
+                  '';
                 };
               }
             )
@@ -220,10 +228,14 @@ in
                   type = lib.types.submodule {
                     options.injected = lib.mkOption {
                       type = lib.types.str;
-                      description = "A node-local option.";
+                      description = ''
+                        A node-local option.
+                      '';
                     };
                   };
-                  description = "A node-local registry extension.";
+                  description = ''
+                    A node-local registry extension.
+                  '';
                 };
                 config.registry = {
                   domain = "example.test";
@@ -260,7 +272,9 @@ in
                     options.injected = lib.mkOption {
                       type = lib.types.str;
                       default = "node-owned schema";
-                      description = "An option absent from schemaModules.";
+                      description = ''
+                        An option absent from schemaModules.
+                      '';
                     };
                     config.endpoint = "backup.example.test:443";
                   };

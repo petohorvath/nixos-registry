@@ -2,7 +2,9 @@
 { config, inputs, ... }:
 let
   registryFlake = (import "${inputs.nixos-registry}/flake.nix").outputs { };
+
   shared = config.registry;
+
   commonModule = {
     imports = [ registryFlake.nixosModules.default ];
     nixpkgs.hostPlatform = "x86_64-linux";
@@ -13,11 +15,6 @@ let
     };
   };
 
-  nodes = {
-    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
-    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
-  };
-
   mkNode =
     nodeModule:
     inputs.nixpkgs.lib.nixosSystem {
@@ -26,6 +23,11 @@ let
         nodeModule
       ];
     };
+
+  nodes = {
+    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
+    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
+  };
 in
 {
   imports = [ registryFlake.flakeModules.default ];

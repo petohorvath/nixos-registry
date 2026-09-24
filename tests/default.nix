@@ -33,5 +33,5 @@ lib.mapAttrs (
   if test.expr == test.expected then
     true
   else
-    throw "${name}: expected ${builtins.toJSON test.expected}, got ${builtins.toJSON test.expr}"
+    throw ("${name}: expected ${builtins.toJSON test.expected}, " + "got ${builtins.toJSON test.expr}")
 ) tests
