@@ -16,7 +16,7 @@ Data is shared during Nix evaluation. All nodes must be available in the same Ni
 
 The library is checked against the approved stable and unstable Nixpkgs module systems. Development supports `x86_64-linux` and `aarch64-linux`; existing `x86_64-darwin` and `aarch64-darwin` outputs remain best effort, with no required Darwin CI.
 
-The project is enrolled under [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md). The required [hosted checks](.github/workflows/check.yml) test the committed root input and both shared compatibility revisions on both Linux architectures before a human approves a squash merge to `main`. The central drift audit monitors policy selection, pins, and merge controls. Report problems through [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues).
+The project is enrolled under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). The required [hosted checks](.github/workflows/check.yml) test the committed root input and both shared compatibility revisions on both Linux architectures before a human approves a squash merge to `main`. The central drift audit monitors policy selection, pins, and merge controls. Report problems through [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues).
 
 ## Quickstart
 
