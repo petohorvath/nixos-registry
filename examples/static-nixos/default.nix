@@ -30,7 +30,7 @@ let
   nodes."metrics publisher" = lib.nixosSystem {
     modules = [
       commonModule
-      ./publish-service.nix
+      ./service-contribution.nix
       {
         nixpkgs.hostPlatform = system;
         system.stateVersion = "26.05";

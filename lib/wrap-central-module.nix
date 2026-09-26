@@ -1,12 +1,7 @@
 { lib, schemaGraph }:
 let
-  collectSchemaKeys =
-    modules:
-    lib.concatMap (
-      module: if module.disabled then [ ] else [ module.key ] ++ collectSchemaKeys module.imports
-    ) modules;
-
-  schemaKeys = lib.genAttrs (collectSchemaKeys schemaGraph) (_: true);
+  getActiveModuleKeys = import ./get-active-module-keys.nix { inherit lib; };
+  schemaKeys = lib.genAttrs (getActiveModuleKeys schemaGraph) (_: true);
 
   loadModule =
     args: module:

@@ -27,19 +27,7 @@ let
     else
       check file value;
 
-  getActiveModuleKeys =
-    graph:
-    lib.pipe graph [
-      (lib.filter (module: !module.disabled))
-      (
-        modules:
-        builtins.genericClosure {
-          startSet = modules;
-          operator = module: lib.filter (imported: !imported.disabled) module.imports;
-        }
-      )
-      (map (module: module.key))
-    ];
+  getActiveModuleKeys = import ./get-active-module-keys.nix { inherit lib; };
 
   checkDisabledModules =
     schema: file: disabledModules:

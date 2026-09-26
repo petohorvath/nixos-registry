@@ -5,7 +5,7 @@
 */
 { lib, options, ... }:
 let
-  interface = import ../lib/static-interface.nix { inherit lib; };
+  staticInterface = import ../lib/static-interface.nix { inherit lib; };
 in
 {
   options.registry =
@@ -75,15 +75,15 @@ in
           };
           schemaOptions = contributionType.getSubOptions [ "registry" ];
         in
-        interface.checkSchema schemaOptions (
+        staticInterface.checkSchema schemaOptions (
           contributionType.merge [ "registry" ] (
-            interface.selectContributions schemaOptions options.registry.definitionsWithLocations
+            staticInterface.selectContributions schemaOptions options.registry.definitionsWithLocations
           )
-          // lib.getAttrs interface.reservedNames config
+          // lib.getAttrs staticInterface.reservedNames config
         );
     }
     // {
       _nixosRegistry = true;
-      _nixosRegistrySelectContributions = interface.selectContributions;
+      _nixosRegistrySelectContributions = staticInterface.selectContributions;
     };
 }

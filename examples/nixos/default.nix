@@ -40,7 +40,7 @@ let
       specialArgs = { inherit registry serviceName; };
       modules = [
         registry.module
-        ./publish-service.nix
+        ./service-contribution.nix
         {
           nixpkgs.hostPlatform = system;
           networking.hostName = hostName;

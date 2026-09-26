@@ -42,7 +42,9 @@ in
                   shorthandOnlyDefinesConfig = true;
                 };
                 default = { };
-                description = "The independent reference's typed contribution root.";
+                description = ''
+                  The independent reference's typed contribution root.
+                '';
               };
             }
           ]

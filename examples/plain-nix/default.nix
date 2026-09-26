@@ -30,7 +30,9 @@ let
           };
           backupCommand = lib.mkOption {
             type = lib.types.str;
-            description = "Example command consuming central and combined data.";
+            description = ''
+              Example command consuming central and combined data.
+            '';
           };
         };
         config = {

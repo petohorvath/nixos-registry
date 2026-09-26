@@ -113,7 +113,7 @@ let
   ];
 
   evaluateContributions =
-    contributions:
+    contributionModules:
     lib.evalModules {
       inherit specialArgs;
       modules = [
@@ -123,7 +123,7 @@ let
             # Select whole contributions without demanding complete records.
             selected = lib.evalModules {
               inherit specialArgs;
-              modules = [ module ] ++ map (wrapCentralModule args) centralModules ++ contributions;
+              modules = [ module ] ++ map (wrapCentralModule args) centralModules ++ contributionModules;
             };
             option = selected.options.registry;
           in

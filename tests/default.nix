@@ -11,6 +11,7 @@ let
     import ./mk-registry.nix { inherit lib mkRegistry; }
     // import ./check-contribution.nix { inherit lib mkRegistry; }
     // import ./wrap-central-module.nix { inherit lib mkRegistry; }
+    // import ./get-active-module-keys.nix { inherit lib mkRegistry; }
     // import ./static-interface.nix { inherit nixpkgs system; }
     // import ./flake.nix { inherit lib; }
     // import ./modules/flake.nix {

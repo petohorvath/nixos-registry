@@ -10,7 +10,7 @@ Policy selection and settings now belong to the caller; current central records 
 
 ### Breaking contribution terminology
 
-Use **contribution** for node and central option definitions throughout code, tests, examples, and diagnostics, replacing "publication", "publish", and "view". Contribution errors now read `contribution at ...` instead of `publication at ...` and still report the option path, node, and source file. Focused commands under `lib.tests.<system>` must use the replacements below. The suite retains all 145 cases and their assertions.
+Use **contribution** for node and central option definitions in library code, tests, example modules, and diagnostics, replacing "publication", "publish", and "view". Contribution errors now read `contribution at ...` instead of `publication at ...`, and their error context reads `while checking contribution from node ...` instead of `while checking publication from node ...`; both still report the option path, node, and source file. The NixOS and static NixOS example modules move from `publish-service.nix` to `service-contribution.nix`. Node names such as `metrics publisher` and the flake-parts example's `servicePublisher` input keep their names. Focused commands under `lib.tests.<system>` must use the replacements below. The renamed cases keep their assertions.
 
 | Previous test name                                    | Replacement                                            |
 | ----------------------------------------------------- | ------------------------------------------------------ |
