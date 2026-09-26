@@ -1,4 +1,7 @@
-# The same data references succeed or recurse depending on the collection type.
+/*
+  The same data references succeed or recurse depending on the collection
+  type.
+*/
 { lib, mkRegistry }:
 let
   mkExample =

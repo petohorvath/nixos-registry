@@ -1,6 +1,7 @@
 /*
   Declares required backup fields and values derived from a completed record.
-  Defaults and derived values are evaluated in each shared view.
+  Defaults and derived values are evaluated in both central and combined
+  data.
 */
 { lib, ... }:
 {

@@ -1,4 +1,7 @@
-# An ordinary-flake consumer with one shared registry and a static NixOS import.
+/*
+  An ordinary-flake consumer with one shared registry and a static NixOS
+  import.
+*/
 {
   nixpkgs,
   system ? "x86_64-linux",

@@ -2,8 +2,37 @@
 let
   schema = ../../examples/plain-nix/partial-schema.nix;
 
+  mkEvaluations =
+    {
+      centralModules ? [ ],
+      contributions ? { },
+    }:
+    let
+      registry = mkRegistry {
+        inherit centralModules lib nodes;
+        schemaModules = [ schema ];
+      };
+      nodes = lib.mapAttrs (
+        _: contribution:
+        lib.evalModules {
+          modules = [
+            registry.module
+            { registry = contribution; }
+          ];
+        }
+      ) contributions;
+      direct = lib.evalModules {
+        modules = [ schema ] ++ centralModules ++ builtins.attrValues contributions;
+      };
+    in
+    {
+      inherit direct nodes registry;
+    };
+
+  succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
+
   split = mkEvaluations {
-    publications = {
+    contributions = {
       address.backupDestinations.archive.host = "archive.example.test";
       transport.backupDestinations.archive.port = 2222;
     };
@@ -13,41 +42,12 @@ let
     centralModules = [
       { backupDestinations.archive.host = "archive.example.test"; }
     ];
-    publications.transport.backupDestinations.archive.port = 2222;
+    contributions.transport.backupDestinations.archive.port = 2222;
   };
 
   incomplete = mkEvaluations {
-    publications.address.backupDestinations.archive.host = "archive.example.test";
+    contributions.address.backupDestinations.archive.host = "archive.example.test";
   };
-
-  mkEvaluations =
-    {
-      centralModules ? [ ],
-      publications ? { },
-    }:
-    let
-      registry = mkRegistry {
-        inherit centralModules lib nodes;
-        schemaModules = [ schema ];
-      };
-      nodes = lib.mapAttrs (
-        _: publication:
-        lib.evalModules {
-          modules = [
-            registry.module
-            { registry = publication; }
-          ];
-        }
-      ) publications;
-      direct = lib.evalModules {
-        modules = [ schema ] ++ centralModules ++ builtins.attrValues publications;
-      };
-    in
-    {
-      inherit direct nodes registry;
-    };
-
-  succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 in
 {
   testNodesCompleteEachOthersPartialRecords = {
@@ -129,7 +129,7 @@ in
                   };
                 }
               ];
-              publications = lib.genAttrs names (_: {
+              contributions = lib.genAttrs names (_: {
                 backupDestinations.archive = { };
               });
             };
@@ -161,7 +161,7 @@ in
           centralModules = [
             { backupDestinations.archive.paths = [ "/central" ]; }
           ];
-          publications = {
+          contributions = {
             address.backupDestinations.archive = {
               host = "archive.example.test";
               paths = [ "/documents" ];
@@ -199,7 +199,7 @@ in
               };
             }
           ];
-          publications.emptyPaths.backupDestinations.archive.paths = [ ];
+          contributions.emptyPaths.backupDestinations.archive.paths = [ ];
         };
       in
       {
@@ -250,7 +250,7 @@ in
             centralModules = [
               { backupDestinations.archive.endpoint = "replacement.example.test:22"; }
             ];
-            publications = {
+            contributions = {
               address.backupDestinations.archive.host = "archive.example.test";
               transport.backupDestinations.archive.port = 2222;
             };
@@ -259,7 +259,7 @@ in
             centralModules = [
               { backupDestinations.archive.host = "archive.example.test"; }
             ];
-            publications.transport.backupDestinations.archive = {
+            contributions.transport.backupDestinations.archive = {
               port = 2222;
               endpoint = "replacement.example.test:22";
             };

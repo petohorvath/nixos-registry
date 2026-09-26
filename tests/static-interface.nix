@@ -8,7 +8,7 @@ let
   mkEvaluations =
     {
       central ? [ ],
-      publications ? { },
+      contributions ? { },
       wiringProperty ? lib.id,
       nodeModules ? { },
     }:
@@ -33,7 +33,7 @@ let
           ++ map (registry: { inherit registry; }) definitions
           ++ (nodeModules.${name} or [ ]);
         }
-      ) publications;
+      ) contributions;
       direct = lib.evalModules {
         modules = [
           {
@@ -45,7 +45,7 @@ let
               default = { };
               description = "The independent reference's typed contribution root.";
             };
-            config.registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues publications));
+            config.registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues contributions));
           }
         ];
       };
@@ -72,7 +72,7 @@ in
                   };
                 })
               ];
-              publications.publisher = [ (lib.mkDefault discarded) ];
+              contributions.publisher = [ (lib.mkDefault discarded) ];
             };
           in
           {
@@ -113,7 +113,7 @@ in
             discarded = lib.mkBefore (throw "A discarded ordered contribution was forced.");
             evaluations = mkEvaluations {
               central = [ (if source == "central" then discarded else selected) ];
-              publications.publisher = [ (if source == "node" then discarded else selected) ];
+              contributions.publisher = [ (if source == "node" then discarded else selected) ];
             };
           in
           {
@@ -147,7 +147,7 @@ in
                   };
                 })
               ];
-              publications.publisher = [
+              contributions.publisher = [
                 (property {
                   backupDestinations.archive = {
                     host = "archive.example.test";
@@ -155,7 +155,7 @@ in
                   };
                 })
               ];
-              publications.reader = [ ];
+              contributions.reader = [ ];
             };
           in
           {
@@ -203,7 +203,7 @@ in
               };
             }
           ];
-          publications.reader = [ ];
+          contributions.reader = [ ];
         };
       in
       {
@@ -224,7 +224,7 @@ in
         evaluations = mkEvaluations {
           wiringProperty = lib.mkForce;
           central = [ { backupDestinations.archive.host = "discarded.example.test"; } ];
-          publications.publisher = [ (lib.mkForce { backupDestinations.archive.port = 2222; }) ];
+          contributions.publisher = [ (lib.mkForce { backupDestinations.archive.port = 2222; }) ];
         };
       in
       {
@@ -252,7 +252,7 @@ in
               };
             }
           ];
-          publications.publisher = [ (lib.mkForce { }) ];
+          contributions.publisher = [ (lib.mkForce { }) ];
         };
       in
       {
@@ -270,7 +270,7 @@ in
     expr =
       let
         evaluations = mkEvaluations {
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkForce {
               backupDestinations.archive = {
                 host = "archive.example.test";
@@ -280,7 +280,7 @@ in
           ];
         };
         defaulted = mkEvaluations {
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkDefault {
               backupDestinations.archive = {
                 host = "discarded.example.test";
@@ -319,7 +319,7 @@ in
                 }
               ];
               nodeModules.publisher = [ { services.prometheus.enable = enable; } ];
-              publications.publisher = [
+              contributions.publisher = [
                 (lib.mkIf evaluations.nodes.publisher.config.services.prometheus.enable (
                   lib.mkMerge [
                     { backupDestinations.archive.paths = lib.mkBefore [ "/before" ]; }
@@ -366,7 +366,7 @@ in
           let
             evaluations = mkEvaluations {
               wiringProperty = property;
-              publications.publisher = [
+              contributions.publisher = [
                 (property (
                   lib.mkMerge [
                     { settings = { inherit schemaModules; }; }
@@ -410,7 +410,7 @@ in
                   };
                 }
               ];
-              publications = {
+              contributions = {
                 first = [ { backupDestinations.archive = paths; } ];
                 second = [ { backupDestinations.archive = { }; } ];
                 third = [ { backupDestinations.archive = { }; } ];
@@ -457,7 +457,7 @@ in
                   };
                 }
               ];
-              publications.publisher = [ { backupDestinations.archive = contribution; } ];
+              contributions.publisher = [ { backupDestinations.archive = contribution; } ];
             };
           in
           {
@@ -498,7 +498,7 @@ in
               };
             }
           ];
-          publications = {
+          contributions = {
             first = [
               (lib.mkMerge [
                 {
@@ -546,7 +546,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ { backupDestinations.archive.host = "archive.example.test"; } ];
-          publications = {
+          contributions = {
             transport = [
               {
                 backupDestinations.archive.port = evaluations.nodes.transport.config.services.prometheus.port;
@@ -594,7 +594,7 @@ in
               };
             })
           ];
-          publications.reader = [ ];
+          contributions.reader = [ ];
         };
       in
       {
@@ -617,20 +617,16 @@ in
   };
 }
 //
-  lib.mapAttrs'
+  lib.mapAttrs' (name: value: lib.nameValuePair "testStatic${lib.removePrefix "test" name}" value)
     (
-      name: value:
-      lib.nameValuePair "testStatic${lib.replaceStrings [ "Publication" ] [ "Contribution" ] (lib.removePrefix "test" name)}" value
-    )
-    (
-      import ./check-publication.nix {
+      import ./check-contribution.nix {
         inherit lib;
         inherit (registryFlake.lib) mkRegistry;
         mkNode =
           {
             registry,
             schemaModules,
-            publication,
+            contribution,
           }:
           lib.nixosSystem {
             modules = [
@@ -642,7 +638,7 @@ in
                   inherit (registry) central combined validate;
                 };
               }
-              { registry = publication; }
+              { registry = contribution; }
             ];
           };
       }

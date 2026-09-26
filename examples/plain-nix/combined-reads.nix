@@ -1,4 +1,7 @@
-# A combined domain supplies a host while central data completes its record.
+/*
+  A combined domain supplies a host while central data completes its
+  record.
+*/
 { lib, mkRegistry }:
 let
   registry = mkRegistry {
@@ -22,7 +25,9 @@ let
         {
           options.clientEndpoint = lib.mkOption {
             type = lib.types.str;
-            description = "Client endpoint read from the completed shared record.";
+            description = ''
+              Client endpoint read from the completed shared record.
+            '';
           };
           config = {
             registry.services.api.host = "api.${registry.combined.domain}";

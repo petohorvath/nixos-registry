@@ -1,4 +1,4 @@
-# Real NixOS nodes publish configured services through a shared handle.
+# Real NixOS nodes contribute configured services to a shared registry.
 {
   nixpkgs,
   mkRegistry,

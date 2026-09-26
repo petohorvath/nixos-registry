@@ -14,12 +14,12 @@ in
               default = [ ];
               description = "Paths included in the backup.";
             };
-            publication =
+            contribution =
               { config, ... }:
               {
                 options.backup = {
-                  enable = lib.mkEnableOption "backup path publication";
-                  includeCache = lib.mkEnableOption "cache path publication";
+                  enable = lib.mkEnableOption "backup path contribution";
+                  includeCache = lib.mkEnableOption "cache path contribution";
                 };
                 config = {
                   backup.enable = enable;
@@ -37,7 +37,7 @@ in
               nodes.publisher = lib.evalModules {
                 modules = [
                   registry.module
-                  publication
+                  contribution
                 ];
               };
             };
@@ -53,7 +53,7 @@ in
                     description = "The independent reference's typed contribution root.";
                   };
                 }
-                publication
+                contribution
               ];
             };
           in
@@ -89,7 +89,7 @@ in
           let
             evaluations = mkEvaluations {
               central = [ { backupPaths = [ "/central" ]; } ];
-              publications.publisher = [
+              contributions.publisher = [
                 { backupPaths = lib.mkIf enable [ 7 ]; }
               ];
             };
@@ -126,7 +126,7 @@ in
           central = [
             (lib.mkIf false (lib.mkAfter (throw "Disabled central ordering was forced.")))
           ];
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkIf false (lib.mkBefore (throw "Disabled node ordering was forced.")))
             { backupPaths = [ "/enabled" ]; }
           ];
@@ -152,7 +152,7 @@ in
             (lib.mkIf true { backupPaths = lib.mkBefore [ "/central" ]; })
             (lib.mkIf false (throw "A disabled central contribution was forced."))
           ];
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkMerge [
               (lib.mkIf true { backupPaths = [ "/node" ]; })
               (lib.mkIf false (throw "A disabled node contribution was forced."))

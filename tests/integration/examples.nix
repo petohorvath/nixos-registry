@@ -1,6 +1,6 @@
 { lib, mkRegistry }:
 {
-  testNodePublishesFromCombinedDomainExample = {
+  testNodeContributesFromCombinedDomainExample = {
     expr = import ../../examples/plain-nix/combined-reads.nix { inherit lib mkRegistry; };
     expected = {
       centralDomain = "example.test";
@@ -29,7 +29,7 @@
     };
   };
 
-  testLocallyEnabledOrderedPublicationExample = {
+  testLocallyEnabledOrderedContributionExample = {
     expr = import ../../examples/plain-nix/conditional-ordering.nix { inherit lib mkRegistry; };
     expected = {
       enabled = {

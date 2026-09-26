@@ -55,7 +55,8 @@ in
         definition:
         let
           value = stripWiring definition.value;
-          # An ordered root must reach the caller's type, including its native failure.
+          # An ordered root must reach the caller's type, including its native
+          # failure.
           wiringOnly = !(definition ? priority) && isWiringOnly definition.value;
         in
         lib.optional (!wiringOnly) (definition // { inherit value; })

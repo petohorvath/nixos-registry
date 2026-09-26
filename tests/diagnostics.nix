@@ -20,7 +20,7 @@ let
       }
     )).lib.registry;
 
-  duplicateProjectSettings =
+  mkRegistryWithDuplicateSettings =
     settings:
     mkProjectRegistry [
       {
@@ -49,9 +49,19 @@ let
       ++ modules;
     };
 
-  mkValidation =
-    publications:
+  validateNodeModules =
+    nodeModules:
     let
+      settings.schemaModules = [
+        serviceSchema
+        {
+          options.backupPaths = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+            description = "Ordered backup paths.";
+          };
+        }
+      ];
       registry = mkRegistry {
         inherit lib;
         inherit (settings) schemaModules;
@@ -64,18 +74,8 @@ let
             lib.evalModules {
               modules = [ registry.module ] ++ modules;
             }
-        ) publications;
+        ) nodeModules;
       };
-      settings.schemaModules = [
-        serviceSchema
-        {
-          options.backupPaths = lib.mkOption {
-            type = lib.types.listOf lib.types.str;
-            default = [ ];
-            description = "Ordered backup paths.";
-          };
-        }
-      ];
     in
     registry.validate;
 in
@@ -102,13 +102,13 @@ in
     ]).validate;
 
   flakeDuplicateNode =
-    (duplicateProjectSettings {
+    (mkRegistryWithDuplicateSettings {
       schemaModules = [ ];
       nodes."duplicate node" = { };
     }).validate;
 
   flakeDuplicateArgument =
-    (duplicateProjectSettings {
+    (mkRegistryWithDuplicateSettings {
       specialArgs.schemaLabel = "shared schema";
     }).settings.specialArgs.schemaLabel;
 
@@ -167,12 +167,12 @@ in
     registry.validate
   );
 
-  definitionSchemaDeclaration = mkValidation {
+  definitionSchemaDeclaration = validateNodeModules {
     "generated schema publisher" = [
       {
-        _file = "/modules/generated-publication.nix";
+        _file = "/modules/generated-contribution.nix";
         registry.services = lib.mkDefinition {
-          file = "/generated/offending-publication.nix";
+          file = "/generated/offending-contribution.nix";
           value.api = _: {
             options.injected = lib.mkOption {
               type = lib.types.str;
@@ -185,28 +185,28 @@ in
     ];
   };
 
-  importedSchemaDeclaration = mkValidation {
+  importedSchemaDeclaration = validateNodeModules {
     "importing schema publisher" = [
       {
-        _file = "/modules/importing-publication.nix";
+        _file = "/modules/importing-contribution.nix";
         registry.services.api = ./fixtures/shared-schema-data.nix;
       }
     ];
   };
 
-  moduleControls = mkValidation {
+  moduleControls = validateNodeModules {
     "module-control publisher" = [
       {
-        _file = "/modules/publication-controls.nix";
+        _file = "/modules/contribution-controls.nix";
         registry._module.check = false;
       }
     ];
   };
 
-  schemaDeclaration = mkValidation {
+  schemaDeclaration = validateNodeModules {
     "schema-changing publisher" = [
       {
-        _file = "/modules/schema-publication.nix";
+        _file = "/modules/schema-contribution.nix";
         registry.services.api = _: {
           options.injected = lib.mkOption {
             type = lib.types.str;
@@ -218,8 +218,8 @@ in
     ];
   };
 
-  conflictingInterface = mkValidation {
-    "conflicting publication interface" = [
+  conflictingInterface = validateNodeModules {
+    "conflicting contribution interface" = [
       {
         _file = "/modules/conflicting-interface.nix";
         # A type extension must not repeat the generated option's description.
@@ -228,13 +228,13 @@ in
     ];
   };
 
-  missingRequired = mkValidation {
+  missingRequired = validateNodeModules {
     "incomplete service publisher" = [
       { registry.services.api.host = "api.example.test"; }
     ];
   };
 
-  unknownOption = mkValidation {
+  unknownOption = validateNodeModules {
     "unknown service publisher" = [
       {
         _file = "/modules/unknown-service.nix";
@@ -247,7 +247,7 @@ in
     ];
   };
 
-  readOnly = mkValidation {
+  readOnly = validateNodeModules {
     "endpoint publisher" = [
       {
         _file = "/modules/endpoint.nix";
@@ -260,7 +260,7 @@ in
     ];
   };
 
-  orderedList = mkValidation {
+  orderedList = validateNodeModules {
     "ordered path publisher" = [
       {
         _file = "/modules/ordered-paths.nix";
@@ -272,7 +272,7 @@ in
     ];
   };
 
-  priorityConflict = mkValidation {
+  priorityConflict = validateNodeModules {
     "first address publisher" = [
       {
         _file = "/modules/first-address.nix";
@@ -295,11 +295,11 @@ in
     ];
   };
 
-  invalidPort = mkValidation {
+  invalidPort = validateNodeModules {
     "service publisher" = [ ./fixtures/invalid-service.nix ];
   };
 
-  definitionOrigin = mkValidation {
+  definitionOrigin = validateNodeModules {
     "generated service publisher" = [
       {
         registry.services.api = {
@@ -313,13 +313,13 @@ in
     ];
   };
 
-  submoduleOrigin = mkValidation {
+  submoduleOrigin = validateNodeModules {
     "imported service publisher" = [
       { registry.services.api = ./fixtures/invalid-service-record.nix; }
     ];
   };
 
-  moduleOrigin = mkValidation {
+  moduleOrigin = validateNodeModules {
     "module service publisher" = [
       {
         registry.services.api = _: {
@@ -365,7 +365,7 @@ in
             options.registry = lib.mkOption {
               type = lib.types.str;
               default = "unrelated data";
-              description = "An incompatible publication interface.";
+              description = "An incompatible contribution interface.";
             };
           }
         ];
@@ -377,7 +377,7 @@ in
       inherit lib;
       schemaModules = [ serviceSchema ];
       centralModules = [ { domain = "example.test"; } ];
-      nodes."missing publication interface" = lib.evalModules {
+      nodes."missing contribution interface" = lib.evalModules {
         modules = [ ];
       };
     }).validate;

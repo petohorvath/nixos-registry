@@ -4,7 +4,7 @@
   options = {
     domain = lib.mkOption {
       type = lib.types.str;
-      description = "Domain used by published services.";
+      description = "Domain used by contributed services.";
     };
     services = lib.mkOption {
       type = lib.types.attrsOf (
@@ -24,7 +24,9 @@
                 type = lib.types.str;
                 readOnly = true;
                 default = "${config.host}:${toString config.port}";
-                description = "Endpoint derived from the shared service record.";
+                description = ''
+                  Endpoint derived from the shared service record.
+                '';
               };
             };
           }

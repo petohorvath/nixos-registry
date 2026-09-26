@@ -1,6 +1,7 @@
 /*
   Completes backup destinations from partial central and node data.
-  Local reads select supplied fields; the combined view holds complete records.
+  Local reads select supplied fields; the combined data holds complete
+  records.
 */
 { lib, mkRegistry }:
 let
@@ -23,11 +24,11 @@ let
   };
 
   mkNode =
-    publication:
+    contribution:
     lib.evalModules {
       modules = [
         registry.module
-        { registry = publication; }
+        { registry = contribution; }
       ];
     };
 in

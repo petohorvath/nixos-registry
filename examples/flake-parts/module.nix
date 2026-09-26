@@ -1,4 +1,7 @@
-# The caller evaluates source-owned modules and exposes registry validation.
+/*
+  The caller evaluates source-owned modules and exposes registry
+  validation.
+*/
 { config, inputs, ... }:
 let
   registryFlake = (import "${inputs.nixos-registry}/flake.nix").outputs { };
@@ -13,11 +16,6 @@ let
     };
   };
 
-  nodes = {
-    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
-    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
-  };
-
   mkNode =
     nodeModule:
     inputs.nixpkgs.lib.nixosSystem {
@@ -26,6 +24,11 @@ let
         nodeModule
       ];
     };
+
+  nodes = {
+    "api publisher" = mkNode inputs.servicePublisher.nixosModules.default;
+    "backup consumer" = mkNode inputs.backupClient.nixosModules.default;
+  };
 in
 {
   imports = [ registryFlake.flakeModules.default ];

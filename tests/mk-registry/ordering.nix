@@ -80,7 +80,7 @@ in
           central = [
             { backupPaths = lib.mkDefault (lib.mkBefore [ "/discarded" ]); }
           ];
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkMerge [
               { backupPaths = lib.mkForce (lib.mkAfter [ "/last" ]); }
               { backupPaths = lib.mkForce (lib.mkOrder 100 [ "/first" ]); }
@@ -113,7 +113,7 @@ in
             discarded = lib.mkBefore (throw "A discarded ordered contribution was forced.");
             evaluations = mkEvaluations {
               central = [ (if source == "central" then discarded else selected) ];
-              publications.publisher = [ (if source == "node" then discarded else selected) ];
+              contributions.publisher = [ (if source == "node" then discarded else selected) ];
             };
           in
           {
@@ -148,7 +148,7 @@ in
             { backupPaths = lib.mkAfter [ "/central-last" ]; }
             { backupPaths = lib.mkOrder 100 [ "/central-first" ]; }
           ];
-          publications = {
+          contributions = {
             earlier = [ { backupPaths = lib.mkBefore [ "/before" ]; } ];
             later = [
               (lib.mkMerge [

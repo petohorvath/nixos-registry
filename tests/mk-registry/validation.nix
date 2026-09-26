@@ -71,7 +71,7 @@ in
         mkEvaluations = import ../fixtures/evaluate-properties.nix { inherit lib mkRegistry; };
         evaluations = mkEvaluations {
           central = [ { backupPaths = lib.mkDefault [ "/discarded" ]; } ];
-          publications.publisher = [
+          contributions.publisher = [
             {
               backupPaths = lib.mkDefinition {
                 file = "/modules/before.nix";

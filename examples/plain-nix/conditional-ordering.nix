@@ -1,4 +1,7 @@
-# Local enablement controls publication; list properties order merged paths.
+/*
+  Local enablement controls contribution; list properties order merged
+  paths.
+*/
 { lib, mkRegistry }:
 let
   mkExample =
@@ -29,8 +32,8 @@ let
             {
               options = {
                 backup = {
-                  enable = lib.mkEnableOption "publication of document backup paths";
-                  includeCache = lib.mkEnableOption "publication of cache paths";
+                  enable = lib.mkEnableOption "contribution of document backup paths";
+                  includeCache = lib.mkEnableOption "contribution of cache paths";
                   paths = lib.mkOption {
                     type = lib.types.listOf lib.types.str;
                     default = [ "/srv/documents" ];

@@ -1,7 +1,5 @@
 { lib, mkRegistry }:
 let
-  mkEvaluations = import ../fixtures/evaluate-properties.nix { inherit lib mkRegistry schema; };
-
   schema = {
     options = {
       backupHost = lib.mkOption {
@@ -16,6 +14,8 @@ let
     };
   };
 
+  mkEvaluations = import ../fixtures/evaluate-properties.nix { inherit lib mkRegistry schema; };
+
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 in
 {
@@ -23,7 +23,7 @@ in
     expr =
       let
         evaluations = mkEvaluations {
-          publications = {
+          contributions = {
             address = [ (lib.mkDefault { backupHost = "discarded.example.test"; }) ];
             paths = [ { backupPaths = [ "/selected" ]; } ];
           };
@@ -46,7 +46,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ (lib.mkForce { backupHost = "central.example.test"; }) ];
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkForce { backupHost = "node.example.test"; })
           ];
         };
@@ -73,7 +73,7 @@ in
               backupPaths = [ "/central" ];
             })
           ];
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkDefault {
               backupHost = lib.mkDefault "default.example.test";
               backupPaths = lib.mkDefault [ "/default" ];
@@ -106,7 +106,7 @@ in
     expr =
       let
         evaluations = mkEvaluations {
-          publications = {
+          contributions = {
             publisher = [
               (lib.mkDefault {
                 backupHost = "discarded.example.test";
@@ -140,7 +140,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ (lib.mkForce { backupHost = "central.example.test"; }) ];
-          publications = {
+          contributions = {
             first = [
               (lib.mkOverride 20 {
                 backupHost = "selected.example.test";
@@ -179,7 +179,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ (lib.mkForce { backupHost = "central.example.test"; }) ];
-          publications.publisher = [
+          contributions.publisher = [
             {
               backupHost = lib.mkOverride 10 "node.example.test";
               backupPaths = [ "/node" ];
@@ -211,7 +211,7 @@ in
               backupPaths = [ "/central" ];
             }
           ];
-          publications = {
+          contributions = {
             ordinary = [ { backupPaths = lib.mkForce [ "/node" ]; } ];
             forced = [ (lib.mkForce { backupHost = "forced.example.test"; }) ];
           };
@@ -236,7 +236,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ { backupHost = "central.example.test"; } ];
-          publications.publisher = [
+          contributions.publisher = [
             (lib.mkDefault { backupHost = "node.example.test"; })
           ];
         };
@@ -258,7 +258,7 @@ in
       let
         evaluations = mkEvaluations {
           central = [ { backupHost = lib.mkDefault "central.example.test"; } ];
-          publications.publisher = [ { backupHost = "node.example.test"; } ];
+          contributions.publisher = [ { backupHost = "node.example.test"; } ];
         };
       in
       {
