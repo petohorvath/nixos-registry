@@ -40,10 +40,10 @@ expect_failure() {
   done
 }
 
-expect_failure missingOption "missing publication interface" "registry" "import"
+expect_failure missingOption "missing contribution interface" "registry" "import"
 expect_failure incompatibleOption "unrelated registry option" "incompatible" "registry.module"
 expect_failure unrelatedSubmodule "handwritten contribution root" "incompatible" "registry.module"
-expect_failure conflictingInterface "conflicting publication interface" "registry" "conflicting-interface.nix"
+expect_failure conflictingInterface "conflicting contribution interface" "registry" "conflicting-interface.nix"
 check_contribution_diagnostics() {
   expect_failure invalidPort "services.api.port" "node service publisher" "invalid-service.nix"
   expect_failure definitionOrigin "services.api.port" "node generated service publisher" \
@@ -59,12 +59,12 @@ check_contribution_diagnostics() {
   expect_failure priorityConflict "services.api.host" "first address publisher" "second address publisher" \
     "first-address.nix" "second-address.nix"
   expect_failure schemaDeclaration "registry.services.api" "schema-changing publisher" \
-    "schema-publication.nix" "schemaModules"
-  expect_failure moduleControls "registry" "module-control publisher" "publication-controls.nix" "module controls"
+    "schema-contribution.nix" "schemaModules"
+  expect_failure moduleControls "registry" "module-control publisher" "contribution-controls.nix" "module controls"
   expect_failure importedSchemaDeclaration "registry.services.api" "importing schema publisher" \
     "shared-schema-data.nix" "schemaModules"
   expect_failure definitionSchemaDeclaration "registry.services.api" "generated schema publisher" \
-    "/generated/offending-publication.nix" "schemaModules"
+    "/generated/offending-contribution.nix" "schemaModules"
 }
 check_contribution_diagnostics
 expect_failure flakeMissingSchema "registry.settings.schemaModules" "must be set explicitly"

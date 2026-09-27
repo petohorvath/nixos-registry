@@ -1,4 +1,7 @@
-# Flake-parts adoption with caller-owned schemas and separate source inputs.
+/*
+  Flake-parts adoption with caller-owned schemas and separate source
+  inputs.
+*/
 {
   description = "Typed shared data in a flake-parts configuration";
 
@@ -8,7 +11,8 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    # Import public exports from source, avoiding the root development input graph.
+    # Import public exports from source, avoiding the root development
+    # input graph.
     nixos-registry = {
       url = "path:../..";
       flake = false;

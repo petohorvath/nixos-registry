@@ -1,6 +1,9 @@
-# Independent source input; the caller selects the module system and schema.
+/*
+  Independent source input; the caller selects the module system and
+  schema.
+*/
 {
-  description = "Example service publication module";
+  description = "Example service contribution module";
 
   outputs = _inputs: {
     modules.generic.default = ./module.nix;

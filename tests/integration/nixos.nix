@@ -30,7 +30,7 @@ in
     };
   };
 
-  testNixosPublishesConfiguredServicePort = {
+  testNixosContributesConfiguredServicePort = {
     expr = {
       service = example.registry.combined.services.metrics;
       configuredPort = example.nodes."metrics publisher".config.services.prometheus.port;
@@ -45,7 +45,7 @@ in
     };
   };
 
-  testDisabledNixosServiceDoesNotPublish = {
+  testDisabledNixosServiceDoesNotContribute = {
     expr = {
       services = builtins.attrNames example.registry.combined.services;
       inherit (example.nodes."standby publisher".config.services.prometheus) enable port;
@@ -57,7 +57,7 @@ in
     };
   };
 
-  testNixosNodesReadCombinedDataWhilePublishing = {
+  testNixosNodesReadCombinedDataWhileContributing = {
     expr = nixpkgs.lib.mapAttrs (_: node: {
       domain = node.config.networking.domain;
       endpoint = node.config.environment.etc."metrics-endpoint".text;

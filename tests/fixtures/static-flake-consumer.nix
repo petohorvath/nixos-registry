@@ -42,9 +42,9 @@ let
       flake = {
         lib.registry = shared;
         nixosConfigurations = nixpkgs.lib.mapAttrs (
-          _: modules:
+          _: configurationModules:
           nixpkgs.lib.nixosSystem {
-            modules = [ commonModule ] ++ modules;
+            modules = [ commonModule ] ++ configurationModules;
           }
         ) nodeModules;
       };

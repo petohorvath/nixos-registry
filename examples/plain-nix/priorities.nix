@@ -1,8 +1,11 @@
-# Whole-contribution overrides select records before nested options merge.
+/*
+  Whole-contribution overrides select records before nested options
+  merge.
+*/
 { lib, mkRegistry }:
 let
   mkExample =
-    publication:
+    contribution:
     let
       registry = mkRegistry {
         inherit lib;
@@ -28,7 +31,7 @@ let
             registry.module
             {
               _file = toString ./priorities.nix;
-              registry = publication;
+              registry = contribution;
             }
           ];
         };

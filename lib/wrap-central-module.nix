@@ -1,5 +1,28 @@
 { lib, schemaGraph }:
 let
+  getActiveModuleKeys = import ./get-active-module-keys.nix { inherit lib; };
+  schemaKeys = lib.genAttrs (getActiveModuleKeys schemaGraph) (_: true);
+
+  loadModule =
+    args: module:
+    if lib.isFunction module then
+      let
+        moduleArgs = builtins.mapAttrs (name: _: args.${name} or args.config._module.args.${name}) (
+          lib.functionArgs module
+        );
+      in
+      loadModule args (module (args // moduleArgs))
+    else if lib.types.path.check module then
+      {
+        _file = toString module;
+        key = toString module;
+      }
+      // loadModule args (import module)
+    else if module._type or null == "override" || module._type or null == "if" then
+      { config = module; }
+    else
+      module;
+
   wrapModule =
     args: source:
     let
@@ -37,11 +60,9 @@ let
       # The shared evaluation already imports these declarations and defaults.
       { }
     else if (module ? config || module ? options) && unsupported != { } then
-      throw (
-        "nixos-registry: central module `${module._file or "<unknown-file>"}` "
-        + "has unsupported attribute `${builtins.head (builtins.attrNames unsupported)}`. "
-        + "Definitions belong under config when config or options is present."
-      )
+      throw "nixos-registry: central module `${
+        module._file or "<unknown-file>"
+      }` has unsupported attribute `${builtins.head (builtins.attrNames unsupported)}`. Definitions belong under config when config or options is present."
     else
       metadata
       // {
@@ -61,34 +82,5 @@ let
           };
         };
       };
-
-  schemaKeys = lib.genAttrs (collectSchemaKeys schemaGraph) (_: true);
-
-  collectSchemaKeys =
-    modules:
-    lib.concatMap (
-      module: if module.disabled then [ ] else [ module.key ] ++ collectSchemaKeys module.imports
-    ) modules;
-
-  loadModule =
-    args: module:
-    if lib.isFunction module then
-      let
-        moduleArgs = builtins.mapAttrs (name: _: args.${name} or args.config._module.args.${name}) (
-          lib.functionArgs module
-        );
-      in
-      loadModule args (module (args // moduleArgs))
-    else if lib.types.path.check module then
-      {
-        _file = toString module;
-        key = toString module;
-      }
-      // loadModule args (import module)
-    else if module._type or null == "override" || module._type or null == "if" then
-      { config = module; }
-    else
-      module;
-
 in
 wrapModule

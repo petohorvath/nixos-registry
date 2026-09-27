@@ -1,4 +1,7 @@
-# Typed shared data with root development tools and evaluation checks.
+/*
+  Typed shared data across Nix configurations, with root development tools
+  and evaluation checks.
+*/
 {
   description = "Typed shared data across Nix configurations";
 
@@ -8,7 +11,20 @@
     inputs:
     let
       inherit (inputs) nixpkgs;
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;
       mkRegistry = import ./lib/mk-registry.nix;
+      evalExample =
+        modulePath:
+        import modulePath {
+          inherit (nixpkgs) lib;
+          inherit mkRegistry;
+        };
       flakePartsExample = import ./tests/flake-parts-example.nix { inherit nixpkgs; };
       tests = forAllSystems (
         system:
@@ -21,19 +37,6 @@
             ;
         }
       );
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
-      ];
-      evalExample =
-        modulePath:
-        import modulePath {
-          inherit (nixpkgs) lib;
-          inherit mkRegistry;
-        };
-      forAllSystems = nixpkgs.lib.genAttrs systems;
       development = forAllSystems (
         system:
         let

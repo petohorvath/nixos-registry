@@ -16,11 +16,11 @@ for use_static_module in false true; do
   fi
   for source in central node; do
     for order in before after explicit; do
-      views=(direct combined validate)
+      outputs=(direct combined validate)
       if [[ $source == central ]]; then
-        views+=(central)
+        outputs+=(central)
       fi
-      for view in "${views[@]}"; do
+      for output in "${outputs[@]}"; do
         if nix eval --extra-experimental-features nix-command \
           --impure --json --store "$evaluation_store" \
           --arg lib "import $lib_path" \
@@ -28,13 +28,13 @@ for use_static_module in false true; do
           --arg staticModule "((import $registry_path/flake.nix).outputs {}).nixosModules.default" \
           --arg nixpkgs "(import $lib_path/../flake.nix).outputs { self.outPath = $lib_path/..; }" \
           --argstr system "$system" --arg useStaticModule "$use_static_module" \
-          --argstr source "$source" --argstr order "$order" --argstr view "$view" \
+          --argstr source "$source" --argstr order "$order" --argstr output "$output" \
           --file "$test_path/ordering-failures.nix" result >"$output_dir/stdout" 2>"$output_dir/stderr"; then
-          echo "$source/$order/$view: expected typed root ordering to fail" >&2
+          echo "$source/$order/$output: expected typed root ordering to fail" >&2
           exit 1
         fi
         if ! grep -Fq "unexpected argument 'priority'" "$output_dir/stderr"; then
-          echo "$source/$order/$view: unexpected evaluation failure" >&2
+          echo "$source/$order/$output: unexpected evaluation failure" >&2
           cat "$output_dir/stderr" >&2
           exit 1
         fi

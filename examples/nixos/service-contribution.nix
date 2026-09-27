@@ -1,4 +1,7 @@
-# Publish the enabled Prometheus service using its NixOS configuration.
+/*
+  Contributes the enabled Prometheus service using its NixOS
+  configuration.
+*/
 {
   config,
   lib,

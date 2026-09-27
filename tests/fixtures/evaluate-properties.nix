@@ -16,7 +16,7 @@
 }:
 {
   central ? [ ],
-  publications ? { },
+  contributions ? { },
 }:
 let
   registry = mkRegistry {
@@ -29,7 +29,7 @@ let
         inherit definitions registry;
         schemaModules = [ schema ];
       }
-    ) publications;
+    ) contributions;
   };
   # Module-order checks supply their native module boundaries separately.
   direct = lib.evalModules {
@@ -43,7 +43,7 @@ let
           default = { };
           description = "The independent reference's typed contribution root.";
         };
-        config.registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues publications));
+        config.registry = lib.mkMerge (central ++ lib.concatLists (builtins.attrValues contributions));
       }
     ];
   };

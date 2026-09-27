@@ -3,7 +3,7 @@ let
   schema = {
     options.domain = lib.mkOption {
       type = lib.types.str;
-      description = "Domain used by published services.";
+      description = "Domain used by shared services.";
     };
   };
 
@@ -52,7 +52,7 @@ in
     expected = "example.test";
   };
 
-  testViewsDoNotForceInvalidNodeContributions = {
+  testReadsDoNotForceInvalidNodeContributions = {
     expr =
       let
         registry = mkRegistry {
@@ -182,7 +182,7 @@ in
     expected = false;
   };
 
-  testPublicationsCannotOpenTheRegistryRoot = {
+  testContributionsCannotOpenTheRegistryRoot = {
     expr =
       let
         registry = mkRegistry {
@@ -244,7 +244,7 @@ in
     };
   };
 
-  testPublicationsCannotDeclareCollectionEntryOptions = {
+  testContributionsCannotDeclareCollectionEntryOptions = {
     expr =
       let
         registry = mkRegistry {

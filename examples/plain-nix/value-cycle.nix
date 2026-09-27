@@ -1,4 +1,7 @@
-# Mutually dependent publications recurse even with a lazy collection type.
+/*
+  Mutually dependent contributions recurse even with a lazy collection
+  type.
+*/
 { lib, mkRegistry }:
 let
   registry = mkRegistry {

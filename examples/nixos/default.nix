@@ -1,4 +1,4 @@
-# Real NixOS nodes publish configured services through a shared handle.
+# Real NixOS nodes contribute configured services to a shared registry.
 {
   nixpkgs,
   mkRegistry,
@@ -40,7 +40,7 @@ let
       specialArgs = { inherit registry serviceName; };
       modules = [
         registry.module
-        ./publish-service.nix
+        ./service-contribution.nix
         {
           nixpkgs.hostPlatform = system;
           networking.hostName = hostName;

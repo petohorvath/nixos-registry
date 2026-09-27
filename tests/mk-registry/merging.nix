@@ -18,7 +18,7 @@ let
     backupHost = "archive.example.test";
     backupPaths = [ "/central" ];
   };
-  publications = {
+  contributions = {
     documents = {
       backupHost = "archive.example.test";
       backupPaths = [ "/documents" ];
@@ -34,10 +34,7 @@ let
       schema
       central
     ]
-    ++ builtins.attrValues publications;
-  };
-  conflict = mkTestRegistry {
-    disagreeing.backupHost = "different.example.test";
+    ++ builtins.attrValues contributions;
   };
 
   mkTestRegistry =
@@ -60,15 +57,18 @@ let
     in
     registry;
 
+  conflict = mkTestRegistry {
+    disagreeing.backupHost = "different.example.test";
+  };
 in
 {
   testMergesListsLikeDirectEvaluation = {
-    expr = (mkTestRegistry publications).combined.backupPaths;
+    expr = (mkTestRegistry contributions).combined.backupPaths;
     expected = direct.config.backupPaths;
   };
 
   testAcceptsMatchingScalarDefinitions = {
-    expr = (mkTestRegistry publications).combined.backupHost;
+    expr = (mkTestRegistry contributions).combined.backupHost;
     expected = "archive.example.test";
   };
 

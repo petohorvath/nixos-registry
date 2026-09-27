@@ -1,4 +1,7 @@
-# Plain module nodes publish backups and read the shared views.
+/*
+  Plain module nodes contribute backup destinations and read central and
+  combined data.
+*/
 { lib, mkRegistry }:
 let
   registry = mkRegistry {
@@ -23,11 +26,13 @@ let
           port = lib.mkOption {
             type = lib.types.port;
             default = 2222;
-            description = "Port published for the offsite destination.";
+            description = "Port contributed for the offsite destination.";
           };
           backupCommand = lib.mkOption {
             type = lib.types.str;
-            description = "Example command consuming both shared views.";
+            description = ''
+              Example command consuming central and combined data.
+            '';
           };
         };
         config = {

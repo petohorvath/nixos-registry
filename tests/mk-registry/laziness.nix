@@ -13,7 +13,7 @@ let
       central = {
         settings.domain = "example.test";
       };
-      publication = {
+      contribution = {
         settings.unused = throw "Unused entry was forced.";
       };
       registry = mkRegistry {
@@ -23,7 +23,7 @@ let
         nodes.publisher = lib.evalModules {
           modules = [
             registry.module
-            { registry = publication; }
+            { registry = contribution; }
           ];
         };
       };
@@ -31,7 +31,7 @@ let
         modules = [
           schema
           central
-          publication
+          contribution
         ];
       };
     in

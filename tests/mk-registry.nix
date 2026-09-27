@@ -60,7 +60,7 @@ let
   };
 in
 {
-  testCentralViewExcludesNodes = {
+  testCentralDataExcludesNodes = {
     expr = registry.central;
     expected.backupDestinations.archive = {
       host = "archive.example.test";

@@ -2,11 +2,11 @@
   lib,
   mkRegistry,
   mkNode ?
-    { registry, publication, ... }:
+    { registry, contribution, ... }:
     lib.evalModules {
       modules = [
         registry.module
-        { registry = publication; }
+        { registry = contribution; }
       ];
     },
 }:
@@ -59,14 +59,14 @@ let
     };
   };
 
-  mkPublicationRegistry =
-    shape: publication:
+  mkContributionRegistry =
+    shape: contribution:
     let
       schemaModules = [
         {
           options.service = lib.mkOption {
             inherit (shape) type;
-            description = "Published service data.";
+            description = "Shared service data.";
           };
         }
       ];
@@ -74,18 +74,18 @@ let
         inherit lib schemaModules;
         nodes.publisher = mkNode {
           inherit registry schemaModules;
-          publication.service = shape.wrap publication;
+          contribution.service = shape.wrap contribution;
         };
       };
     in
     registry;
 in
 {
-  testPublicationsCannotDisableSchemaModules = {
+  testContributionsCannotDisableSchemaModules = {
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submodule [ ./fixtures/required-endpoint.nix ];
               wrap = lib.id;
@@ -98,11 +98,11 @@ in
     expected = false;
   };
 
-  testPublicationsCanDisablePublicationModules = {
+  testContributionsCanDisableContributionModules = {
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submodule {
                 options.endpoints = lib.mkOption {
@@ -132,7 +132,7 @@ in
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submoduleWith {
                 specialArgs.modulesPath = ./fixtures;
@@ -167,7 +167,7 @@ in
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submoduleWith {
                 specialArgs.modulesPath = ./fixtures;
@@ -183,11 +183,11 @@ in
     expected = false;
   };
 
-  testPublicationsCannotDisableImportedSchemaModules = {
+  testContributionsCannotDisableImportedSchemaModules = {
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submodule {
                 imports = [ ./fixtures/required-endpoint.nix ];
@@ -206,7 +206,7 @@ in
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submodule (
                 { _prefix, ... }:
@@ -227,11 +227,11 @@ in
     expected = false;
   };
 
-  testPublicationModuleSyntaxCannotExtendTheSchema = {
+  testContributionModuleSyntaxCannotExtendTheSchema = {
     expr =
       let
-        openPublication =
-          mkPublicationRegistry
+        openRegistry =
+          mkContributionRegistry
             {
               type = entryType;
               wrap = lib.id;
@@ -250,7 +250,7 @@ in
           };
           wrap = lib.id;
         };
-        metaPublication = mkPublicationRegistry metaShape (_: {
+        metaRegistry = mkContributionRegistry metaShape (_: {
           config = { };
           meta =
             { lib, ... }:
@@ -263,15 +263,15 @@ in
               config.endpoint = "backup.example.test:443";
             };
         });
-        validMetaPublication = mkPublicationRegistry metaShape (_: {
+        validMetaRegistry = mkContributionRegistry metaShape (_: {
           config = { };
           meta.endpoint = "backup.example.test:443";
         });
       in
       {
-        freeform = (builtins.tryEval openPublication.validate).success;
-        meta = (builtins.tryEval metaPublication.validate).success;
-        metaEndpoint = validMetaPublication.combined.service.meta.endpoint;
+        freeform = (builtins.tryEval openRegistry.validate).success;
+        meta = (builtins.tryEval metaRegistry.validate).success;
+        metaEndpoint = validMetaRegistry.combined.service.meta.endpoint;
       };
     expected = {
       freeform = false;
@@ -280,18 +280,18 @@ in
     };
   };
 
-  testFreeformPublicationsPreserveModuleMetadata = {
+  testFreeformContributionsPreserveModuleMetadata = {
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = shapes.freeform.type;
               wrap = lib.id;
             }
             (_: {
-              key = "/publication";
-              _file = "/service-publication.nix";
+              key = "/contribution";
+              _file = "/service-contribution.nix";
               _class = null;
               disabledModules = [ ];
               backup.endpoint = "backup.example.test:443";
@@ -301,11 +301,11 @@ in
     expected.backup.endpoint = "backup.example.test:443";
   };
 
-  testLegacyPublicationImportsCannotDeclareOptions = {
+  testLegacyContributionImportsCannotDeclareOptions = {
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = entryType;
               wrap = lib.id;
@@ -334,7 +334,7 @@ in
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.functionTo entryType;
               wrap = lib.id;
@@ -360,7 +360,7 @@ in
   testFunctionsKeepTheirDataAndArguments = {
     expr =
       let
-        registry = mkPublicationRegistry {
+        registry = mkContributionRegistry {
           type = lib.types.functionTo entryType;
           wrap = lib.id;
         } ({ endpoint }: _: { inherit endpoint; });
@@ -375,10 +375,10 @@ in
     };
   };
 
-  testFilePublicationsRetainModuleSemantics = {
+  testFileContributionsRetainModuleSemantics = {
     expr =
       let
-        registry = mkPublicationRegistry {
+        registry = mkContributionRegistry {
           type = lib.types.submodule {
             options.endpoints = lib.mkOption {
               type = lib.types.listOf lib.types.str;
@@ -392,11 +392,11 @@ in
     expected = [ "backup.example.test:443" ];
   };
 
-  testRepeatedPublicationImportsRetainModuleIdentity = {
+  testRepeatedContributionImportsRetainModuleIdentity = {
     expr =
       let
         registry =
-          mkPublicationRegistry
+          mkContributionRegistry
             {
               type = lib.types.submodule {
                 options.endpoints = lib.mkOption {
@@ -420,7 +420,7 @@ in
   testInvalidSubmoduleValuesRetainTypeFailures = {
     expr =
       (builtins.tryEval
-        (mkPublicationRegistry {
+        (mkContributionRegistry {
           type = entryType;
           wrap = lib.id;
         } "not a module").validate
@@ -432,7 +432,7 @@ in
     expr = builtins.mapAttrs (
       _: shape:
       let
-        registry = mkPublicationRegistry shape (_: {
+        registry = mkContributionRegistry shape (_: {
           imports = [ { endpoint = "backup.example.test:443"; } ];
         });
       in
@@ -455,7 +455,7 @@ in
     expr = builtins.mapAttrs (
       _: shape:
       let
-        registry = mkPublicationRegistry shape (
+        registry = mkContributionRegistry shape (
           { lib, ... }:
           {
             options.injected = lib.mkOption {

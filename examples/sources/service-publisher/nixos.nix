@@ -1,4 +1,7 @@
-# Contribute a configured API service through the common static registry import.
+/*
+  Contributes a configured API service through the common static
+  registry import.
+*/
 { config, ... }:
 {
   networking.hostName = "api";

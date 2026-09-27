@@ -1,4 +1,9 @@
-# Compose a shared registry with the consumer's module library and named nodes.
+/*
+  Compose a registry at the project level from the consumer's module library,
+  shared schema, central modules, and named nodes. Pass the `central`,
+  `combined`, and `validate` results to each node through the static NixOS
+  module.
+*/
 {
   config,
   lib,
@@ -34,17 +39,24 @@ in
       nodes = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.raw;
         apply = requireSetting "nodes";
-        description = "Named, complete node evaluation results; an empty set is valid.";
+        description = ''
+          Named, complete node evaluation results; an empty set is valid.
+        '';
       };
       centralModules = lib.mkOption {
         type = lib.types.listOf lib.types.deferredModule;
         default = [ ];
-        description = "Modules defining shared values outside node contributions.";
+        description = ''
+          Modules defining shared values outside node contributions.
+        '';
       };
       specialArgs = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.raw;
         default = { };
-        description = "Arguments for schema and central modules, separate from node module arguments.";
+        description = ''
+          Arguments for schema and central modules, separate from node module
+          arguments.
+        '';
       };
     };
     central = lib.mkOption {
@@ -55,12 +67,17 @@ in
     combined = lib.mkOption {
       type = lib.types.raw;
       readOnly = true;
-      description = "Shared data merged from central modules and the selected nodes.";
+      description = ''
+        Shared data merged from central modules and the selected nodes.
+      '';
     };
     validate = lib.mkOption {
       type = lib.types.bool;
       readOnly = true;
-      description = "Explicit validation of all combined data; returns true or raises an evaluation error.";
+      description = ''
+        Explicit validation of all combined data; returns true or raises an
+        evaluation error.
+      '';
     };
   };
 

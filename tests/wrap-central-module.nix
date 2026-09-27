@@ -255,7 +255,7 @@ in
             { backupPaths = [ "/discarded" ]; }
             { config = lib.mkForce { backupHost = "central.example.test"; }; }
           ];
-          nodes = throw "The central view collected nodes.";
+          nodes = throw "Central data collected nodes.";
         };
         direct = lib.evalModules {
           modules = [

@@ -6,7 +6,7 @@ Run commands from the repository root with Nix's `nix-command` and `flakes` feat
 
 ## NixOS
 
-The [NixOS example](../examples/nixos/default.nix) uses the [service schema](../examples/plain-nix/service-schema.nix) and a [module that contributes service data](../examples/nixos/publish-service.nix).
+The [NixOS example](../examples/nixos/default.nix) uses the [service schema](../examples/plain-nix/service-schema.nix) and a [module that contributes service data](../examples/nixos/service-contribution.nix).
 
 The configuration named `metrics publisher` enables Prometheus and contributes its actual configured port. The configuration named `standby publisher` disables Prometheus and contributes no service record. Both read the combined endpoint into `/etc/metrics-endpoint`.
 
@@ -35,7 +35,7 @@ This changes `services.prometheus.package`. The caller's `nixpkgs` input still s
 
 The [ordinary-flake consumer](../examples/static-nixos/default.nix) imports the public `nixosModules.default` through a common NixOS module. It keeps one project-level `lib.mkRegistry` call and supplies the same schema through `registry.settings.schemaModules`. The common module assigns the shared registry's `central`, `combined`, and `validate` values to the corresponding node options.
 
-The [contributing module](../examples/static-nixos/publish-service.nix) reads `config.registry.central.domain`, contributes the complete `registry.services.metrics` record using the configured Prometheus port, and reads `config.registry.combined.services.metrics.endpoint` into `/etc/metrics-endpoint`. It receives shared data entirely through options.
+The [contributing module](../examples/static-nixos/service-contribution.nix) reads `config.registry.central.domain`, contributes the complete `registry.services.metrics` record using the configured Prometheus port, and reads `config.registry.combined.services.metrics.endpoint` into `/etc/metrics-endpoint`. It receives shared data entirely through options.
 
 ```sh
 nix eval --no-update-lock-file .#lib.staticNixosExamples.x86_64-linux --json

@@ -1,13 +1,18 @@
-# Connect a NixOS node to a caller-owned registry through static settings and shared results.
+/*
+  Connect a NixOS node to a caller-owned registry. Settings select the shared
+  schema, `registry.<name>` definitions form the node's contribution, and the
+  caller passes the shared `central`, `combined`, and `validate` results in.
+*/
 { lib, options, ... }:
 let
-  interface = import ../lib/static-interface.nix { inherit lib; };
+  staticInterface = import ../lib/static-interface.nix { inherit lib; };
 in
 {
   options.registry =
     lib.mkOption {
       type = lib.types.submodule {
-        # The apply function checks contribution definitions against the selected schema.
+        # The apply function checks contribution definitions against the
+        # selected schema.
         freeformType = lib.types.lazyAttrsOf lib.types.raw;
         options = {
           settings = lib.mkOption {
@@ -15,12 +20,18 @@ in
               options = {
                 schemaModules = lib.mkOption {
                   type = lib.types.listOf lib.types.deferredModule;
-                  description = "Shared schema modules, also supplied to the project-level registry.";
+                  description = ''
+                    Shared schema modules, also supplied to the project-level
+                    registry.
+                  '';
                 };
                 specialArgs = lib.mkOption {
                   type = lib.types.lazyAttrsOf lib.types.raw;
                   default = { };
-                  description = "Arguments for the shared schema, separate from NixOS module arguments.";
+                  description = ''
+                    Arguments for the shared schema, separate from NixOS module
+                    arguments.
+                  '';
                 };
               };
             };
@@ -30,22 +41,30 @@ in
           central = lib.mkOption {
             type = lib.types.raw;
             readOnly = true;
-            description = "Central data supplied from the caller's shared registry.";
+            description = ''
+              Central data supplied from the caller's shared registry.
+            '';
           };
           combined = lib.mkOption {
             type = lib.types.raw;
             readOnly = true;
-            description = "Combined data supplied from the caller's shared registry.";
+            description = ''
+              Combined data supplied from the caller's shared registry.
+            '';
           };
           validate = lib.mkOption {
             type = lib.types.bool;
             readOnly = true;
-            description = "Explicit validation supplied from the caller's shared registry.";
+            description = ''
+              Explicit validation supplied from the caller's shared registry.
+            '';
           };
         };
       };
       default = { };
-      description = "Local registry contributions, schema settings, and shared results.";
+      description = ''
+        Local registry contributions, schema settings, and shared results.
+      '';
       apply =
         config:
         let
@@ -56,15 +75,15 @@ in
           };
           schemaOptions = contributionType.getSubOptions [ "registry" ];
         in
-        interface.checkSchema schemaOptions (
+        staticInterface.checkSchema schemaOptions (
           contributionType.merge [ "registry" ] (
-            interface.selectContributions schemaOptions options.registry.definitionsWithLocations
+            staticInterface.selectContributions schemaOptions options.registry.definitionsWithLocations
           )
-          // lib.getAttrs interface.reservedNames config
+          // lib.getAttrs staticInterface.reservedNames config
         );
     }
     // {
       _nixosRegistry = true;
-      _nixosRegistrySelectContributions = interface.selectContributions;
+      _nixosRegistrySelectContributions = staticInterface.selectContributions;
     };
 }

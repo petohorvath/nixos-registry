@@ -3,7 +3,7 @@
   mkRegistry,
   source,
   order,
-  view,
+  output,
   useStaticModule ? false,
   nixpkgs ? null,
   system ? null,
@@ -48,15 +48,15 @@ let
     if source == "central" then
       {
         central = [ ordered ];
-        publications.publisher = [ { backupPaths = [ "/node" ]; } ];
+        contributions.publisher = [ { backupPaths = [ "/node" ]; } ];
       }
     else
       {
         central = [ { backupPaths = [ "/central" ]; } ];
-        publications.publisher = [ ordered ];
+        contributions.publisher = [ ordered ];
       }
   );
 in
 {
-  result = evaluations.${view};
+  result = evaluations.${output};
 }

@@ -8,6 +8,30 @@ Select nixos-project-policy v0.4.0 and declare both required Linux architectures
 
 Policy selection and settings now belong to the caller; current central records hold enrollment identities and approved compatibility pins. Ordinary policy upgrades need no central activation change. Local `ci` planning reads the member checkout; use `ci "$PWD" --project nixos-registry` with the selected checker and trusted records.
 
+### Breaking contribution terminology
+
+Use **contribution** for node and central option definitions in library code, tests, example modules, and diagnostics, replacing "publication", "publish", and "view". Contribution errors now read `contribution at ...` instead of `publication at ...`, and their error context reads `while checking contribution from node ...` instead of `while checking publication from node ...`; both still report the option path, node, and source file. The NixOS and static NixOS example modules move from `publish-service.nix` to `service-contribution.nix`. Node names such as `metrics publisher` and the flake-parts example's `servicePublisher` input keep their names. Focused commands under `lib.tests.<system>` must use the replacements below. The renamed cases keep their assertions.
+
+| Previous test name                                    | Replacement                                            |
+| ----------------------------------------------------- | ------------------------------------------------------ |
+| `testCentralViewExcludesNodes`                        | `testCentralDataExcludesNodes`                         |
+| `testDisabledNixosServiceDoesNotPublish`              | `testDisabledNixosServiceDoesNotContribute`            |
+| `testFilePublicationsRetainModuleSemantics`           | `testFileContributionsRetainModuleSemantics`           |
+| `testFreeformPublicationsPreserveModuleMetadata`      | `testFreeformContributionsPreserveModuleMetadata`      |
+| `testLegacyPublicationImportsCannotDeclareOptions`    | `testLegacyContributionImportsCannotDeclareOptions`    |
+| `testLocallyEnabledOrderedPublicationExample`         | `testLocallyEnabledOrderedContributionExample`         |
+| `testNixosNodesReadCombinedDataWhilePublishing`       | `testNixosNodesReadCombinedDataWhileContributing`      |
+| `testNixosPublishesConfiguredServicePort`             | `testNixosContributesConfiguredServicePort`            |
+| `testNodePublishesFromCombinedDomainExample`          | `testNodeContributesFromCombinedDomainExample`         |
+| `testPublicationModuleSyntaxCannotExtendTheSchema`    | `testContributionModuleSyntaxCannotExtendTheSchema`    |
+| `testPublicationsCanDisablePublicationModules`        | `testContributionsCanDisableContributionModules`       |
+| `testPublicationsCannotDeclareCollectionEntryOptions` | `testContributionsCannotDeclareCollectionEntryOptions` |
+| `testPublicationsCannotDisableImportedSchemaModules`  | `testContributionsCannotDisableImportedSchemaModules`  |
+| `testPublicationsCannotDisableSchemaModules`          | `testContributionsCannotDisableSchemaModules`          |
+| `testPublicationsCannotOpenTheRegistryRoot`           | `testContributionsCannotOpenTheRegistryRoot`           |
+| `testRepeatedPublicationImportsRetainModuleIdentity`  | `testRepeatedContributionImportsRetainModuleIdentity`  |
+| `testViewsDoNotForceInvalidNodeContributions`         | `testReadsDoNotForceInvalidNodeContributions`          |
+
 ### Breaking rename to nodes
 
 Rename participants to **nodes** throughout the public API, examples, diagnostics, and documentation. A node remains a named, evaluated configuration included in a registry; generic `lib.evalModules` configurations remain supported, and node names need not be hostnames.
