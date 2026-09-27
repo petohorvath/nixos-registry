@@ -144,14 +144,14 @@ After the shared snapshot job, compliance, project tests, and stable/unstable co
 
 The member-owned formatting/lint job runs independently on both Linux architectures against the same event revision as Policy. It builds the root formatting, lint, and workflow checks with the committed lock and retains the existing `Policy / Formatting and lint (<architecture>)` status names. These two additional gates preserve the existing merge contract now that the reusable policy workflow delegates formatting and lint to members.
 
-The selected checker derives required gates from the release and the caller settings, including `additional_required_checks`. Generate the complete list with the trusted record checkout, cloned into `$NIXOS_REGISTRY_RECORDS_DIR` in the current shell as described in [Policy records and compliance](#policy-records-and-compliance):
+The selected checker derives required gates from the release and the caller settings, including `additional_required_checks`. Generate the complete list with the trusted policy records checkout, cloned into `$NIXOS_REGISTRY_RECORDS_DIR` in the current shell as described in [Policy records and compliance](#policy-records-and-compliance):
 
 ```sh
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
   --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" ci "$PWD" --project nixos-registry
 ```
 
-After this last command that uses `$NIXOS_REGISTRY_RECORDS_DIR`, remove the temporary record checkout:
+After this last command that uses `$NIXOS_REGISTRY_RECORDS_DIR`, remove the temporary policy records checkout:
 
 ```sh
 rm -rf "${NIXOS_REGISTRY_RECORDS_DIR:?}"
