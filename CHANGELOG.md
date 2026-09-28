@@ -6,7 +6,7 @@
 
 Select nixos-project-policy v0.4.0 and declare both required Linux architectures in the member workflow. Keep the existing 11 merge statuses by declaring both formatting/lint checks as additional gates and running them in a member-owned job. Root checks, dependency locks, and public interfaces remain unchanged.
 
-Policy selection and settings now belong to the caller; current central records hold enrollment identities and approved compatibility pins. Ordinary policy upgrades need no central activation change. Local `ci` planning reads the member checkout; use `ci "$PWD" --project nixos-registry` with the selected checker and trusted records.
+Policy selection and settings now belong to the caller; current policy records hold enrollment identities and approved compatibility pins. Ordinary policy upgrades need no nixos-project-policy change. Local `ci` planning reads the member checkout; use `ci "$PWD" --project nixos-registry` with the selected checker and trusted policy records.
 
 ### Breaking contribution terminology
 
@@ -124,6 +124,6 @@ Add root tools, formatting, lint, workflow validation, contribution and release 
 
 ### Policy v0.3.0
 
-Select the immutable nixos-project-policy v0.3.0 caller named `Policy` for every PR, default-branch push, and manual run. Hosted checks separate compliance, formatting/lint, committed-lock project tests, and stable/unstable compatibility on both Linux architectures. The selected checker derives the required status set from central records. Local compliance and compatibility use an explicit trusted current-record checkout.
+Select the immutable nixos-project-policy v0.3.0 caller named `Policy` for every PR, default-branch push, and manual run. Hosted checks separate compliance, formatting/lint, committed-lock project tests, and stable/unstable compatibility on both Linux architectures. The selected checker derives the required status set from policy records. Local compliance and compatibility use an explicit trusted policy records checkout.
 
-Activate v0.3.0 enrollment in current central records. Require PRs and all 11 policy statuses on `main`, including for administrators, with squash merging and the PR title as its subject. The central drift audit monitors policy selection, pins, and merge controls. Merge and release approval remain human decisions; this migration does not publish a library release.
+Activate v0.3.0 enrollment in current policy records. Require PRs and all 11 policy statuses on `main`, including for administrators, with squash merging and the PR title as its subject. The nixos-project-policy member audit monitors policy selection, pins, and merge controls. Merge and release approval remain human decisions; this migration does not publish a library release.
