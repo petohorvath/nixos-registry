@@ -6,7 +6,7 @@ Follow the selected [nixos-project-policy v0.4.0](https://github.com/petohorvath
 
 Work on a branch and open a PR with a Conventional Commit title, such as `fix: Preserve contribution source locations`. Describe the resulting behavior, compatibility effects, and validation. Mark breaking changes with `!` and provide migration notes in the [changelog](CHANGELOG.md).
 
-Run root `nix fmt --no-update-lock-file` and `nix flake check --no-update-lock-file`. Run stable and unstable public-constructor coverage through the selected policy runner with trusted current records. Independently validate the flake-parts example when its inputs or integration assembly change. Add meaningful tests at public interfaces for behavior changes. Ordinary validation requires no VM execution or virtualization permissions.
+Run root `nix fmt --no-update-lock-file` and `nix flake check --no-update-lock-file`. Run stable and unstable public-constructor coverage through the selected policy runner with trusted current policy records. Independently validate the flake-parts example when its inputs or integration assembly change. Add meaningful tests at public interfaces for behavior changes. Ordinary validation requires no VM execution or virtualization permissions.
 
 A docs-only change edits only Markdown files and leaves their Nix code blocks unchanged; code blocks such as the examples in `docs/examples.md` count as example sources. Locally, a docs-only change needs only the root formatting and flake checks above. When it edits a documented command or that command's documented result, run the command once with its documented setup and record the host and result on the PR. Required hosted checks still apply before merge.
 
