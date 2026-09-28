@@ -30,4 +30,4 @@ _Avoid_: Combined view, global state
 
 **Policy records**:
 The pin records and member roster on nixos-project-policy's `main` branch, which approve compatibility revisions and list enrolled repositories. They are validation input, not registry data.
-_Avoid_: Records alone, trusted records
+_Avoid_: Records alone, trusted records, central records

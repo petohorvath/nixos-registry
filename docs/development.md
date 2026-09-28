@@ -159,9 +159,9 @@ rm -rf "${NIXOS_REGISTRY_RECORDS_DIR:?}"
 
 The required statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. All 11 statuses are bound to GitHub Actions and required on an up-to-date PR before a human approves its squash merge. Protection applies to administrators. No VM gate is required.
 
-The central drift audit inspects adopted members and their GitHub merge controls using the read-only access described in the [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#audit-access). Keep member, checker, and policy records revisions and hosted job links on the relevant PRs.
+The nixos-project-policy member audit inspects adopted members and their GitHub merge controls using the read-only access described in the [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#audit-access). Keep member, checker, and policy records revisions and hosted job links on the relevant PRs.
 
-Future policy upgrades use reviewed member PRs that update the caller and policy links together. Verify hosted statuses and obtain human approval for merge and any gate changes. Ordinary upgrades leave the central roster unchanged; enrollment changes and shared-pin approval require reviewed central PRs. The hosted workflow captures current policy records from policy `main`; proposed policy records remain separate until their PR is merged.
+Future policy upgrades use reviewed member PRs that update the caller and policy links together. Verify hosted statuses and obtain human approval for merge and any gate changes. Ordinary upgrades leave the member roster unchanged; enrollment changes and shared-pin approval require reviewed nixos-project-policy PRs. The hosted workflow captures current policy records from policy `main`; proposed policy records remain separate until their PR is merged.
 
 ## Documentation and issues
 
