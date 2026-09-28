@@ -29,5 +29,5 @@ Shared data from central definitions and all node contributions, merged accordin
 _Avoid_: Combined view, global state
 
 **Policy records**:
-The trusted checkout of nixos-project-policy's `main` branch whose pin and roster records supply approved compatibility revisions and enrollment to the policy checker. It is validation input, not registry data.
-_Avoid_: Record, records
+The pin records and member roster on nixos-project-policy's `main` branch, which approve compatibility revisions and list enrolled repositories. They are validation input, not registry data.
+_Avoid_: Records alone, trusted records
