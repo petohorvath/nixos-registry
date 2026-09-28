@@ -27,3 +27,7 @@ _Avoid_: Global defaults, central store
 **Combined data**:
 Shared data from central definitions and all node contributions, merged according to the schema. A record can be complete in the combined data even when individual contributions are incomplete.
 _Avoid_: Combined view, global state
+
+**Policy records**:
+The trusted checkout of nixos-project-policy's `main` branch whose pin and roster records supply approved compatibility revisions and enrollment to the policy checker. It is validation input, not registry data.
+_Avoid_: Record, records

@@ -104,7 +104,7 @@ nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- 
 
 ### Policy records and compliance
 
-Policy checking requires an explicit trusted checkout of current records. Clone it from policy `main` into a temporary directory outside the member checkout, and retain its commit with the PR's validation evidence.
+Policy checking requires an explicit trusted checkout of current policy records. Clone it from policy `main` into a temporary directory outside the member checkout, and retain its commit with the PR's validation evidence.
 
 The policy check, both [compatibility runs](#compatibility-checks), and the [hosted checks](#hosted-checks) `ci` command reuse `$NIXOS_REGISTRY_RECORDS_DIR`, so run them in one shell. In a new shell, the variable is empty and the commands fail. Set the variable only through its `mktemp -d` command and never point it at another checkout, because the cleanup command deletes whatever directory it names.
 
@@ -117,11 +117,11 @@ nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- 
   check "$PWD" --project nixos-registry --shell
 ```
 
-The caller selects `policy_version: v0.4.0` and declares `required_architectures` as a literal JSON list containing `x86_64-linux` and `aarch64-linux`. Its `additional_required_checks` retains both formatting/lint statuses. VM targets default to an empty list. The normal check must report `pass` against approved pins and separately report `enrollment: "enrolled"` from the current roster. Static reports identify compatibility as `not-run`; execute the separate compatibility checks below for that evidence. For future enrollment changes, follow the selected release's [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#enrollment). Successful checks against proposed records neither change enrollment nor approve pins.
+The caller selects `policy_version: v0.4.0` and declares `required_architectures` as a literal JSON list containing `x86_64-linux` and `aarch64-linux`. Its `additional_required_checks` retains both formatting/lint statuses. VM targets default to an empty list. The normal check must report `pass` against approved pins and separately report `enrollment: "enrolled"` from the current roster. Static reports identify compatibility as `not-run`; execute the separate compatibility checks below for that evidence. For future enrollment changes, follow the selected release's [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#enrollment). Successful checks against proposed policy records neither change enrollment nor approve pins.
 
 ### Compatibility checks
 
-Commit any deliberate root lock changes before compatibility validation: the runner requires the root lock to match its committed copy. Use the same trusted records for both runs:
+Commit any deliberate root lock changes before compatibility validation: the runner requires the root lock to match its committed copy. Use the same policy records checkout for both runs:
 
 ```sh
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
