@@ -104,13 +104,16 @@ nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- 
 
 ### Policy records and compliance
 
-Policy checking requires an explicit trusted checkout of current records. Create it separately, or update an existing clean checkout from policy `main`, and retain its commit with the PR's validation evidence:
+Policy checking requires an explicit trusted checkout of current records. Clone it from policy `main` into a temporary directory outside the member checkout, and retain its commit with the PR's validation evidence.
+
+The policy check, both [compatibility runs](#compatibility-checks), and the [hosted checks](#hosted-checks) `ci` command reuse `$NIXOS_REGISTRY_RECORDS_DIR`, so run them in one shell. In a new shell, the variable is empty and the commands fail. Set the variable only through its `mktemp -d` command and never point it at another checkout, because the cleanup command deletes whatever directory it names.
 
 ```sh
-git clone --branch main --single-branch https://github.com/petohorvath/nixos-project-policy.git ../nixos-project-policy-records
-git -C ../nixos-project-policy-records rev-parse HEAD
+NIXOS_REGISTRY_RECORDS_DIR=$(mktemp -d)
+git clone --branch main --single-branch https://github.com/petohorvath/nixos-project-policy.git "$NIXOS_REGISTRY_RECORDS_DIR"
+git -C "$NIXOS_REGISTRY_RECORDS_DIR" rev-parse HEAD
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root ../nixos-project-policy-records \
+  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" \
   check "$PWD" --project nixos-registry --shell
 ```
 
@@ -122,14 +125,14 @@ Commit any deliberate root lock changes before compatibility validation: the run
 
 ```sh
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root ../nixos-project-policy-records \
+  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" \
   compatibility "$PWD" --project nixos-registry --channel stable
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root ../nixos-project-policy-records \
+  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" \
   compatibility "$PWD" --project nixos-registry --channel unstable
 ```
 
-The runner verifies the effective root input through Nix metadata and executes full root host checks with an exact `--override-input nixpkgs`. It checks that the member source and lock remain unchanged and saves metadata and result artifacts. These runs intentionally use a different effective graph from the committed-lock check; they do not update the member lock. Keep both kinds of evidence on the PR, with the member, checker, and record commits and record digest. Run compatibility on each recorded Linux architecture; cached builds can satisfy checks. See the [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/checker.md#compatibility-execution-and-evidence) for replay instructions.
+The runner verifies the effective root input through Nix metadata and executes full root host checks with an exact `--override-input nixpkgs`. It checks that the member source and lock remain unchanged and saves metadata and result artifacts. Each run creates a temporary evidence directory and reports its path as `artifacts`; to choose the location, pass `--output` with a new directory outside the member checkout, such as `"$(mktemp -d)/stable"`. These runs intentionally use a different effective graph from the committed-lock check; they do not update the member lock. Keep both kinds of evidence on the PR, with the member, checker, and record commits and record digest. Run compatibility on each recorded Linux architecture; cached builds can satisfy checks. See the [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/checker.md#compatibility-execution-and-evidence) for replay instructions.
 
 ### Hosted checks
 
@@ -141,11 +144,17 @@ After the shared snapshot job, compliance, project tests, and stable/unstable co
 
 The member-owned formatting/lint job runs independently on both Linux architectures against the same event revision as Policy. It builds the root formatting, lint, and workflow checks with the committed lock and retains the existing `Policy / Formatting and lint (<architecture>)` status names. These two additional gates preserve the existing merge contract now that the reusable policy workflow delegates formatting and lint to members.
 
-The selected checker derives required gates from the release and the caller settings, including `additional_required_checks`. Generate the complete list with:
+The selected checker derives required gates from the release and the caller settings, including `additional_required_checks`. Generate the complete list with the trusted policy records checkout, cloned into `$NIXOS_REGISTRY_RECORDS_DIR` in the current shell as described in [Policy records and compliance](#policy-records-and-compliance):
 
 ```sh
 nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root ../nixos-project-policy-records ci "$PWD" --project nixos-registry
+  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" ci "$PWD" --project nixos-registry
+```
+
+After this last command that uses `$NIXOS_REGISTRY_RECORDS_DIR`, remove the temporary policy records checkout:
+
+```sh
+rm -rf "${NIXOS_REGISTRY_RECORDS_DIR:?}"
 ```
 
 The required statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. All 11 statuses are bound to GitHub Actions and required on an up-to-date PR before a human approves its squash merge. Protection applies to administrators. No VM gate is required.
