@@ -18,7 +18,12 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-      mkRegistry = import ./lib/mk-registry.nix;
+      exports = {
+        lib = import ./lib;
+        nixosModules.default = import ./nixos/module.nix;
+        flakeModules.default = import ./flake-module.nix;
+      };
+      inherit (exports.lib) mkRegistry;
       evalExample =
         modulePath:
         import modulePath {
@@ -30,8 +35,8 @@
         system:
         import ./tests {
           inherit
+            exports
             flakePartsExample
-            mkRegistry
             nixpkgs
             system
             ;
@@ -60,11 +65,10 @@
       );
     in
     {
-      flakeModules.default = import ./modules/flake.nix;
-      nixosModules.default = import ./modules/nixos.nix;
+      inherit (exports) flakeModules nixosModules;
 
-      lib = {
-        inherit mkRegistry tests;
+      lib = exports.lib // {
+        inherit tests;
         examples = evalExample ./examples/plain-nix;
         collectionLaziness = evalExample ./examples/plain-nix/collection-laziness.nix;
         combinedReads = evalExample ./examples/plain-nix/combined-reads.nix;

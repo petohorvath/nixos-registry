@@ -1,23 +1,23 @@
 {
-  nixpkgs,
+  exports,
   flakeParts,
+  nixpkgs,
   system,
 }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../../flake.nix).outputs { };
   mkConsumer =
     modules:
     flakeParts.lib.mkFlake
       {
         inputs = {
-          self.outPath = ../..;
+          self.outPath = ../.;
           inherit nixpkgs;
         };
       }
       (
         { config, ... }: {
-          imports = [ registryFlake.flakeModules.default ] ++ modules;
+          imports = [ exports.flakeModules.default ] ++ modules;
           systems = [ ];
           flake.lib.registry = config.registry;
         }
@@ -28,7 +28,7 @@ let
       let
         shared = config.registry;
         commonModule = {
-          imports = [ registryFlake.nixosModules.default ];
+          imports = [ exports.nixosModules.default ];
           nixpkgs.hostPlatform = system;
           system.stateVersion = "26.05";
           registry = {
@@ -39,7 +39,7 @@ let
       in
       {
         registry.settings = {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ ../examples/plain-nix/service-schema.nix ];
           centralModules = [
             {
               domain = "example.test";
@@ -107,7 +107,7 @@ in
           flakeParts.lib.mkFlake
             {
               inputs = {
-                self.outPath = ../..;
+                self.outPath = ../.;
                 inherit nixpkgs;
               };
               specialArgs.lib = selectedLib;
@@ -119,7 +119,7 @@ in
                 node = selectedLib.nixosSystem {
                   specialArgs.nodePort = 2222;
                   modules = [
-                    registryFlake.nixosModules.default
+                    exports.nixosModules.default
                     {
                       nixpkgs.hostPlatform = system;
                       registry = {
@@ -132,7 +132,7 @@ in
                 };
               in
               {
-                imports = [ registryFlake.flakeModules.default ];
+                imports = [ exports.flakeModules.default ];
                 systems = [ ];
                 registry.settings = {
                   schemaModules = [

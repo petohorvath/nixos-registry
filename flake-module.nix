@@ -11,7 +11,7 @@
   ...
 }:
 let
-  registry = import ../lib/mk-registry.nix {
+  registry = import ./lib/mk-registry.nix {
     inherit lib;
     inherit (config.registry.settings)
       centralModules
