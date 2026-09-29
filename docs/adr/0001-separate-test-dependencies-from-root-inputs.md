@@ -6,7 +6,7 @@ status: proposed
 
 Keep one selected `nixpkgs` input in the root flake for development tools, formatting, ordinary checks, and examples. Under [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md), the external policy runner supplies shared stable and unstable revisions through exact root-input overrides. This separates compatibility coverage from the root dependency graph without adding a second Nixpkgs input or a compatibility flake.
 
-The [integration helper](../../tests/flake-parts-example.nix) fetches the flake-parts source using the exact revision and content hash in the existing [standalone example lock](../../examples/flake-parts/flake.lock). It assembles the example's public outputs and separate node sources with the selected root module library, including during compatibility overrides. It does not load the example's independent Nixpkgs selection or implement recursive flake-input resolution.
+The integration helper fetches the flake-parts source using the exact revision and content hash in the existing standalone example lock. It assembles the example's public outputs and separate node sources with the selected root module library, including during compatibility overrides. It does not load the example's independent Nixpkgs selection or implement recursive flake-input resolution.
 
 ## Consequences
 

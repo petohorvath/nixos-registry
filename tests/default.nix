@@ -1,13 +1,12 @@
 {
   exports,
-  flakePartsExample,
+  flakeParts,
   nixpkgs,
   system,
 }:
 let
   inherit (exports.lib) mkRegistry;
   inherit (nixpkgs) lib;
-  flakeParts = flakePartsExample.inputs.flake-parts;
   pathExports = import ./helpers/plain-exports.nix;
   flakeModuleTests =
     moduleExports:
@@ -21,13 +20,23 @@ let
       inherit nixpkgs system;
       exports = moduleExports;
     };
+  flakePartsExampleTests =
+    exampleExports:
+    import ./integration/flake-parts.nix {
+      inherit lib;
+      inherit (exampleExports.lib) mkRegistry;
+      example = import ../examples/flake-parts {
+        inherit flakeParts nixpkgs system;
+        registry = exampleExports;
+      };
+    };
 
-  # Rerun selected scenarios with the static modules loaded by path.
+  # Rerun selected scenarios with the public exports loaded by path.
   pathImportedTests =
     tests: names:
-    lib.mapAttrs' (
-      name: lib.nameValuePair (lib.replaceStrings [ "testStatic" ] [ "testPathImportedStatic" ] name)
-    ) (lib.getAttrs names tests);
+    lib.mapAttrs' (name: lib.nameValuePair "testPathImported${lib.removePrefix "test" name}") (
+      lib.getAttrs names tests
+    );
 
   tests =
     import ./mk-registry.nix { inherit lib mkRegistry; }
@@ -51,7 +60,13 @@ let
     // import ./integration/nixos.nix {
       inherit mkRegistry nixpkgs system;
     }
-    // import ./integration/flake-parts.nix { example = flakePartsExample; }
+    // flakePartsExampleTests exports
+    // pathImportedTests (flakePartsExampleTests pathExports) [
+      "testFlakePartsExampleEvaluatesAndValidates"
+      "testSeparateSourceNodesKeepLocalContributionsDistinct"
+      "testSeparateSourceExampleCompletesPartialRecords"
+      "testSeparateSourceGenericModulesKeepConstructorAccess"
+    ]
     // import ./integration/examples.nix { inherit lib mkRegistry; };
 in
 lib.mapAttrs (

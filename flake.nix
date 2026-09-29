@@ -5,12 +5,20 @@
 {
   description = "Typed shared data across Nix configurations";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+  };
 
   outputs =
     inputs:
     let
-      inherit (inputs) nixpkgs;
+      # The constructor and static modules never read these inputs, so
+      # plain import through outputs { } keeps working.
+      inherit (inputs) flake-parts nixpkgs;
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -30,16 +38,18 @@
           inherit (nixpkgs) lib;
           inherit mkRegistry;
         };
-      flakePartsExample = import ./tests/flake-parts-example.nix { inherit nixpkgs; };
+      evalFlakePartsExample =
+        system:
+        import ./examples/flake-parts {
+          inherit nixpkgs system;
+          registry = exports;
+          flakeParts = flake-parts;
+        };
       tests = forAllSystems (
         system:
         import ./tests {
-          inherit
-            exports
-            flakePartsExample
-            nixpkgs
-            system
-            ;
+          inherit exports nixpkgs system;
+          flakeParts = flake-parts;
         }
       );
       development = forAllSystems (
@@ -53,13 +63,14 @@
           shell = pkgs.callPackage ./shell.nix { inherit formatter; };
           checks = import ./tests/checks.nix {
             inherit
-              flakePartsExample
               formatter
               nixpkgs
               pkgs
               system
               ;
             tests = tests.${system};
+            flakeParts = flake-parts;
+            flakePartsExample = evalFlakePartsExample system;
           };
         }
       );
@@ -73,7 +84,7 @@
         collectionLaziness = evalExample ./examples/plain-nix/collection-laziness.nix;
         combinedReads = evalExample ./examples/plain-nix/combined-reads.nix;
         conditionalOrdering = evalExample ./examples/plain-nix/conditional-ordering.nix;
-        flakePartsExamples = flakePartsExample.lib.result;
+        flakePartsExamples = (evalFlakePartsExample "x86_64-linux").lib.result;
         nixosExamples = forAllSystems (
           system:
           (import ./examples/nixos {

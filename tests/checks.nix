@@ -1,4 +1,5 @@
 {
+  flakeParts,
   flakePartsExample,
   formatter,
   nixpkgs,
@@ -26,7 +27,7 @@ pkgs.lib.mapAttrs
         pkgs.lib.optionalString (builtins.elem name [
           "diagnostics"
           "recursion"
-        ]) (toString flakePartsExample.inputs.flake-parts.outPath)
+        ]) (toString flakeParts.outPath)
       }
       touch "$out"
     ''

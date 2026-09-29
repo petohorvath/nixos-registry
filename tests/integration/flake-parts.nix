@@ -1,4 +1,8 @@
-{ example }:
+{
+  example,
+  lib,
+  mkRegistry,
+}:
 let
   api = example.lib.nodes."api publisher".config;
   backup = example.lib.nodes."backup consumer".config;
@@ -77,9 +81,7 @@ in
   testSeparateSourceGenericModulesKeepConstructorAccess = {
     expr =
       let
-        inherit (example.inputs.nixpkgs) lib;
-        registryFlake = (import "${example.inputs.nixos-registry}/flake.nix").outputs { };
-        registry = registryFlake.lib.mkRegistry {
+        registry = mkRegistry {
           inherit lib nodes;
           schemaModules = [ ../../examples/flake-parts/schema.nix ];
           centralModules = [ { domain = "example.test"; } ];
@@ -97,8 +99,8 @@ in
               }
             )
             {
-              "api publisher" = example.inputs.servicePublisher.modules.generic.default;
-              "backup consumer" = example.inputs.backupClient.modules.generic.default;
+              "api publisher" = ../../examples/sources/service-publisher/module.nix;
+              "backup consumer" = ../../examples/sources/backup-client/module.nix;
             };
       in
       {

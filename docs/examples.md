@@ -154,7 +154,7 @@ The result includes central and combined data, validation, and the command `back
 
 ## Flake-parts and separate source repositories
 
-The [flake-parts example](../examples/flake-parts/flake.nix) imports the public `flakeModules.default`, configures `registry.settings`, and constructs two named NixOS nodes from separate source inputs. Its [composition module](../examples/flake-parts/module.nix) owns the [schema](../examples/flake-parts/schema.nix), central definitions, node membership, and common wiring. The source flakes export static NixOS modules:
+The [flake-parts example](../examples/flake-parts/default.nix) imports the public `flakeModules.default`, configures `registry.settings`, and constructs two named NixOS nodes from separate source inputs. It owns the [schema](../examples/flake-parts/schema.nix), central definitions, node membership, and common wiring. The source flakes export static NixOS modules:
 
 | Source                                                               | Contribution                                                                       | Shared data it reads                                                                  |
 | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -193,12 +193,10 @@ Flake-parts' `nixpkgs-lib` input follows the example's `nixpkgs` input. Flake-pa
 
 The nodes are evaluation examples targeting `x86_64-linux`, exposed under `lib.nodes`. They omit machine-specific boot and filesystem settings and are not exported as deployable `nixosConfigurations`. The flake check validates registry data without demanding a NixOS system build or running a VM. Its check derivations retain both Linux and both best-effort Darwin outputs.
 
-Run the example directly with its own lock file:
+Run the example's validation check from the root, replacing `x86_64-linux` with the current system:
 
 ```sh
-nix eval --no-update-lock-file ./examples/flake-parts#lib.result --json
-nix eval --no-update-lock-file ./examples/flake-parts#lib.result.validate
-nix flake check --no-update-lock-file ./examples/flake-parts
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.flake-parts
 ```
 
 The composition module exposes validation through `perSystem.checks.registry`. The root suite assembles the same public example with its selected `nixpkgs` and the flake-parts source pinned by the example lock. It checks central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command under the committed root selection and each policy compatibility override:

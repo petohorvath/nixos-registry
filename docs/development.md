@@ -54,12 +54,7 @@ The static flake-module tests use the existing example lock's flake-parts source
 
 The [static read tests](../tests/integration/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data and reject unused schema errors, while ordinary reads leave validation unevaluated. The diagnostic check verifies error attribution through this flake-check path; the recursion check also covers static collection forcing, value cycles, and node imports selected from their own registry configuration.
 
-The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results. The standalone flake-parts example also uses its own committed lock:
-
-```sh
-nix eval --no-update-lock-file ./examples/flake-parts#lib.result --json
-nix flake check --no-update-lock-file ./examples/flake-parts
-```
+The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts examples and expected results.
 
 ### Failure and diagnostic checks
 
@@ -90,7 +85,7 @@ nix build --no-update-lock-file --no-link .#checks.x86_64-linux.workflows
 
 The root declares one input, `nixpkgs`, whose exact revision is recorded in [flake.lock](../flake.lock). Development tools, formatting, NixOS examples, and all root checks use that selection. It may differ from the shared compatibility pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
 
-The independent [example lock](../examples/flake-parts/flake.lock) retains its shared stable pin, flake-parts revision, and separate node sources. Its registry input is source-only, preventing recursive development inputs. [The root integration helper](../tests/flake-parts-example.nix) fetches only the flake-parts source using that lock's exact revision and content hash, instantiates its public outputs with the root's module library, and assembles the example's public outputs. It does not load the example's independent Nixpkgs selection. Validate the standalone flake separately because this assembly does not exercise Nix's resolution of its actual input graph.
+The independent example lock retains its shared stable pin, flake-parts revision, and separate node sources. Its registry input is source-only, preventing recursive development inputs. The root integration helper fetches only the flake-parts source using that lock's exact revision and content hash, instantiates its public outputs with the root's module library, and assembles the example's public outputs. It does not load the example's independent Nixpkgs selection. Validate the standalone flake separately because this assembly does not exercise Nix's resolution of its actual input graph.
 
 The constructor still works through a [plain import](api.md#plain-import-access), while normal flake consumers can acquire the root development input in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and renamed evaluation paths. Compatibility pins live in policy records, without an additional root input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off.
 
