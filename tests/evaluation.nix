@@ -1,40 +1,41 @@
 # Assemble the evaluation suite; a failing case throws with both values.
 {
+  exports,
   flake,
   flakeParts,
+  flakePartsExample,
   nixpkgs,
+  staticNixosExample,
   system,
 }:
 let
-  exports = { inherit (flake) flakeModules lib nixosModules; };
   inherit (exports.lib) mkRegistry;
   inherit (nixpkgs) lib;
   pathExports = import ./helpers/plain-exports.nix;
-  flakeModuleTests =
-    moduleExports:
+  pathFlakePartsExample = import ../examples/flake-parts {
+    inherit flakeParts nixpkgs system;
+    exports = pathExports;
+  };
+  importFlakeModuleTests =
+    exports:
     import ./flake-module.nix {
-      inherit flakeParts nixpkgs system;
-      exports = moduleExports;
+      inherit
+        exports
+        flakeParts
+        nixpkgs
+        system
+        ;
     };
-  nixosModuleTests =
-    moduleExports:
-    import ./nixos/module.nix {
-      inherit nixpkgs system;
-      exports = moduleExports;
-    };
-  flakePartsExampleTests =
-    exampleExports:
+  importNixosModuleTests = exports: import ./nixos/module.nix { inherit exports nixpkgs system; };
+  importFlakePartsExampleTests =
+    exports: example:
     import ./integration/flake-parts.nix {
-      inherit lib;
-      inherit (exampleExports.lib) mkRegistry;
-      example = import ../examples/flake-parts {
-        inherit flakeParts nixpkgs system;
-        registry = exampleExports;
-      };
+      inherit example lib;
+      inherit (exports.lib) mkRegistry;
     };
 
   # Rerun selected scenarios with the public exports loaded by path.
-  pathImportedTests =
+  selectPathImportedTests =
     tests: names:
     lib.mapAttrs' (name: lib.nameValuePair "testPathImported${lib.removePrefix "test" name}") (
       lib.getAttrs names tests
@@ -48,22 +49,23 @@ let
     // import ./static-interface.nix { inherit nixpkgs system; }
     // import ./flake.nix { inherit flake lib; }
     // import ./lib.nix { inherit lib; }
-    // flakeModuleTests exports
-    // nixosModuleTests exports
-    // pathImportedTests (flakeModuleTests pathExports) [
+    // importFlakeModuleTests exports
+    // importNixosModuleTests exports
+    // selectPathImportedTests (importFlakeModuleTests pathExports) [
       "testStaticFlakeModuleSharesOneRegistryWithNixosNodes"
       "testStaticFlakeModuleUsesConsumerLibraryAndSeparateArguments"
     ]
-    // pathImportedTests (nixosModuleTests pathExports) [
+    // selectPathImportedTests (importNixosModuleTests pathExports) [
       "testStaticNixosModuleContributesAndReadsSharedResults"
       "testStaticNixosModuleUsesCallerSchemaAndSeparateArguments"
     ]
+    // import ./integration/static-nixos.nix { example = staticNixosExample; }
     // import ./integration/static-reads.nix { inherit flakeParts nixpkgs system; }
     // import ./integration/nixos.nix {
       inherit mkRegistry nixpkgs system;
     }
-    // flakePartsExampleTests exports
-    // pathImportedTests (flakePartsExampleTests pathExports) [
+    // importFlakePartsExampleTests exports flakePartsExample
+    // selectPathImportedTests (importFlakePartsExampleTests pathExports pathFlakePartsExample) [
       "testFlakePartsExampleEvaluatesAndValidates"
       "testSeparateSourceNodesKeepLocalContributionsDistinct"
       "testSeparateSourceExampleCompletesPartialRecords"

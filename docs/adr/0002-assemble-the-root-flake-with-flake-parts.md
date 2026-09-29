@@ -19,6 +19,7 @@ The previous plain `outputs` function assembled a system loop, development outpu
 
 - Flake consumers gain `flake-parts` in their lock graph. Because its library follows `nixpkgs`, they gain no second Nixpkgs input.
 - Consumers of `outputs { }` and focused evaluation under `lib` must migrate; the [changelog](../../CHANGELOG.md) maps each old path.
+- `nixosModules.default` and `flakeModules.default` refer to their module files by path rather than holding imported functions, so the module system deduplicates them by file. Consumers that called either output as a function must import the module file instead.
 - No example exercises Nix's resolution of a standalone example lock. The root checks evaluate the same example function through the root flake's exports and through the path-based exports.
 
 ## Considered options

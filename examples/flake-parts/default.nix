@@ -4,7 +4,7 @@
   exposes registry validation as a flake check.
 */
 {
-  registry,
+  exports,
   flakeParts,
   nixpkgs,
   system ? "x86_64-linux",
@@ -14,14 +14,14 @@ flakeParts.lib.mkFlake { inputs.self.outPath = ./.; } (
   let
     # `systems` contains only the selected system.
     pkgs = nixpkgs.legacyPackages.${system};
-    shared = config.registry;
+    inherit (config) registry;
     commonModule = {
-      imports = [ registry.nixosModules.default ];
+      imports = [ exports.nixosModules.default ];
       nixpkgs.hostPlatform = system;
       system.stateVersion = "26.05";
       registry = {
-        settings = { inherit (shared.settings) schemaModules specialArgs; };
-        inherit (shared) central combined validate;
+        settings = { inherit (registry.settings) schemaModules specialArgs; };
+        inherit (registry) central combined validate;
       };
     };
 
@@ -41,7 +41,7 @@ flakeParts.lib.mkFlake { inputs.self.outPath = ./.; } (
     };
   in
   {
-    imports = [ registry.flakeModules.default ];
+    imports = [ exports.flakeModules.default ];
     systems = [ system ];
 
     registry.settings = {
@@ -56,21 +56,20 @@ flakeParts.lib.mkFlake { inputs.self.outPath = ./.; } (
     };
 
     flake.lib = {
-      inherit nodes;
-      registry = shared;
+      inherit nodes registry;
       result = {
         # The central API record lacks its node's port and derived endpoint.
         central = {
-          inherit (shared.central) domain;
-          services.api.host = shared.central.services.api.host;
+          inherit (registry.central) domain;
+          services.api.host = registry.central.services.api.host;
         };
-        inherit (shared) combined validate;
+        inherit (registry) combined validate;
         backupCommand = nodes."backup consumer".config.environment.etc."backup-command".text;
       };
     };
 
     perSystem.checks.registry =
-      assert shared.validate;
+      assert registry.validate;
       pkgs.runCommand "flake-parts-registry-validation" { } ''
         touch "$out"
       '';

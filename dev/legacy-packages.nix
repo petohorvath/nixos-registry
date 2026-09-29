@@ -1,21 +1,19 @@
 # Focused evaluation of the test suite and example results.
 {
-  inputs,
-  self,
+  exports,
+  flakePartsExample,
+  nixpkgs,
+  staticNixosExample,
   system,
+  tests,
 }:
 let
-  inherit (inputs) nixpkgs;
   inherit (nixpkgs) lib;
-  inherit (self.lib) mkRegistry;
-  flakeParts = inputs.flake-parts;
+  inherit (exports.lib) mkRegistry;
   evalPlainExample = path: import path { inherit lib mkRegistry; };
 in
 {
-  tests = import ../tests/evaluation.nix {
-    inherit flakeParts nixpkgs system;
-    flake = self;
-  };
+  inherit tests;
 
   examples = {
     default = evalPlainExample ../examples/plain-nix;
@@ -26,16 +24,8 @@ in
     priorities = evalPlainExample ../examples/plain-nix/priorities.nix;
     scalarConflicts = evalPlainExample ../examples/plain-nix/scalar-conflict.nix;
     valueCycles = evalPlainExample ../examples/plain-nix/value-cycle.nix;
-    flakeParts =
-      (import ../examples/flake-parts {
-        inherit flakeParts nixpkgs system;
-        registry = self;
-      }).lib.result;
+    flakeParts = flakePartsExample.lib.result;
     nixos = (import ../examples/nixos { inherit mkRegistry nixpkgs system; }).result;
-    staticNixos =
-      (import ../examples/static-nixos {
-        inherit nixpkgs system;
-        registry = self;
-      }).result;
+    staticNixos = staticNixosExample.result;
   };
 }

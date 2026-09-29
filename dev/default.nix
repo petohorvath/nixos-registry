@@ -7,22 +7,59 @@
       system,
       ...
     }:
+    let
+      inherit (inputs) nixpkgs;
+      exports = { inherit (self) flakeModules lib nixosModules; };
+      flakeParts = inputs.flake-parts;
+      # Checks and focused evaluation share these evaluations.
+      flakePartsExample = import ../examples/flake-parts {
+        inherit
+          exports
+          flakeParts
+          nixpkgs
+          system
+          ;
+      };
+      staticNixosExample = import ../examples/static-nixos {
+        inherit exports nixpkgs system;
+      };
+      tests = import ../tests/evaluation.nix {
+        inherit
+          exports
+          flakeParts
+          flakePartsExample
+          nixpkgs
+          staticNixosExample
+          system
+          ;
+        flake = self;
+      };
+    in
     {
       formatter = pkgs.callPackage ./formatter.nix { };
       devShells.default = pkgs.callPackage ./shell.nix {
         inherit (config) formatter;
       };
-      checks = import ./checks.nix {
+      checks = import ../tests {
         inherit
-          inputs
+          flakeParts
+          flakePartsExample
+          nixpkgs
           pkgs
-          self
           system
+          tests
           ;
         inherit (config) formatter;
       };
       legacyPackages = import ./legacy-packages.nix {
-        inherit inputs self system;
+        inherit
+          exports
+          flakePartsExample
+          nixpkgs
+          staticNixosExample
+          system
+          tests
+          ;
       };
     };
 }

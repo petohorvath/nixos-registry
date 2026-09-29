@@ -44,7 +44,7 @@ nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.staticNixo
 
 The endpoint is `monitor.example.test:9191`, combined data contains the complete metrics record, and validation returns `true`. Settings and shared results do not appear in combined data. The example uses the root's committed lock and needs no flake-parts dependency or separate lockfile.
 
-The example function accepts `nixpkgs`, optional `system` (default `x86_64-linux`), and `registry` (the project's `lib` and `nixosModules` exports). It returns the named `nodes`, shared `registry`, and JSON-compatible `result`. The [API reference](api.md#static-nixos-module) documents argument ownership, result paths, reserved names, and setup constraints. The constructor-generated NixOS example above and the generic examples below remain supported.
+The example function accepts `nixpkgs`, optional `system` (default `x86_64-linux`), and `exports` (the project's `lib` and `nixosModules` exports). It returns the named `nodes`, shared `registry`, and JSON-compatible `result`. The [API reference](api.md#static-nixos-module) documents argument ownership, result paths, reserved names, and setup constraints. The constructor-generated NixOS example above and the generic examples below remain supported.
 
 ## Static flake module
 
@@ -169,23 +169,23 @@ The example is a function taking these arguments:
 
 | Argument     | Value                                                                     |
 | ------------ | ------------------------------------------------------------------------- |
-| `registry`   | Project exports: `lib`, `nixosModules`, and `flakeModules`                |
+| `exports`    | Project exports: `lib`, `nixosModules`, and `flakeModules`                |
 | `flakeParts` | flake-parts flake, whose `lib.mkFlake` assembles the example's outputs    |
 | `nixpkgs`    | Nixpkgs flake that supplies `lib.nixosSystem` and the check's package set |
 | `system`     | System for the nodes and `checks`; defaults to `x86_64-linux`             |
 
 It returns flake outputs: `lib.result`, `lib.nodes`, `lib.registry`, and `checks.<system>.registry`. The root checks call it once with the root flake's exports and once with the [path-based exports](api.md#plain-import-access), passing the root `flake-parts` input and the selected `nixpkgs`. Flake-parts, the registry, and the nodes therefore use the same module-system revision under the committed root selection and each policy compatibility override.
 
-The flake-parts module imports `registry.flakeModules.default` and captures `shared = config.registry`. Each node imports this common module before its source module:
+The flake-parts module imports `exports.flakeModules.default` and captures `config.registry` as `registry`. Each node imports this common module before its source module:
 
 ```nix
 commonModule = {
-  imports = [ registry.nixosModules.default ];
+  imports = [ exports.nixosModules.default ];
   nixpkgs.hostPlatform = system;
   system.stateVersion = "26.05";
   registry = {
-    settings = { inherit (shared.settings) schemaModules specialArgs; };
-    inherit (shared) central combined validate;
+    settings = { inherit (registry.settings) schemaModules specialArgs; };
+    inherit (registry) central combined validate;
   };
 };
 ```

@@ -20,6 +20,8 @@ Plain import through the flake's `outputs` function no longer works because `mkF
 
 With a source-only input declared with `flake = false`, use `(import "${inputs.nixos-registry}/lib").mkRegistry`, `"${inputs.nixos-registry}/nixos/module.nix"`, and `"${inputs.nixos-registry}/flake-module.nix"`.
 
+`nixosModules.default` and `flakeModules.default` now refer to their module files by path instead of holding imported function values. `flakeModules.default` is the path to `flake-module.nix`; `nixosModules.default` is a module that flake-parts marks with `_class = "nixos"` and that imports `nixos/module.nix` by path. The module system therefore identifies and deduplicates each module by its file, including when a configuration imports both the output and the path. Code that called either output as a function must import the module file instead, for example `import "${inputs.nixos-registry}/nixos/module.nix"`.
+
 Focused evaluation moves from `lib` to `legacyPackages.<system>`; the replacements below are relative to that path:
 
 | Previous path                      | Replacement                     |
@@ -41,7 +43,7 @@ For example, `nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testCollec
 
 Remove the best-effort `x86_64-darwin` and `aarch64-darwin` outputs. `checks`, `devShells`, `formatter`, and `legacyPackages` now cover only `x86_64-linux` and `aarch64-linux`. The system-independent `lib`, `nixosModules.default`, and `flakeModules.default` exports remain usable on Darwin hosts.
 
-The flake-parts example is now a function that takes `registry` (the project exports), `flakeParts`, `nixpkgs`, and optional `system` (default `x86_64-linux`). Its standalone flake, lock, and composition module are removed, as are the wrapper flakes around its separate sources; each source directory keeps its plain `nixos.nix` and generic `module.nix`. Root checks call the example with the root `flake-parts` input and the selected `nixpkgs`, so `nix flake check --no-update-lock-file` replaces its separate validation. The static NixOS example takes a required `registry` argument instead of the optional `registryFlake`.
+The flake-parts example is now a function that takes `exports` (the project's `lib`, `nixosModules`, and `flakeModules` exports), `flakeParts`, `nixpkgs`, and optional `system` (default `x86_64-linux`). Its standalone flake, lock, and composition module are removed, as are the wrapper flakes around its separate sources; each source directory keeps its plain `nixos.nix` and generic `module.nix`. Root checks call the example with the root `flake-parts` input and the selected `nixpkgs`, so `nix flake check --no-update-lock-file` replaces its separate validation. The static NixOS example takes a required `exports` argument instead of the optional `registryFlake`.
 
 Development files move into `dev/`: `shell.nix`, `formatter.nix`, and `treefmt.toml`. `tests/default.nix` assembles the named checks, and the evaluation suite moves to `tests/evaluation.nix`.
 
