@@ -1,6 +1,6 @@
 # Development
 
-The [root flake](../flake.nix) delegates the development shell, formatter, checks, and focused evaluation to a `dev` flake-parts partition in [dev/](../dev/default.nix), under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
+The [root flake](../flake.nix) delegates the development shell, formatter, and checks to a `dev` flake-parts partition in [dev/](../dev/default.nix), under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
 
 ## Host prerequisites
 
@@ -24,29 +24,11 @@ nix flake check --no-update-lock-file
 
 The suite evaluates the public `lib.mkRegistry` function, generated node module, central data, combined data, and validation using the selected root Nixpkgs module system. Merge tests compare behavior with direct evaluation using the same library. Path-import checks load the `lib` directory and both static modules without the root flake; the library check constructs and uses a registry with a caller-provided library and no flake inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
 
-Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `tests/mk-registry.nix`, the other `lib/` helpers have matching files under `tests/`, the `lib/default.nix` entry point maps to `tests/lib.nix`, and the exported `flake-module.nix` and `nixos/module.nix` map to `tests/flake-module.nix` and `tests/nixos/module.nix`. The constructor entrypoint collects smaller case files from `tests/mk-registry/`. Helper behavior is exercised through the public registry interfaces. Cross-module examples and static shared-read cases live in `tests/integration/`; shared fixtures stay in `tests/fixtures/`. `tests/flake.nix` covers the root output shapes declared in `flake.nix`, and `tests/helpers/plain-exports.nix` loads the public exports by path. `tests/evaluation.nix` registers these suites. [dev/default.nix](../dev/default.nix) evaluates the suite and the flake-parts and static NixOS examples once per system and passes them to `tests/default.nix`, which assembles the named checks, and to [dev/legacy-packages.nix](../dev/legacy-packages.nix), which exposes the cases as the flat `legacyPackages.<system>.tests` result and the example results as `legacyPackages.<system>.examples`.
+Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `tests/mk-registry.nix`, the other `lib/` helpers have matching files under `tests/`, the `lib/default.nix` entry point maps to `tests/lib.nix`, and the exported `flake-module.nix` and `nixos/module.nix` map to `tests/flake-module.nix` and `tests/nixos/module.nix`. The constructor entrypoint collects smaller case files from `tests/mk-registry/`. Helper behavior is exercised through the public registry interfaces. Cross-module examples and static shared-read cases live in `tests/integration/`; shared fixtures stay in `tests/fixtures/`. `tests/flake.nix` covers the root output shapes declared in `flake.nix`, and `tests/helpers/plain-exports.nix` loads the public exports by path. `tests/evaluation.nix` registers these suites. [dev/checks.nix](../dev/checks.nix) loads `tests/default.nix`, which evaluates the suite and the flake-parts and static NixOS examples once per system and assembles the named checks.
 
 The root checks also cover formatting, statix, deadnix, and workflow validation. Workflow validation checks every `.yml` and `.yaml` file in `.github/workflows` when present; a repository without workflows needs no placeholder. NixOS checks evaluate the affected configuration options for the selected system without building a full system or executing a VM. Normal checks have no VM build dependencies.
 
-Run the evaluation suite or a focused test, replacing `x86_64-linux` with the required system:
-
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests --json
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testCollectsCentralAndNamedNodes
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStrictCollectionsForceUnusedEntries
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testLibraryDirectoryUsesCallerLibraryWithoutFlakeInputs
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testSeparateSourceNodesKeepLocalContributionsDistinct
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testSeparateSourceExampleCompletesPartialRecords
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticNixosModuleContributesAndReadsSharedResults
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticNixosModuleRejectsReservedSchemaNames
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticNodesCompletePartialRecords
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticWiringDoesNotSuppressDefaultContributions
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticFlakeModuleSharesOneRegistryWithNixosNodes
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticFlakeModuleRequiresSchemaAndNodeSettings
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticCombinedReadsLeaveAnInvalidServiceUnused
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.tests.testStaticFlakeChecksValidateCompletedRecords
-```
+`nix flake check --no-update-lock-file` runs all tests; there are no separate test commands. Its `evaluation` check runs every case in the suite, and the integration tests assert the result of every example.
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
 
@@ -62,22 +44,14 @@ Native ordering and recursion errors require separate evaluator processes becaus
 
 The ordering and contribution diagnostic cases run through both the generated module and actual NixOS nodes importing the static module. The [static contribution suite](../tests/static-interface.nix) compares partial records and definition properties with direct module evaluation, checks the separation of shared wiring from contributions, and reuses the schema-ownership cases through the static public interface.
 
-Run a focused derivation, replacing `x86_64-linux` with the current system:
-
-```sh
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.diagnostics
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.ordering
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.recursion
-```
-
 ## Formatting and lint
 
 ```sh
 nix fmt --no-update-lock-file
 nix fmt --no-update-lock-file -- --ci
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.lint
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.workflows
 ```
+
+`nix flake check --no-update-lock-file` also runs the `formatting`, `lint`, and `workflows` checks.
 
 [treefmt.toml](../dev/treefmt.toml) covers first-party Nix, shell (including `.envrc`), Markdown, YAML, and JSON. Add any new extensionless shell scripts to its shell includes. Git and direnv state, result links, lockfiles, and generated or vendored trees are excluded. Current fixtures are Nix modules whose exact text is not asserted, so they remain formatted; exclude future exact-text fixtures explicitly. Prettier preserves existing prose wrapping; new prose uses one source line per paragraph.
 
@@ -87,7 +61,7 @@ The root declares two inputs, `nixpkgs` and `flake-parts`, whose exact revisions
 
 The flake-parts example has no lock of its own. Root checks call it as a function with the root `flake-parts` input and the selected `nixpkgs`, so the policy runner's `nixpkgs` override also controls it, and `nix flake check --no-update-lock-file` covers it without a separate validation step. Update `flake-parts` deliberately with `nix flake update flake-parts`, commit the lock, and rerun ordinary and compatibility checks.
 
-The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and renamed evaluation paths. Compatibility pins live in policy records, without an additional root input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports.
+The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. Compatibility pins live in policy records, without an additional root input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports.
 
 The immutable v0.4.0 release supplies the policy rules, checker, and workflow. The [policy caller](../.github/workflows/check.yml) owns release selection, required architectures, and additional required checks. Current [pin records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/pins.json) supply approved compatibility revisions; the [member roster](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/members.json) records enrolled repository identities. Pin changes follow the shared maintenance procedure and require renewed validation; they do not change the selected policy release.
 

@@ -1,15 +1,38 @@
 # Assemble the named root checks from the evaluation suite, examples, and
 # source checks.
 {
+  flake,
   flakeParts,
-  flakePartsExample,
   formatter,
   nixpkgs,
   pkgs,
   system,
-  tests,
 }:
 let
+  exports = { inherit (flake) flakeModules lib nixosModules; };
+  # The suite and the flake-parts check share this evaluation.
+  flakePartsExample = import ../examples/flake-parts {
+    inherit
+      exports
+      flakeParts
+      nixpkgs
+      system
+      ;
+  };
+  staticNixosExample = import ../examples/static-nixos {
+    inherit exports nixpkgs system;
+  };
+  tests = import ./evaluation.nix {
+    inherit
+      exports
+      flake
+      flakeParts
+      flakePartsExample
+      nixpkgs
+      staticNixosExample
+      system
+      ;
+  };
   sourceDir = pkgs.lib.cleanSource ../.;
   sourceCheck =
     name: packages: script:

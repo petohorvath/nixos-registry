@@ -15,10 +15,8 @@ in
   };
 
   testRootSystemOutputsCoverOnlyLinuxSystems = {
-    expr = lib.genAttrs [ "checks" "devShells" "formatter" "legacyPackages" ] (
-      name: builtins.attrNames flake.${name}
-    );
-    expected = lib.genAttrs [ "checks" "devShells" "formatter" "legacyPackages" ] (_: systems);
+    expr = lib.genAttrs [ "checks" "devShells" "formatter" ] (name: builtins.attrNames flake.${name});
+    expected = lib.genAttrs [ "checks" "devShells" "formatter" ] (_: systems);
   };
 
   testRootModuleExportsDeclareOptionsFromTheirFiles = {
@@ -48,37 +46,5 @@ in
       "recursion"
       "workflows"
     ]);
-  };
-
-  testRootLegacyPackagesExposeTestsAndExamples = {
-    expr = lib.genAttrs systems (
-      system:
-      let
-        focused = flake.legacyPackages.${system};
-      in
-      {
-        names = builtins.attrNames focused;
-        examples = builtins.attrNames focused.examples;
-      }
-    );
-    expected = lib.genAttrs systems (_: {
-      names = [
-        "examples"
-        "tests"
-      ];
-      examples = [
-        "collectionLaziness"
-        "combinedReads"
-        "conditionalOrdering"
-        "default"
-        "flakeParts"
-        "nixos"
-        "partialContributions"
-        "priorities"
-        "scalarConflicts"
-        "staticNixos"
-        "valueCycles"
-      ];
-    });
   };
 }

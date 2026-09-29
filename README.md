@@ -171,7 +171,7 @@ nix fmt --no-update-lock-file
 nix flake check --no-update-lock-file
 ```
 
-`direnv allow` activates the same shell. The [development guide](docs/development.md) covers focused checks, formatting, and pinned inputs. Normal validation evaluates configurations without building systems or running VMs.
+`direnv allow` activates the same shell. The [development guide](docs/development.md) covers tests, formatting, and pinned inputs. Normal validation evaluates configurations without building systems or running VMs.
 
 ## Contributing
 
@@ -180,6 +180,6 @@ Follow the [contribution guide](CONTRIBUTING.md) for Conventional Commit PR titl
 ## Documentation
 
 - [API reference](docs/api.md): arguments, returned attributes, option paths, merging, validation, and recursion.
-- [Examples](docs/examples.md): NixOS, plain Nix modules, flake-parts, and specific merge rules, with commands to run them.
+- [Examples](docs/examples.md): NixOS, plain Nix modules, flake-parts, and specific merge rules, with their expected results.
 - [Development](docs/development.md): tests, formatting, and pinned dependencies.
 - [Glossary](CONTEXT.md): project terms.

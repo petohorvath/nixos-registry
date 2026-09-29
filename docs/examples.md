@@ -2,18 +2,13 @@
 
 The [README](../README.md#quickstart) contains a complete flake with two NixOS configurations sharing a service address. The examples below cover other ways to use the same API.
 
-Run commands from the repository root with Nix's `nix-command` and `flakes` features enabled. The [root flake](../flake.nix) uses the `nixpkgs` selection in [flake.lock](../flake.lock). The [development guide](development.md#compatibility-checks) explains how the policy runner checks these examples against both shared revisions.
+Each section states what its example demonstrates and its expected result. The root checks evaluate every example and assert these results; run them from the repository root with `nix flake check --no-update-lock-file`. The [root flake](../flake.nix) uses the `nixpkgs` selection in [flake.lock](../flake.lock). The [development guide](development.md#compatibility-checks) explains how the policy runner checks these examples against both shared revisions.
 
 ## NixOS
 
 The [NixOS example](../examples/nixos/default.nix) uses the [service schema](../examples/plain-nix/service-schema.nix) and a [module that contributes service data](../examples/nixos/service-contribution.nix).
 
 The configuration named `metrics publisher` enables Prometheus and contributes its actual configured port. The configuration named `standby publisher` disables Prometheus and contributes no service record. Both read the combined endpoint into `/etc/metrics-endpoint`.
-
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.nixos --json
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.nixos.validate
-```
 
 The `clientEndpoints` result contains `monitor.example.test:9191` for both nodes. `combined.services` contains `metrics` and no `standby` entry. The node names, hostnames, and service names serve different purposes.
 
@@ -36,11 +31,6 @@ This changes `services.prometheus.package`. The caller's `nixpkgs` input still s
 The [ordinary-flake consumer](../examples/static-nixos/default.nix) imports the public `nixosModules.default` through a common NixOS module. It keeps one project-level `lib.mkRegistry` call and supplies the same schema through `registry.settings.schemaModules`. The common module assigns the shared registry's `central`, `combined`, and `validate` values to the corresponding node options.
 
 The [contributing module](../examples/static-nixos/service-contribution.nix) reads `config.registry.central.domain`, contributes the complete `registry.services.metrics` record using the configured Prometheus port, and reads `config.registry.combined.services.metrics.endpoint` into `/etc/metrics-endpoint`. It receives shared data entirely through options.
-
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.staticNixos --json
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.staticNixos.validate
-```
 
 The endpoint is `monitor.example.test:9191`, combined data contains the complete metrics record, and validation returns `true`. Settings and shared results do not appear in combined data. The example uses the root's committed lock and needs no flake-parts dependency or separate lockfile.
 
@@ -124,13 +114,13 @@ This flake-parts consumer imports `flakeModules.default` for project settings an
 }
 ```
 
-Run these commands in the consumer directory after recording its inputs with `nix flake lock`:
+Run these commands in the consumer directory after recording its inputs with `nix flake lock`, replacing `<system>` with the system in `systems`:
 
 ```sh
 nix eval --no-update-lock-file .#lib.registry.combined --json
 nix eval --no-update-lock-file .#lib.registry.validate
 nix eval --no-update-lock-file .#nixosConfigurations.client.config.environment.etc.metrics-endpoint.text
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry
+nix build --no-update-lock-file --no-link .#checks.<system>.registry
 ```
 
 Combined data contains the metrics endpoint `monitor.example.test:9191`, validation returns `true`, and the client's file contains that endpoint. The node names differ from the configuration names; membership is explicit. Both nodes reuse the same project registry and receive shared data through options.
@@ -144,11 +134,6 @@ Additional project modules can append schema and central modules and supply dist
 The [plain Nix example](../examples/plain-nix/default.nix) uses `lib.evalModules` with a [backup-destination schema](../examples/plain-nix/schema.nix). It has two nodes, with no NixOS configuration or hostname requirement.
 
 Each node imports `registry.module`. A node that reads shared data receives `registry` through its `specialArgs`. One contributes its configured port and reads both central and combined data.
-
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.default --json
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.default.validate
-```
 
 The result includes central and combined data, validation, and the command `backup archive.example.test local.example.test`. The combined archive paths are `[ "/srv/central" "/srv/documents" ]`.
 
@@ -196,14 +181,7 @@ Each local `config.registry.services` contains only that node's service. The API
 
 The nodes are evaluation examples for the selected system, exposed under `lib.nodes`. They omit machine-specific boot and filesystem settings and are not exported as deployable `nixosConfigurations`. The `registry` check validates registry data without demanding a NixOS system build or running a VM.
 
-Run the example's validation check and evaluate its result from the root, replacing `x86_64-linux` with the current system:
-
-```sh
-nix build --no-update-lock-file --no-link .#checks.x86_64-linux.flake-parts
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.flakeParts --json
-```
-
-The root suite also checks central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command.
+The root `flake-parts` check builds the example's `registry` check, and the root suite checks central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command.
 
 A consumer flake obtains the same exports from its `nixos-registry` input and passes its own inputs to `mkFlake`. The `follows` settings keep one Nixpkgs and one flake-parts revision in its lock graph. Copy the example's [schema](../examples/flake-parts/schema.nix) to `schema.nix` beside this `flake.nix`:
 
@@ -246,35 +224,20 @@ Flake-parts is optional. The [ordinary-flake example](#static-nixos-module) uses
 
 These examples make merge rules and evaluation behavior visible in their results. Each uses the selected root input. The [API reference](api.md) explains the rules.
 
-| Example                                                                        | Command                                                                                                | Result to inspect                                                                                           |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| [Partial contributions](../examples/plain-nix/partial-contributions.nix)       | `nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.partialContributions --json`    | Completed records from different sources, schema defaults, derived values, and the fields available locally |
-| [Override priorities](../examples/plain-nix/priorities.nix)                    | `nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.priorities --json`              | A default contribution, a forced contribution, and an override of one port                                  |
-| [Conditions and list ordering](../examples/plain-nix/conditional-ordering.nix) | `nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.conditionalOrdering --json`     | Enabled contributions around the central paths; central paths alone when disabled                           |
-| [Combined reads](../examples/plain-nix/combined-reads.nix)                     | `nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.combinedReads --json`           | A contributed host using the shared domain, completed with the central port                                 |
-| [Lazy collection](../examples/plain-nix/collection-laziness.nix)               | `nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.collectionLaziness.lazy --json` | Domain and endpoint under a `lazyAttrsOf` option, with successful validation                                |
+| Example                                                                        | Result                                                                                                      |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| [Partial contributions](../examples/plain-nix/partial-contributions.nix)       | Completed records from different sources, schema defaults, derived values, and the fields available locally |
+| [Override priorities](../examples/plain-nix/priorities.nix)                    | A default contribution, a forced contribution, and an override of one port                                  |
+| [Conditions and list ordering](../examples/plain-nix/conditional-ordering.nix) | Enabled contributions around the central paths; central paths alone when disabled                           |
+| [Combined reads](../examples/plain-nix/combined-reads.nix)                     | A contributed host using the shared domain, completed with the central port                                 |
+| [Lazy collection](../examples/plain-nix/collection-laziness.nix)               | Domain and endpoint under a `lazyAttrsOf` option, with successful validation                                |
 
-To demand validation separately, use the attribute exposed by the example:
-
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.partialContributions.validate
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.priorities.forcedContribution.validate
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.conditionalOrdering.enabled.validate
-```
+The valid results include `validate` attributes that demand validation separately; the root suite asserts that each is `true`.
 
 ### Examples that intentionally fail
 
-The [scalar-conflict example](../examples/plain-nix/scalar-conflict.nix) sets different archive hosts in a central module and a node. This command fails with an error for `backupDestinations.archive.host`:
+The [scalar-conflict example](../examples/plain-nix/scalar-conflict.nix) sets different archive hosts in a central module and a node. Evaluating it fails with an error for `backupDestinations.archive.host`.
 
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.scalarConflicts
-```
+The strict variant of the [collection example](../examples/plain-nix/collection-laziness.nix) and the [value-cycle example](../examples/plain-nix/value-cycle.nix) fail with native recursion errors when their combined data or validation is read.
 
-The strict variant of the [collection example](../examples/plain-nix/collection-laziness.nix) and the [value-cycle example](../examples/plain-nix/value-cycle.nix) fail with native recursion errors:
-
-```sh
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.collectionLaziness.strict.combined.settings.domain
-nix eval --no-update-lock-file .#legacyPackages.x86_64-linux.examples.valueCycles.combined.services.east
-```
-
-Both policy compatibility runs check these failures too. They demonstrate limits of the schema or data dependencies and are expected test results.
+The root suite asserts the scalar conflict, and the `recursion` check asserts the native recursion errors. Both policy compatibility runs check these failures too. They demonstrate limits of the schema or data dependencies and are expected test results.

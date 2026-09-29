@@ -1,6 +1,6 @@
 /*
   Typed shared data across Nix configurations. The `dev` partition supplies
-  development tools, checks, and focused evaluation.
+  development tools and checks.
 */
 {
   description = "Typed shared data across Nix configurations";
@@ -29,7 +29,6 @@
         checks = "dev";
         devShells = "dev";
         formatter = "dev";
-        legacyPackages = "dev";
       };
 
       flake = {

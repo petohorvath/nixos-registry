@@ -463,7 +463,7 @@ in
 }
 ```
 
-Run `nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry` for this check alone. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
+Run `nix build --no-update-lock-file --no-link .#checks.<system>.registry` for this check alone, replacing `<system>` with a system from `systems`. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
 
 | Combined data                                               | Result                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |
