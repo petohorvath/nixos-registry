@@ -14,7 +14,7 @@ Data is shared during Nix evaluation. All nodes must be available in the same Ni
 
 ## Support
 
-The library is checked against the approved stable and unstable Nixpkgs module systems. Development outputs and CI support `x86_64-linux` and `aarch64-linux`.
+The library is checked against the shared policy's stable and unstable Nixpkgs module systems. Development outputs and CI support `x86_64-linux` and `aarch64-linux`.
 
 The required [hosted checks](.github/workflows/check.yml) run the shared project policy, which tests the committed root input and the policy's stable and unstable nixpkgs pins on both Linux architectures before a human approves a squash merge to `main`. See [CI and policy](docs/development.md#ci-and-policy). Report problems through [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues).
 
