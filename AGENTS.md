@@ -2,7 +2,7 @@
 
 ## Development and review
 
-Before implementation, read [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and the selected [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Use the root shell, formatter, and ordinary checks with committed locks; run shared-pin compatibility through the selected policy runner, except for [docs-only changes](CONTRIBUTING.md#changes-and-review). Preserve plain-import access by path to `lib/`, `nixos/module.nix`, and `flake-module.nix` ([ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md)), and the caller-owned module system. Keep validation evidence on the PR and leave policy activation, merge, and release approval to a human.
+Before implementation, read [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and the shared policy linked from [CI and policy](docs/development.md#ci-and-policy). Use the root shell, formatter, and ordinary checks with committed locks; run the policy's `test . --nixpkgs stable` and `test . --nixpkgs unstable` commands, except for [docs-only changes](CONTRIBUTING.md#changes-and-review). Preserve plain-import access by path to `lib/`, `nixos/module.nix`, and `flake-module.nix` ([ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md)), and the caller-owned module system. Keep validation evidence on the PR and leave required-status changes, merge, and release approval to a human.
 
 ## Agent skills
 
