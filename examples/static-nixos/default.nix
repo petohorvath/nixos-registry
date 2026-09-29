@@ -3,15 +3,15 @@
   import.
 */
 {
+  exports,
   nixpkgs,
   system ? "x86_64-linux",
-  registryFlake ? (import ../../flake.nix).outputs { },
 }:
 let
   inherit (nixpkgs) lib;
   settings.schemaModules = [ ../plain-nix/service-schema.nix ];
 
-  registry = registryFlake.lib.mkRegistry (
+  registry = exports.lib.mkRegistry (
     settings
     // {
       inherit lib nodes;
@@ -20,7 +20,7 @@ let
   );
 
   commonModule = {
-    imports = [ registryFlake.nixosModules.default ];
+    imports = [ exports.nixosModules.default ];
     registry = {
       inherit settings;
       inherit (registry) central combined validate;

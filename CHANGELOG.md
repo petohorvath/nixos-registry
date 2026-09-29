@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+### Breaking flake-parts root
+
+Assemble the root flake with flake-parts. The root declares `nixpkgs` and `flake-parts`, whose `nixpkgs-lib` input follows `nixpkgs`, so flake consumers gain flake-parts in their lock graph but no second Nixpkgs input. The root `lib` contains only `mkRegistry`. A `dev` partition supplies `checks`, `devShells`, and `formatter`, so evaluating `lib`, `nixosModules.default`, or `flakeModules.default` loads no development code. [ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md) records the decision.
+
+The constructor arguments and results, the static NixOS and flake module option interfaces, the check names, and the root Nixpkgs revision are unchanged. The root lock pins flake-parts at the revision the flake-parts example lock used.
+
+Plain import through the flake's `outputs` function no longer works because `mkFlake` needs the `flake-parts` input. Import the public exports by path instead; none of them evaluates flake inputs:
+
+| Previous plain import                                     | Replacement                 |
+| --------------------------------------------------------- | --------------------------- |
+| `((import ./flake.nix).outputs { }).lib.mkRegistry`       | `(import ./lib).mkRegistry` |
+| `((import ./flake.nix).outputs { }).nixosModules.default` | `./nixos/module.nix`        |
+| `((import ./flake.nix).outputs { }).flakeModules.default` | `./flake-module.nix`        |
+| `modules/nixos.nix`                                       | `nixos/module.nix`          |
+| `modules/flake.nix`                                       | `flake-module.nix`          |
+
+With a source-only input declared with `flake = false`, use `(import "${inputs.nixos-registry}/lib").mkRegistry`, `"${inputs.nixos-registry}/nixos/module.nix"`, and `"${inputs.nixos-registry}/flake-module.nix"`.
+
+`nixosModules.default` and `flakeModules.default` now refer to their module files by path instead of holding imported function values. `flakeModules.default` is the path to `flake-module.nix`; `nixosModules.default` is a module that flake-parts marks with `_class = "nixos"` and that imports `nixos/module.nix` by path. The module system therefore identifies and deduplicates each module by its file, including when a configuration imports both the output and the path. Code that called either output as a function must import the module file instead, for example `import "${inputs.nixos-registry}/nixos/module.nix"`.
+
+The test and example entrypoints under `lib` are removed without replacement outputs. Run `nix flake check --no-update-lock-file` instead; the checks below assert what each removed entrypoint exposed:
+
+| Removed entrypoint                 | Covering checks                |
+| ---------------------------------- | ------------------------------ |
+| `lib.tests.<system>`               | `evaluation`                   |
+| `lib.examples`                     | `evaluation`                   |
+| `lib.collectionLaziness`           | `evaluation` and `recursion`   |
+| `lib.combinedReads`                | `evaluation`                   |
+| `lib.conditionalOrdering`          | `evaluation`                   |
+| `lib.partialContributions`         | `evaluation`                   |
+| `lib.priorities`                   | `evaluation`                   |
+| `lib.scalarConflicts`              | `evaluation`                   |
+| `lib.valueCycles`                  | `recursion`                    |
+| `lib.flakePartsExamples`           | `evaluation` and `flake-parts` |
+| `lib.nixosExamples.<system>`       | `evaluation`                   |
+| `lib.staticNixosExamples.<system>` | `evaluation`                   |
+
+The suite replaces `testPlainImportUsesCallerLibraryWithoutDevelopmentInputs` with `testLibraryDirectoryUsesCallerLibraryWithoutFlakeInputs` and adds cases for root output shapes and path-imported exports.
+
+Remove the best-effort `x86_64-darwin` and `aarch64-darwin` outputs. `checks`, `devShells`, and `formatter` now cover only `x86_64-linux` and `aarch64-linux`. The system-independent `lib`, `nixosModules.default`, and `flakeModules.default` exports remain usable on Darwin hosts.
+
+The flake-parts example is now a function that takes `exports` (the project's `lib`, `nixosModules`, and `flakeModules` exports), `flakeParts`, `nixpkgs`, and optional `system` (default `x86_64-linux`). Its standalone flake, lock, and composition module are removed, as are the wrapper flakes around its separate sources; each source directory keeps its plain `nixos.nix` and generic `module.nix`. Root checks call the example with the root `flake-parts` input and the selected `nixpkgs`, so `nix flake check --no-update-lock-file` replaces its separate validation. The static NixOS example takes a required `exports` argument instead of the optional `registryFlake`.
+
+Development files move into `dev/`: `shell.nix`, `formatter.nix`, and `treefmt.toml`. `dev/checks.nix` loads `tests/default.nix`, which assembles the named checks, and the evaluation suite moves to `tests/evaluation.nix`.
+
 ### Policy v0.4.0
 
 Select nixos-project-policy v0.4.0 and declare both required Linux architectures in the member workflow. Keep the existing 11 merge statuses by declaring both formatting/lint checks as additional gates and running them in a member-owned job. Root checks, dependency locks, and public interfaces remain unchanged.
@@ -10,7 +55,7 @@ Policy selection and settings now belong to the caller; current policy records h
 
 ### Breaking contribution terminology
 
-Use **contribution** for node and central option definitions in library code, tests, example modules, and diagnostics, replacing "publication", "publish", and "view". Contribution errors now read `contribution at ...` instead of `publication at ...`, and their error context reads `while checking contribution from node ...` instead of `while checking publication from node ...`; both still report the option path, node, and source file. The NixOS and static NixOS example modules move from `publish-service.nix` to `service-contribution.nix`. Node names such as `metrics publisher` and the flake-parts example's `servicePublisher` input keep their names. Focused commands under `lib.tests.<system>` must use the replacements below. The renamed cases keep their assertions.
+Use **contribution** for node and central option definitions in library code, tests, example modules, and diagnostics, replacing "publication", "publish", and "view". Contribution errors now read `contribution at ...` instead of `publication at ...`, and their error context reads `while checking contribution from node ...` instead of `while checking publication from node ...`; both still report the option path, node, and source file. The NixOS and static NixOS example modules move from `publish-service.nix` to `service-contribution.nix`. Node names such as `metrics publisher` and the flake-parts example's `servicePublisher` input keep their names. The renamed cases below keep their assertions.
 
 | Previous test name                                    | Replacement                                            |
 | ----------------------------------------------------- | ------------------------------------------------------ |
@@ -45,11 +90,11 @@ Rename participants to **nodes** throughout the public API, examples, diagnostic
 
 Rename the argument and option before upgrading; the old names have no compatibility aliases. Keep the same attribute names and whole evaluation results in the node set. Node selection, contribution merging, laziness, and caller-owned module evaluation are unchanged.
 
-Focused commands under `lib.tests.<system>` must replace `Participant` with `Node` and `Participants` with `Nodes` in test names. For example, `testCollectsCentralAndNamedParticipants` becomes `testCollectsCentralAndNamedNodes`. The test-name cleanup table below lists the current replacements. Diagnostic source labels now use `node <name>` instead of `participant <name>`.
+Test names replace `Participant` with `Node` and `Participants` with `Nodes`. For example, `testCollectsCentralAndNamedParticipants` becomes `testCollectsCentralAndNamedNodes`. The test-name cleanup table below lists the current replacements. Diagnostic source labels now use `node <name>` instead of `participant <name>`.
 
 ### Breaking test-name cleanup
 
-Shorten the longest evaluation test names. Focused commands under `lib.tests.<system>` must use the replacements below. The suite retains all 145 cases and their assertions.
+Shorten the longest evaluation test names, as listed below. The suite retains all 145 cases and their assertions.
 
 | Previous test name                                                        | Replacement                                               |
 | ------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -71,7 +116,7 @@ Shorten the longest evaluation test names. Focused commands under `lib.tests.<sy
 | `testStaticScalarConflictsAndReadOnlyValuesMatchDirectEvaluation`         | `testStaticScalarAndReadOnlyConflictsMatchDirect`         |
 | `testStrictCollectionForcesAnUnrelatedThrowLikeDirectEvaluation`          | `testStrictCollectionsForceUnusedEntries`                 |
 
-For example, use `nix eval --no-update-lock-file .#lib.tests.x86_64-linux.testStrictCollectionsForceUnusedEntries`. Test entrypoints now mirror the library and public modules; constructor case files live under `tests/mk-registry/`, and cross-module examples and shared-read tests live under `tests/integration/`.
+Test entrypoints now mirror the library and public modules; constructor case files live under `tests/mk-registry/`, and cross-module examples and shared-read tests live under `tests/integration/`.
 
 ### Static consumer examples
 
@@ -102,9 +147,9 @@ Development now runs from the repository root with one selected `nixpkgs` input.
 | Previous interface                                                                                   | Replacement                                                                                     |
 | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `nix flake check ./dev`                                                                              | `nix flake check --no-update-lock-file`                                                         |
-| `lib.tests.stable` or `lib.tests.unstable`                                                           | `lib.tests.<system>` with the selected root input                                               |
-| `lib.nixosExamples.<channel>`                                                                        | `lib.nixosExamples.<system>`                                                                    |
-| Other `lib.<example>.<channel>` evaluations                                                          | `lib.<example>` with the selected root input                                                    |
+| `lib.tests.stable` or `lib.tests.unstable`                                                           | `nix flake check --no-update-lock-file` with the selected root input                            |
+| `lib.nixosExamples.<channel>`                                                                        | `nix flake check --no-update-lock-file` with the selected root input                            |
+| Other `lib.<example>.<channel>` evaluations                                                          | `nix flake check --no-update-lock-file` with the selected root input                            |
 | `checks.<system>.stable` or `.unstable`                                                              | `checks.<system>.evaluation`                                                                    |
 | `diagnostics-<channel>`, `ordering-<channel>`, `recursion-<channel>`, `flake-parts-<channel>` checks | `diagnostics`, `ordering`, `recursion`, `flake-parts` under `checks.<system>`                   |
 | Nix-only formatting from `dev/`                                                                      | Root `nix fmt --no-update-lock-file` for all supported sources                                  |
@@ -112,7 +157,7 @@ Development now runs from the repository root with one selected `nixpkgs` input.
 | `nixpkgsUnstable` or `nixpkgs-unstable` root input override                                          | Override `nixpkgs` for a selected run; use the policy runner for shared-pin compatibility       |
 | `flakePartsExampleStable` or `flakePartsExampleUnstable` root input override                         | Removed; the integration uses the example lock's flake-parts source and selected root `nixpkgs` |
 
-Enter the default shell with root `nix develop --no-update-lock-file` or `direnv allow`. For focused evaluation, use `nix eval --no-update-lock-file .#lib.tests.x86_64-linux --json` or `nix eval --no-update-lock-file .#lib.examples --json`. Update removed input overrides and `inputs.<name>.follows` references to the single root `nixpkgs` input. The root Nixpkgs revision and independently locked example dependencies are unchanged; redundant root lock nodes are removed.
+Enter the default shell with root `nix develop --no-update-lock-file` or `direnv allow`. Run all tests with `nix flake check --no-update-lock-file`. Update removed input overrides and `inputs.<name>.follows` references to the single root `nixpkgs` input. The root Nixpkgs revision and independently locked example dependencies are unchanged; redundant root lock nodes are removed.
 
 Run both shared compatibility revisions with the [policy runner](docs/development.md#compatibility-checks). The `.stable` and `.unstable` attributes are removed, rather than aliases for the same revision. NixOS checks use the selected system. The alternate-package test now uses a separately extended package set from the selected revision; simultaneous stable/unstable package mixing is no longer a separate coverage commitment.
 

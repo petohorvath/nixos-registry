@@ -14,7 +14,7 @@ Data is shared during Nix evaluation. All nodes must be available in the same Ni
 
 ## Support
 
-The library is checked against the approved stable and unstable Nixpkgs module systems. Development supports `x86_64-linux` and `aarch64-linux`; existing `x86_64-darwin` and `aarch64-darwin` outputs remain best effort, with no required Darwin CI.
+The library is checked against the approved stable and unstable Nixpkgs module systems. Development outputs and CI support `x86_64-linux` and `aarch64-linux`.
 
 The project is enrolled under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). The required [hosted checks](.github/workflows/check.yml) test the committed root input and both shared compatibility revisions on both Linux architectures before a human approves a squash merge to `main`. The nixos-project-policy member audit monitors policy selection, pins, and merge controls. Report problems through [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues).
 
@@ -146,7 +146,7 @@ Call `inputs.nixos-registry.lib.mkRegistry` with an attribute set containing:
 | `centralModules` | Modules that define shared values outside the nodes                         | `[ ]`                    |
 | `specialArgs`    | Arguments for the schema and central modules                                | `{ }`                    |
 
-Use the same Nixpkgs module-system revision for `lib` and every node. The caller supplies the library used for registry evaluation. Root development inputs may enter consumer lock graphs; [plain-import access](docs/api.md#plain-import-access) keeps the constructor usable without evaluating those inputs.
+Use the same Nixpkgs module-system revision for `lib` and every node. The caller supplies the library used for registry evaluation. Flake consumers acquire the root `nixpkgs` and `flake-parts` inputs in their lock graphs; the `flake-parts` library follows that `nixpkgs`. [Plain-import access](docs/api.md#plain-import-access) loads the constructor and static modules by path without evaluating flake inputs.
 
 The function returns an attribute set:
 
@@ -171,7 +171,7 @@ nix fmt --no-update-lock-file
 nix flake check --no-update-lock-file
 ```
 
-`direnv allow` activates the same shell. The [development guide](docs/development.md) covers focused checks, formatting, and pinned inputs. Normal validation evaluates configurations without building systems or running VMs.
+`direnv allow` activates the same shell. The [development guide](docs/development.md) covers tests, formatting, and pinned inputs. Normal validation evaluates configurations without building systems or running VMs.
 
 ## Contributing
 
@@ -180,6 +180,6 @@ Follow the [contribution guide](CONTRIBUTING.md) for Conventional Commit PR titl
 ## Documentation
 
 - [API reference](docs/api.md): arguments, returned attributes, option paths, merging, validation, and recursion.
-- [Examples](docs/examples.md): NixOS, plain Nix modules, flake-parts, and specific merge rules, with commands to run them.
+- [Examples](docs/examples.md): NixOS, plain Nix modules, flake-parts, and specific merge rules, with their expected results.
 - [Development](docs/development.md): tests, formatting, and pinned dependencies.
 - [Glossary](CONTEXT.md): project terms.

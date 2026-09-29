@@ -6,7 +6,7 @@ Follow the selected [nixos-project-policy v0.4.0](https://github.com/petohorvath
 
 Work on a branch and open a PR with a Conventional Commit title, such as `fix: Preserve contribution source locations`. Describe the resulting behavior, compatibility effects, and validation. Mark breaking changes with `!` and provide migration notes in the [changelog](CHANGELOG.md).
 
-Run root `nix fmt --no-update-lock-file` and `nix flake check --no-update-lock-file`. Run stable and unstable public-constructor coverage through the selected policy runner with trusted current policy records. Independently validate the flake-parts example when its inputs or integration assembly change. Add meaningful tests at public interfaces for behavior changes. Ordinary validation requires no VM execution or virtualization permissions.
+Run root `nix fmt --no-update-lock-file` and `nix flake check --no-update-lock-file`. Run stable and unstable public-constructor coverage through the selected policy runner with trusted current policy records. Add meaningful tests at public interfaces for behavior changes. Ordinary validation requires no VM execution or virtualization permissions.
 
 A docs-only change edits only Markdown files and leaves their Nix code blocks unchanged; code blocks such as the examples in `docs/examples.md` count as example sources. Locally, a docs-only change needs only the root formatting and flake checks above. When it edits a documented command or that command's documented result, run the command once with its documented setup and record the host and result on the PR. Required hosted checks still apply before merge.
 
@@ -16,15 +16,15 @@ Keep usage, design, and architectural decisions in repository documentation. Kee
 
 ## Public contract
 
-The public API comprises `lib.mkRegistry`; its `lib`, `schemaModules`, `nodes`, `centralModules`, and `specialArgs` arguments and defaults; the generated node `registry` option; and the returned `module`, `central`, `combined`, and `validate` attributes. The [API reference](docs/api.md) defines contribution merging, schema ownership, priorities, ordering, laziness, validation, and diagnostic behavior. Callers own schemas, node construction, and module-system selection.
+The public API comprises `lib.mkRegistry` (the only attribute of the root `lib` output); its `lib`, `schemaModules`, `nodes`, `centralModules`, and `specialArgs` arguments and defaults; the generated node `registry` option; and the returned `module`, `central`, `combined`, and `validate` attributes. The [API reference](docs/api.md) defines contribution merging, schema ownership, priorities, ordering, laziness, validation, and diagnostic behavior. Callers own schemas, node construction, and module-system selection.
 
 The static `nixosModules.default` export is also public, including `registry.settings.schemaModules`, `registry.settings.specialArgs`, the `registry.central`, `registry.combined`, and `registry.validate` result options, and direct schema contribution paths. Its [reserved names and wiring](docs/api.md#static-nixos-module) are part of that interface; the generated constructor module retains its existing namespace.
 
 The static `flakeModules.default` export declares project-level `registry.settings.schemaModules`, `nodes`, `centralModules`, and `specialArgs`, and the same three result paths. Its [required settings, defaults, composition, and conflict behavior](docs/api.md#static-flake-module) are public. The enclosing consumer evaluator supplies the module library; callers construct and select nodes and pass shared settings and results through the static NixOS module.
 
-Keep the constructor usable through `((import ./flake.nix).outputs { }).lib.mkRegistry` without supplying or evaluating development inputs. Root development inputs can enter normal consumer lock graphs. This packaging contract replaces the original v1 input-free-flake promise while preserving the library contract.
+Keep the public exports loadable by path without supplying or evaluating flake inputs: `(import ./lib).mkRegistry`, `nixos/module.nix`, and `flake-module.nix`. The root `nixpkgs` and `flake-parts` inputs can enter normal consumer lock graphs. This path-based contract replaces plain import through the flake's `outputs` function, as [ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md) records, and the original v1 input-free-flake promise, while preserving the library contract.
 
-Root `devShells`, `formatter`, and `checks` supply development entrypoints. Root `lib.tests.<system>` and the documented `lib` example attributes provide focused evaluation using the selected root `nixpkgs`. Removing or renaming these entrypoints or input overrides is a breaking tooling change and requires migration guidance.
+The `dev` partition supplies the root `checks`, `devShells`, and `formatter` development entrypoints. `nix flake check --no-update-lock-file` runs every test and asserts every documented example result using the selected root `nixpkgs`; the project provides no separate test or example entrypoints. Removing or renaming these entrypoints, check names, or input overrides is a breaking tooling change and requires migration guidance.
 
 ## Releases
 

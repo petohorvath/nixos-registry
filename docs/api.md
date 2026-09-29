@@ -32,24 +32,32 @@ The function takes one attribute set with these arguments:
 
 Use the same Nixpkgs module-system revision for this argument and every node. For NixOS, use the same `nixpkgs` input for `lib` and `nixpkgs.lib.nixosSystem`.
 
-Root development inputs select the repository's tools and test baselines. The caller-supplied `lib` remains authoritative for registry evaluation. Extra libraries or module arguments required by the schema must be supplied by the consuming project.
+The root `nixpkgs` input selects the repository's tools and test baselines. The caller-supplied `lib` remains authoritative for registry evaluation. Extra libraries or module arguments required by the schema must be supplied by the consuming project.
 
 Package selection is separate from module-system selection. A NixOS configuration can use a package from another Nixpkgs input while retaining its selected module system. The [NixOS example](examples.md#nixos) demonstrates this.
 
 ### Plain-import access
 
-The constructor remains available without supplying or evaluating any development inputs:
+The public exports load by path from the source tree without supplying or evaluating any flake inputs:
+
+| Path               | Export                                      |
+| ------------------ | ------------------------------------------- |
+| `lib`              | Attribute set containing only `mkRegistry`  |
+| `nixos/module.nix` | [Static NixOS module](#static-nixos-module) |
+| `flake-module.nix` | [Static flake module](#static-flake-module) |
+
+A consumer can obtain the repository as a source-only flake input with `flake = false` and import these paths:
 
 ```nix
-mkRegistry = ((import ./flake.nix).outputs { }).lib.mkRegistry;
+inherit (import "${inputs.nixos-registry}/lib") mkRegistry;
 registry = mkRegistry {
   inherit lib nodes schemaModules;
 };
 ```
 
-Use the same caller-provided `lib` for node evaluation. A consumer can obtain the repository as a source-only flake input with `flake = false` and import its `flake.nix` this way. The static module exports are also available from `(import ./flake.nix).outputs { }`; the [flake-parts example](examples.md#flake-parts-and-separate-source-repositories) obtains both static imports from its source-only input without evaluating development inputs.
+Use the same caller-provided `lib` for node evaluation. Import the static modules as `"${inputs.nixos-registry}/nixos/module.nix"` and `"${inputs.nixos-registry}/flake-module.nix"`. The root flake's `lib` output imports the same `lib` directory, and its `nixosModules.default` and `flakeModules.default` outputs reference the same module files.
 
-Normal flake consumption can add the root development inputs to a consumer's lock graph. This packaging change supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md).
+Plain import through the flake's `outputs` function no longer works because the root flake is assembled with flake-parts. Normal flake consumption adds the root `nixpkgs` and `flake-parts` inputs to a consumer's lock graph. This supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md#breaking-flake-parts-root) and [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md).
 
 ### `schemaModules`
 
@@ -455,7 +463,7 @@ in
 }
 ```
 
-Run `nix build --no-update-lock-file --no-link .#checks.x86_64-linux.registry` for this check alone. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
+Run `nix build --no-update-lock-file --no-link .#checks.<system>.registry` for this check alone, replacing `<system>` with a system from `systems`. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
 
 | Combined data                                               | Result                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |

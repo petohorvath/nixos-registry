@@ -1,38 +1,82 @@
+# Assemble the named root checks from the evaluation suite, examples, and
+# source checks.
 {
-  nixpkgs,
-  flakePartsExample,
-  mkRegistry,
+  formatter,
+  inputs,
+  pkgs,
   system,
 }:
 let
-  inherit (nixpkgs) lib;
-
-  tests =
-    import ./mk-registry.nix { inherit lib mkRegistry; }
-    // import ./check-contribution.nix { inherit lib mkRegistry; }
-    // import ./wrap-central-module.nix { inherit lib mkRegistry; }
-    // import ./get-active-module-keys.nix { inherit lib mkRegistry; }
-    // import ./static-interface.nix { inherit nixpkgs system; }
-    // import ./flake.nix { inherit lib; }
-    // import ./modules/flake.nix {
-      inherit nixpkgs system;
-      flakeParts = flakePartsExample.inputs.flake-parts;
-    }
-    // import ./modules/nixos.nix { inherit nixpkgs system; }
-    // import ./integration/static-reads.nix {
-      inherit nixpkgs system;
-      flakeParts = flakePartsExample.inputs.flake-parts;
-    }
-    // import ./integration/nixos.nix {
-      inherit mkRegistry nixpkgs system;
-    }
-    // import ./integration/flake-parts.nix { example = flakePartsExample; }
-    // import ./integration/examples.nix { inherit lib mkRegistry; };
+  inherit (inputs) nixpkgs self;
+  flakeParts = inputs.flake-parts;
+  exports = { inherit (self) flakeModules lib nixosModules; };
+  # The suite and the flake-parts check share this evaluation.
+  flakePartsExample = import ../examples/flake-parts {
+    inherit
+      exports
+      flakeParts
+      nixpkgs
+      system
+      ;
+  };
+  staticNixosExample = import ../examples/static-nixos {
+    inherit exports nixpkgs system;
+  };
+  tests = import ./evaluation.nix {
+    inherit
+      exports
+      flakePartsExample
+      inputs
+      staticNixosExample
+      system
+      ;
+  };
+  sourceDir = pkgs.lib.cleanSource ../.;
+  sourceCheck =
+    name: packages: script:
+    pkgs.runCommand "registry-${name}" { nativeBuildInputs = packages; } ''
+      cp -R ${sourceDir} source
+      chmod -R u+w source
+      cd source
+      ${script}
+      touch "$out"
+    '';
 in
-lib.mapAttrs (
-  name: test:
-  if test.expr == test.expected then
-    true
-  else
-    throw "${name}: expected ${builtins.toJSON test.expected}, got ${builtins.toJSON test.expr}"
-) tests
+pkgs.lib.mapAttrs
+  (
+    name: script:
+    pkgs.runCommand "registry-${name}" { nativeBuildInputs = [ pkgs.nix ]; } ''
+      bash ${script} ${nixpkgs}/lib ${../.} ${../.}/tests ${system} ${
+        pkgs.lib.optionalString (builtins.elem name [
+          "diagnostics"
+          "recursion"
+        ]) (toString flakeParts.outPath)
+      }
+      touch "$out"
+    ''
+  )
+  {
+    diagnostics = ./diagnostics.sh;
+    ordering = ./ordering-failures.sh;
+    recursion = ./recursion.sh;
+  }
+// {
+  evaluation =
+    assert builtins.deepSeq tests true;
+    pkgs.runCommand "registry-evaluation" { } ''
+      touch "$out"
+    '';
+  flake-parts = flakePartsExample.checks.${system}.registry;
+  formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
+  lint = sourceCheck "lint" [ pkgs.statix pkgs.deadnix ] ''
+    statix check .
+    deadnix --fail .
+  '';
+  workflows = sourceCheck "workflows" [ pkgs.actionlint ] ''
+    shopt -s nullglob
+    workflows=(.github/workflows/*.yml .github/workflows/*.yaml)
+    if (( ''${#workflows[@]} )); then
+      actionlint "''${workflows[@]}"
+    fi
+  '';
+}

@@ -19,9 +19,9 @@ expect_failure() {
     --impure --json --store "$evaluation_store" \
     --arg lib "import $lib_path" \
     --arg nixpkgs "(import $lib_path/../flake.nix).outputs { self.outPath = $lib_path/..; }" \
-    --arg mkRegistry "((import $registry_path/flake.nix).outputs {}).lib.mkRegistry" \
-    --arg staticModule "((import $registry_path/flake.nix).outputs {}).nixosModules.default" \
-    --arg flakeModule "((import $registry_path/flake.nix).outputs {}).flakeModules.default" \
+    --arg mkRegistry "(import $registry_path/lib).mkRegistry" \
+    --arg staticModule "$registry_path/nixos/module.nix" \
+    --arg flakeModule "$registry_path/flake-module.nix" \
     --arg flakeParts "(import $flake_parts_path/flake.nix).outputs { self.outPath = $flake_parts_path; nixpkgs-lib.lib = import $lib_path; }" \
     --argstr system "$system" \
     --arg useStaticModule "$use_static_module" \

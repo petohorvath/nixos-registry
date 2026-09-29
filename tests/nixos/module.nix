@@ -1,16 +1,19 @@
-{ nixpkgs, system }:
+{
+  exports,
+  nixpkgs,
+  system,
+}:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../../flake.nix).outputs { };
   schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
-  registry = registryFlake.lib.mkRegistry {
+  registry = exports.lib.mkRegistry {
     inherit lib schemaModules;
     centralModules = [ { domain = "example.test"; } ];
     nodes."metrics publisher" = node;
   };
   node = lib.nixosSystem {
     modules = [
-      registryFlake.nixosModules.default
+      exports.nixosModules.default
       {
         registry = {
           settings = { inherit schemaModules; };
@@ -39,26 +42,6 @@ in
         }).config.registry.settings
       ).success;
     expected = false;
-  };
-
-  testStaticNixosExampleEvaluatesAndValidates = {
-    expr = (import ../../examples/static-nixos { inherit nixpkgs system; }).result;
-    expected = {
-      central = {
-        domain = "example.test";
-        services = { };
-      };
-      combined = {
-        domain = "example.test";
-        services.metrics = {
-          host = "monitor.example.test";
-          port = 9191;
-          endpoint = "monitor.example.test:9191";
-        };
-      };
-      endpoint = "monitor.example.test:9191";
-      validate = true;
-    };
   };
 
   testStaticNixosModuleUsesCallerSchemaAndSeparateArguments = {
@@ -90,7 +73,7 @@ in
             nodePort = 1111;
           };
         };
-        shared = registryFlake.lib.mkRegistry (
+        shared = exports.lib.mkRegistry (
           settings
           // {
             lib = selectedLib;
@@ -100,7 +83,7 @@ in
         configured = selectedLib.nixosSystem {
           specialArgs.nodePort = 2222;
           modules = [
-            registryFlake.nixosModules.default
+            exports.nixosModules.default
             {
               nixpkgs.hostPlatform = system;
               registry = {
@@ -152,14 +135,14 @@ in
                 };
               }
             ];
-            collisionRegistry = registryFlake.lib.mkRegistry {
+            collisionRegistry = exports.lib.mkRegistry {
               inherit lib;
               schemaModules = collisionSchema;
               nodes."colliding node" = collisionNode;
             };
             collisionNode = lib.nixosSystem {
               modules = [
-                registryFlake.nixosModules.default
+                exports.nixosModules.default
                 {
                   nixpkgs.hostPlatform = system;
                   registry.settings.schemaModules = collisionSchema;

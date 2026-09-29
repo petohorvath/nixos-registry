@@ -1,7 +1,7 @@
 { nixpkgs, system }:
 let
   inherit (nixpkgs) lib;
-  registryFlake = (import ../flake.nix).outputs { };
+  exports = import ./helpers/plain-exports.nix;
   schemaModules = [ ../examples/plain-nix/partial-schema.nix ];
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 
@@ -13,7 +13,7 @@ let
       nodeModules ? { },
     }:
     let
-      registry = registryFlake.lib.mkRegistry {
+      registry = exports.lib.mkRegistry {
         inherit lib nodes schemaModules;
         centralModules = map (config: { inherit config; }) central;
       };
@@ -21,7 +21,7 @@ let
         name: definitions:
         lib.nixosSystem {
           modules = [
-            registryFlake.nixosModules.default
+            exports.nixosModules.default
             {
               nixpkgs.hostPlatform = system;
               registry = wiringProperty {
@@ -623,7 +623,7 @@ in
     (
       import ./check-contribution.nix {
         inherit lib;
-        inherit (registryFlake.lib) mkRegistry;
+        inherit (exports.lib) mkRegistry;
         mkNode =
           {
             registry,
@@ -632,7 +632,7 @@ in
           }:
           lib.nixosSystem {
             modules = [
-              registryFlake.nixosModules.default
+              exports.nixosModules.default
               {
                 nixpkgs.hostPlatform = system;
                 registry = {
