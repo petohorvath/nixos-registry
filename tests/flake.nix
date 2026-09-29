@@ -4,6 +4,12 @@ let
     "aarch64-linux"
     "x86_64-linux"
   ];
+  outputs = [
+    "checks"
+    "devShells"
+    "formatter"
+    "tests"
+  ];
   declarationsOf =
     module: optionPath:
     (lib.getAttrFromPath optionPath (lib.evalModules { modules = [ module ]; }).options).declarations;
@@ -15,8 +21,8 @@ in
   };
 
   testRootSystemOutputsCoverOnlyLinuxSystems = {
-    expr = lib.genAttrs [ "checks" "devShells" "formatter" ] (name: builtins.attrNames flake.${name});
-    expected = lib.genAttrs [ "checks" "devShells" "formatter" ] (_: systems);
+    expr = lib.genAttrs outputs (name: builtins.attrNames flake.${name});
+    expected = lib.genAttrs outputs (_: systems);
   };
 
   testRootModuleExportsDeclareOptionsFromTheirFiles = {
@@ -37,13 +43,10 @@ in
   testRootChecksKeepTheirNames = {
     expr = lib.genAttrs systems (system: builtins.attrNames flake.checks.${system});
     expected = lib.genAttrs systems (_: [
-      "diagnostics"
       "evaluation"
       "flake-parts"
       "formatting"
       "lint"
-      "ordering"
-      "recursion"
       "workflows"
     ]);
   };

@@ -182,31 +182,24 @@ in
     };
   };
 
-  testStaticFlakeModuleRequiresSchemaAndNodeSettings = {
-    expr =
-      map
-        (
-          name:
-          (builtins.tryEval
-            (mkConsumer [
-              {
-                registry.settings = removeAttrs {
-                  schemaModules = [ ];
-                  nodes = { };
-                } [ name ];
-              }
-            ]).lib.registry.validate
-          ).success
-        )
-        [
-          "schemaModules"
-          "nodes"
-        ];
-    expected = [
-      false
-      false
-    ];
-  };
+  staticFlakeModuleRequiresSchemaAndNodeSettings =
+    lib.mapAttrs
+      (_: name: {
+        expr =
+          (mkConsumer [
+            {
+              registry.settings = removeAttrs {
+                schemaModules = [ ];
+                nodes = { };
+              } [ name ];
+            }
+          ]).lib.registry.validate;
+        expectedError.msg = "registry\\.settings\\.${name} must be set explicitly";
+      })
+      {
+        testSchemaModules = "schemaModules";
+        testNodes = "nodes";
+      };
 
   testStaticFlakeDefaultsAllowEmptyNodes = {
     expr =

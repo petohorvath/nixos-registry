@@ -36,12 +36,10 @@ in
 {
   testStaticNixosModuleRejectsUnknownSettings = {
     expr =
-      (builtins.tryEval
-        (node.extendModules {
-          modules = [ { registry.settings.unknown = true; } ];
-        }).config.registry.settings
-      ).success;
-    expected = false;
+      (node.extendModules {
+        modules = [ { registry.settings.unknown = true; } ];
+      }).config.registry.settings;
+    expectedError.msg = "`registry\\.settings\\.unknown' does not exist";
   };
 
   testStaticNixosModuleUsesCallerSchemaAndSeparateArguments = {
@@ -118,55 +116,55 @@ in
     };
   };
 
-  testStaticNixosModuleRejectsReservedSchemaNames = {
-    expr =
-      map
-        (
-          name:
-          let
-            collisionSchema = [
+  staticNixosModuleRejectsReservedSchemaNames =
+    lib.genAttrs
+      [
+        "settings"
+        "central"
+        "combined"
+        "validate"
+      ]
+      (
+        name:
+        let
+          collisionSchema = [
+            {
+              options.${name} = lib.mkOption {
+                type = lib.types.str;
+                default = "schema-owned value";
+                description = ''
+                  A field that collides with the static interface.
+                '';
+              };
+            }
+          ];
+          collisionRegistry = exports.lib.mkRegistry {
+            inherit lib;
+            schemaModules = collisionSchema;
+            nodes."colliding node" = collisionNode;
+          };
+          collisionNode = lib.nixosSystem {
+            modules = [
+              exports.nixosModules.default
               {
-                options.${name} = lib.mkOption {
-                  type = lib.types.str;
-                  default = "schema-owned value";
-                  description = ''
-                    A field that collides with the static interface.
-                  '';
-                };
+                nixpkgs.hostPlatform = system;
+                registry.settings.schemaModules = collisionSchema;
+                registry = { inherit (collisionRegistry) central combined validate; };
               }
             ];
-            collisionRegistry = exports.lib.mkRegistry {
-              inherit lib;
-              schemaModules = collisionSchema;
-              nodes."colliding node" = collisionNode;
-            };
-            collisionNode = lib.nixosSystem {
-              modules = [
-                exports.nixosModules.default
-                {
-                  nixpkgs.hostPlatform = system;
-                  registry.settings.schemaModules = collisionSchema;
-                  registry = { inherit (collisionRegistry) central combined validate; };
-                }
-              ];
-            };
-          in
-          {
-            local = (builtins.tryEval collisionNode.config.registry).success;
-            shared = (builtins.tryEval collisionRegistry.validate).success;
-          }
-        )
-        [
-          "settings"
-          "central"
-          "combined"
-          "validate"
-        ];
-    expected = lib.replicate 4 {
-      local = false;
-      shared = false;
-    };
-  };
+          };
+        in
+        {
+          testLocal = {
+            expr = collisionNode.config.registry;
+            expectedError.msg = "^nixos-registry: schema option `registry\\.${name}` conflicts with a reserved static interface name";
+          };
+          testShared = {
+            expr = collisionRegistry.validate;
+            expectedError.msg = "node `colliding node`: schema option `registry\\.${name}` conflicts with a reserved static interface name";
+          };
+        }
+      );
 
   testStaticNixosModuleContributesAndReadsSharedResults = {
     expr = {

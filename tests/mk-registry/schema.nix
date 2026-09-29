@@ -159,8 +159,8 @@ in
           nodes = { };
         };
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "unrestricted freeform roots are unsupported";
   };
 
   testCentralModulesCannotOpenTheRegistryRoot = {
@@ -178,8 +178,8 @@ in
           nodes = { };
         };
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "unrestricted freeform roots are unsupported";
   };
 
   testContributionsCannotOpenTheRegistryRoot = {
@@ -202,8 +202,8 @@ in
           };
         };
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry` from node `publisher` in `[^`]*` changes module controls";
   };
 
   testNodeOptionDeclarationsDoNotExtendTheSharedSchema = {
@@ -269,8 +269,8 @@ in
           };
         };
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry\\.services\\.backup` from node `publisher` in `[^`]*` declares options";
   };
 
   testDataOnlySubmoduleFunctionsKeepTheirArguments = {

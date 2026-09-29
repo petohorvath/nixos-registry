@@ -6,8 +6,9 @@ let
     "combined"
     "validate"
   ];
+  # A null node name reports a node's own read.
   checkSchema =
-    schemaOptions: value:
+    nodeName: schemaOptions: value:
     let
       collisions = lib.intersectLists reservedNames (builtins.attrNames schemaOptions);
       name = builtins.head collisions;
@@ -19,7 +20,9 @@ let
       value
     else
       throw (
-        "nixos-registry: schema option `registry.${name}` conflicts with a reserved static interface name"
+        "nixos-registry: "
+        + lib.optionalString (nodeName != null) "node `${nodeName}`: "
+        + "schema option `registry.${name}` conflicts with a reserved static interface name"
         + lib.optionalString (declarations != [ ]) " declared in ${lib.showFiles declarations}"
         + ". Rename the schema field or use the generated registry.module interface."
       );
@@ -49,8 +52,8 @@ in
 {
   inherit checkSchema reservedNames;
   selectContributions =
-    schemaOptions: definitions:
-    checkSchema schemaOptions (
+    nodeName: schemaOptions: definitions:
+    checkSchema nodeName schemaOptions (
       lib.concatMap (
         definition:
         let

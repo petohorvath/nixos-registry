@@ -65,7 +65,9 @@ in
   testStaticLazyCollectionSupportsSharedReadsWhileContributing = {
     expr =
       let
-        consumer = (import ../static-recursion.nix { inherit flakeParts nixpkgs system; }).lazy;
+        consumer = import ../fixtures/static-collection-consumer.nix {
+          inherit flakeParts nixpkgs system;
+        } lib.types.lazyAttrsOf;
       in
       {
         inherit (consumer.lib.registry) combined validate;

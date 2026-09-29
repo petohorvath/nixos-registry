@@ -24,7 +24,7 @@ The static `flakeModules.default` export declares project-level `registry.settin
 
 Keep the public exports loadable by path without supplying or evaluating flake inputs: `(import ./lib).mkRegistry`, `nixos/module.nix`, and `flake-module.nix`. The root `nixpkgs` and `flake-parts` inputs can enter normal consumer lock graphs. This path-based contract replaces plain import through the flake's `outputs` function, as [ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md) records, and the original v1 input-free-flake promise, while preserving the library contract.
 
-The `dev` partition supplies the root `checks`, `devShells`, and `formatter` development entrypoints. `nix flake check --no-update-lock-file` runs every test and asserts every documented example result using the selected root `nixpkgs`; the project provides no separate test or example entrypoints. Removing or renaming these entrypoints, check names, or input overrides is a breaking tooling change and requires migration guidance.
+The `dev` partition supplies the root `checks`, `devShells`, `formatter`, and `tests` development entrypoints. The checks are `evaluation`, `flake-parts`, `formatting`, `lint`, and `workflows`. `tests.<system>` is the nix-unit suite that the `evaluation` check runs. `nix flake check --no-update-lock-file` runs every test and asserts every documented example result using the selected root `nixpkgs`; the project provides no separate example entrypoints. Removing or renaming these entrypoints, check names, or input overrides is a breaking tooling change and requires migration guidance.
 
 ## Releases
 

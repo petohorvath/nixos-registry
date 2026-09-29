@@ -240,4 +240,4 @@ The [scalar-conflict example](../examples/plain-nix/scalar-conflict.nix) sets di
 
 The strict variant of the [collection example](../examples/plain-nix/collection-laziness.nix) and the [value-cycle example](../examples/plain-nix/value-cycle.nix) fail with native recursion errors when their combined data or validation is read.
 
-The root suite asserts the scalar conflict, and the `recursion` check asserts the native recursion errors. Both policy compatibility runs check these failures too. They demonstrate limits of the schema or data dependencies and are expected test results.
+The root suite asserts the scalar conflict and the native recursion errors. Both policy compatibility runs check these failures too. They demonstrate limits of the schema or data dependencies and are expected test results.

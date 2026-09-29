@@ -1,62 +1,86 @@
+# Whole-contribution ordering fails as direct evaluation does, through both
+# node adapters: 2 adapters x 2 sources x 3 orders x 3 or 4 outputs.
 {
-  lib,
-  mkRegistry,
-  source,
-  order,
-  output,
-  useStaticModule ? false,
-  nixpkgs ? null,
-  system ? null,
-  staticModule ? null,
+  exports,
+  nixpkgs,
+  system,
 }:
 let
-  mkEvaluations = import ./fixtures/evaluate-properties.nix (
-    {
-      inherit lib mkRegistry;
-    }
-    // lib.optionalAttrs useStaticModule {
-      mkNode =
-        {
-          registry,
-          schemaModules,
-          definitions,
-        }:
-        nixpkgs.lib.nixosSystem {
-          modules = [
-            staticModule
-            {
-              nixpkgs.hostPlatform = system;
-              registry = {
-                settings = { inherit schemaModules; };
-                inherit (registry) central combined validate;
-              };
-            }
-          ]
-          ++ map (registry: { inherit registry; }) definitions;
+  inherit (nixpkgs) lib;
+  adapters = {
+    generated = { };
+    static.mkNode =
+      {
+        registry,
+        schemaModules,
+        definitions,
+      }:
+      nixpkgs.lib.nixosSystem {
+        modules = [
+          exports.nixosModules.default
+          {
+            nixpkgs.hostPlatform = system;
+            registry = {
+              settings = { inherit schemaModules; };
+              inherit (registry) central combined validate;
+            };
+          }
+        ]
+        ++ map (registry: { inherit registry; }) definitions;
+      };
+  };
+  orders = {
+    before = lib.mkBefore;
+    after = lib.mkAfter;
+    explicit = lib.mkOrder 750;
+  };
+  mkSourceCases =
+    adapter: source:
+    lib.mapAttrs (
+      _: mkOrdered:
+      let
+        ordered = mkOrdered { backupPaths = [ "/ordered" ]; };
+        evaluations =
+          import ./fixtures/evaluate-properties.nix
+            (
+              {
+                inherit lib;
+                inherit (exports.lib) mkRegistry;
+              }
+              // adapter
+            )
+            (
+              if source == "central" then
+                {
+                  central = [ ordered ];
+                  contributions.publisher = [ { backupPaths = [ "/node" ]; } ];
+                }
+              else
+                {
+                  central = [ { backupPaths = [ "/central" ]; } ];
+                  contributions.publisher = [ ordered ];
+                }
+            );
+        outputs = {
+          testDirect = "direct";
+          testCombined = "combined";
+          testValidate = "validate";
+        }
+        // lib.optionalAttrs (source == "central") { testCentral = "central"; };
+      in
+      lib.mapAttrs (_: output: {
+        expr = evaluations.${output};
+        expectedError = {
+          type = "TypeError";
+          msg = "unexpected argument 'priority'";
         };
-    }
-  );
-  mkOrderedDefinition =
-    {
-      before = lib.mkBefore;
-      after = lib.mkAfter;
-      explicit = lib.mkOrder 750;
-    }
-    .${order};
-  ordered = mkOrderedDefinition { backupPaths = [ "/ordered" ]; };
-  evaluations = mkEvaluations (
-    if source == "central" then
-      {
-        central = [ ordered ];
-        contributions.publisher = [ { backupPaths = [ "/node" ]; } ];
-      }
-    else
-      {
-        central = [ { backupPaths = [ "/central" ]; } ];
-        contributions.publisher = [ ordered ];
-      }
-  );
+      }) outputs
+    ) orders;
 in
-{
-  result = evaluations.${output};
-}
+lib.mapAttrs (
+  _: adapter:
+  lib.genAttrs [
+    "central"
+    "node"
+  ] (mkSourceCases adapter)
+) adapters

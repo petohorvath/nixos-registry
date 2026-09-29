@@ -75,9 +75,10 @@ in
           };
           schemaOptions = contributionType.getSubOptions [ "registry" ];
         in
-        staticInterface.checkSchema schemaOptions (
+        # A node's own read has no registry node name to report.
+        staticInterface.checkSchema null schemaOptions (
           contributionType.merge [ "registry" ] (
-            staticInterface.selectContributions schemaOptions options.registry.definitionsWithLocations
+            staticInterface.selectContributions null schemaOptions options.registry.definitionsWithLocations
           )
           // lib.getAttrs staticInterface.reservedNames config
         );

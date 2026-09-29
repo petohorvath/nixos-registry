@@ -1,5 +1,14 @@
-{ inputs, ... }:
 {
+  config,
+  inputs,
+  lib,
+  ...
+}:
+{
+  flake.tests = lib.genAttrs config.systems (
+    system: import ../tests/evaluation.nix { inherit inputs system; }
+  );
+
   perSystem =
     {
       config,
