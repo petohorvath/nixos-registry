@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Breaking checks: nix-unit suite
+
+Run every test with [nix-unit](https://github.com/nix-community/nix-unit) from the selected root `nixpkgs`. The `evaluation` check now runs the whole suite, including the failure cases that the `diagnostics`, `ordering`, and `recursion` checks ran as separate `nix eval` processes; those three checks are removed. The shell scripts and the hand-written runner are removed, and the root gains no input. [ADR 0003](docs/adr/0003-run-the-suite-with-nix-unit.md) records the decision.
+
+| Removed check                 | Replacement                                                           |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `checks.<system>.diagnostics` | `checks.<system>.evaluation`, suite `tests.<system>.diagnostics`      |
+| `checks.<system>.ordering`    | `checks.<system>.evaluation`, suite `tests.<system>.orderingFailures` |
+| `checks.<system>.recursion`   | `checks.<system>.evaluation`, suite `tests.<system>.recursion`        |
+
+The `dev` partition adds a `tests.<system>` output holding the suite, nested by source module. Run it, or one suite in it, with `nix run --inputs-from . nixpkgs#nix-unit -- --flake .#tests.<system>`. `nix flake check` warns that `tests` is an unknown output. It replaces the `lib.tests.<system>` entrypoint that the flake-parts root removed.
+
+Contribution and static reserved-name errors now name their node and source file in the message instead of in an error context. For example, a contribution that declares options previously reported:
+
+```text
+… while checking contribution from node `schema-changing publisher' in `/modules/schema-contribution.nix':
+error: nixos-registry: contribution at `registry.services.api` declares options; use schemaModules.
+```
+
+It now reports:
+
+```text
+error: nixos-registry: contribution at `registry.services.api` from node `schema-changing publisher` in `/modules/schema-contribution.nix` declares options; use schemaModules.
+```
+
+A static node's schema that uses a reserved name now reports ``nixos-registry: node `colliding static node`: schema option `registry.central` conflicts with a reserved static interface name ...`` instead of the same message under a `while collecting registry data from node ...` context.
+
+Messages for contributions that set `freeformType`, change module controls, or disable schema modules change the same way. A read from a static node's own `registry` option keeps the message without a node. The generated `registry.module` now declares its option in `lib/mk-registry.nix`, so conflicting declarations name that file instead of `<unknown-file>`. The `while collecting registry data from node ...` context remains once per node for native module-system errors.
+
 ### Breaking CI statuses: policy v0.5
 
 Call nixos-project-policy `v0.5` through its minor-series tag, with no caller inputs; the policy's default systems are `x86_64-linux` and `aarch64-linux`. The policy checks inputs, public outputs, the development shell, and the formatter, and runs root `nix flake check` with the locked, stable, and unstable nixpkgs revisions. Root checks, dependency locks, and public interfaces are unchanged.
@@ -36,13 +65,13 @@ The test and example entrypoints under `lib` are removed without replacement out
 | ---------------------------------- | ------------------------------ |
 | `lib.tests.<system>`               | `evaluation`                   |
 | `lib.examples`                     | `evaluation`                   |
-| `lib.collectionLaziness`           | `evaluation` and `recursion`   |
+| `lib.collectionLaziness`           | `evaluation`                   |
 | `lib.combinedReads`                | `evaluation`                   |
 | `lib.conditionalOrdering`          | `evaluation`                   |
 | `lib.partialContributions`         | `evaluation`                   |
 | `lib.priorities`                   | `evaluation`                   |
 | `lib.scalarConflicts`              | `evaluation`                   |
-| `lib.valueCycles`                  | `recursion`                    |
+| `lib.valueCycles`                  | `evaluation`                   |
 | `lib.flakePartsExamples`           | `evaluation` and `flake-parts` |
 | `lib.nixosExamples.<system>`       | `evaluation`                   |
 | `lib.staticNixosExamples.<system>` | `evaluation`                   |

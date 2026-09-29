@@ -1,8 +1,9 @@
 { lib }:
 nodeName: sourceFile:
 let
-  addContributionContext =
-    file: builtins.addErrorContext "while checking contribution from node `${nodeName}' in `${file}':";
+  describeContribution =
+    path: file:
+    "nixos-registry: contribution at `${lib.showOption path}` from node `${nodeName}` in `${file}`";
 
   # Keep checks beneath module properties lazy until those definitions are used.
   mapProperties =
@@ -40,12 +41,10 @@ let
         getActiveModuleKeys evaluation.graph
       );
     in
-    addContributionContext file (
-      if removedKeys == [ ] then
-        disabledModules
-      else
-        throw "nixos-registry: contribution at `${lib.showOption schema.path}` disables schema module `${builtins.head removedKeys}`; use schemaModules to control the shared schema."
-    );
+    if removedKeys == [ ] then
+      disabledModules
+    else
+      throw "${describeContribution schema.path file} disables schema module `${builtins.head removedKeys}`; use schemaModules to control the shared schema.";
 
   # checkOptions, checkValue, and checkModule call each other recursively.
   checkOptions =
@@ -64,9 +63,7 @@ let
         builtins.mapAttrs (
           name: definition:
           if name == "_module" then
-            addContributionContext file (
-              throw "nixos-registry: contribution at `${lib.showOption path}` changes module controls."
-            )
+            throw "${describeContribution path file} changes module controls."
           else if !(options ? ${name}) then
             if freeformType == null then definition else freeform.${name}
           else if lib.isOption options.${name} then
@@ -151,70 +148,68 @@ let
     let
       file = if lib.types.path.check value then toString value else value._file or parentFile;
     in
-    addContributionContext file (
-      if lib.isFunction value then
-        args:
-        let
-          # Retain arguments supplied through the submodule's _module.args.
-          moduleArgs = builtins.mapAttrs (name: _: args.${name} or args.config._module.args.${name}) (
-            lib.functionArgs value
-          );
-        in
-        checkModule (schema // { context = args; }) file (value (args // moduleArgs))
-      else if lib.types.path.check value then
-        args:
-        let
-          checked = checkModule (schema // { context = args; }) file (import value);
-        in
-        {
-          _file = "node ${nodeName}: ${toString value}";
-          key = toString value;
-        }
-        // (if lib.isFunction checked then checked args else checked)
-      else if !(builtins.isAttrs value) then
-        value
-      else if value.options or { } != { } then
-        throw "nixos-registry: contribution at `${lib.showOption schema.path}` declares options; use schemaModules."
-      else if value.freeformType or null != null then
-        throw "nixos-registry: contribution at `${lib.showOption schema.path}` sets freeformType; use schemaModules."
-      else if value.disabledModules or [ ] != [ ] && !(schema ? context) then
-        args: checkModule (schema // { context = args; }) file value
-      else
-        let
-          metadata = builtins.intersectAttrs {
-            _class = null;
-            _file = null;
-            disabledModules = null;
-            freeformType = null;
-            imports = null;
-            key = null;
-            require = null;
-          } value;
-          checked =
-            if value ? config || value ? options then
-              value
-              // {
-                config = checkOptions schema file (value.config or { });
-              }
-              // lib.optionalAttrs (value ? meta) {
-                inherit (checkOptions schema file { inherit (value) meta; }) meta;
-              }
-            else
-              checkOptions schema file (removeAttrs value (builtins.attrNames metadata)) // metadata;
-        in
-        checked
-        // lib.optionalAttrs (value.disabledModules or [ ] != [ ]) {
-          disabledModules = checkDisabledModules schema file value.disabledModules;
-        }
-        // lib.optionalAttrs (value ? _file) {
-          _file = "node ${nodeName}: ${toString value._file}";
-        }
-        // lib.optionalAttrs (value ? imports) {
-          imports = map (checkModule schema file) value.imports;
-        }
-        // lib.optionalAttrs (value ? require) {
-          require = map (checkModule schema file) value.require;
-        }
-    );
+    if lib.isFunction value then
+      args:
+      let
+        # Retain arguments supplied through the submodule's _module.args.
+        moduleArgs = builtins.mapAttrs (name: _: args.${name} or args.config._module.args.${name}) (
+          lib.functionArgs value
+        );
+      in
+      checkModule (schema // { context = args; }) file (value (args // moduleArgs))
+    else if lib.types.path.check value then
+      args:
+      let
+        checked = checkModule (schema // { context = args; }) file (import value);
+      in
+      {
+        _file = "node ${nodeName}: ${toString value}";
+        key = toString value;
+      }
+      // (if lib.isFunction checked then checked args else checked)
+    else if !(builtins.isAttrs value) then
+      value
+    else if value.options or { } != { } then
+      throw "${describeContribution schema.path file} declares options; use schemaModules."
+    else if value.freeformType or null != null then
+      throw "${describeContribution schema.path file} sets freeformType; use schemaModules."
+    else if value.disabledModules or [ ] != [ ] && !(schema ? context) then
+      args: checkModule (schema // { context = args; }) file value
+    else
+      let
+        metadata = builtins.intersectAttrs {
+          _class = null;
+          _file = null;
+          disabledModules = null;
+          freeformType = null;
+          imports = null;
+          key = null;
+          require = null;
+        } value;
+        checked =
+          if value ? config || value ? options then
+            value
+            // {
+              config = checkOptions schema file (value.config or { });
+            }
+            // lib.optionalAttrs (value ? meta) {
+              inherit (checkOptions schema file { inherit (value) meta; }) meta;
+            }
+          else
+            checkOptions schema file (removeAttrs value (builtins.attrNames metadata)) // metadata;
+      in
+      checked
+      // lib.optionalAttrs (value.disabledModules or [ ] != [ ]) {
+        disabledModules = checkDisabledModules schema file value.disabledModules;
+      }
+      // lib.optionalAttrs (value ? _file) {
+        _file = "node ${nodeName}: ${toString value._file}";
+      }
+      // lib.optionalAttrs (value ? imports) {
+        imports = map (checkModule schema file) value.imports;
+      }
+      // lib.optionalAttrs (value ? require) {
+        require = map (checkModule schema file) value.require;
+      };
 in
 options: path: checkOptions { inherit options path; } sourceFile

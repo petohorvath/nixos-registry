@@ -617,31 +617,29 @@ in
       validate = true;
     };
   };
-}
-//
-  lib.mapAttrs' (name: value: lib.nameValuePair "testStatic${lib.removePrefix "test" name}" value)
-    (
-      import ./check-contribution.nix {
-        inherit lib;
-        inherit (exports.lib) mkRegistry;
-        mkNode =
+
+  # Rerun the contribution checks through static NixOS nodes.
+  checkContribution = import ./check-contribution.nix {
+    inherit lib;
+    inherit (exports.lib) mkRegistry;
+    mkNode =
+      {
+        registry,
+        schemaModules,
+        contribution,
+      }:
+      lib.nixosSystem {
+        modules = [
+          exports.nixosModules.default
           {
-            registry,
-            schemaModules,
-            contribution,
-          }:
-          lib.nixosSystem {
-            modules = [
-              exports.nixosModules.default
-              {
-                nixpkgs.hostPlatform = system;
-                registry = {
-                  settings = { inherit schemaModules; };
-                  inherit (registry) central combined validate;
-                };
-              }
-              { registry = contribution; }
-            ];
-          };
-      }
-    )
+            nixpkgs.hostPlatform = system;
+            registry = {
+              settings = { inherit schemaModules; };
+              inherit (registry) central combined validate;
+            };
+          }
+          { registry = contribution; }
+        ];
+      };
+  };
+}

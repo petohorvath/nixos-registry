@@ -75,9 +75,9 @@ in
           };
           schemaOptions = contributionType.getSubOptions [ "registry" ];
         in
-        staticInterface.checkSchema schemaOptions (
+        staticInterface.checkSchema null schemaOptions (
           contributionType.merge [ "registry" ] (
-            staticInterface.selectContributions schemaOptions options.registry.definitionsWithLocations
+            staticInterface.selectContributions null schemaOptions options.registry.definitionsWithLocations
           )
           // lib.getAttrs staticInterface.reservedNames config
         );

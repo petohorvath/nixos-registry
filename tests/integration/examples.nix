@@ -135,10 +135,8 @@
   };
 
   testPlainNixScalarConflictExampleFails = {
-    expr =
-      (builtins.tryEval (import ../../examples/plain-nix/scalar-conflict.nix { inherit lib mkRegistry; }))
-      .success;
-    expected = false;
+    expr = import ../../examples/plain-nix/scalar-conflict.nix { inherit lib mkRegistry; };
+    expectedError.msg = "`backupDestinations\\.archive\\.host' has conflicting definition values[\\s\\S]*`node conflicting backup job: ";
   };
 
   testPlainNixPartialContributionsExample = {

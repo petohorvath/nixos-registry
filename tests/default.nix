@@ -1,5 +1,4 @@
-# Assemble the named root checks from the evaluation suite, examples, and
-# source checks.
+# Assemble the root checks that run the flake-parts example and source tools.
 {
   formatter,
   inputs,
@@ -7,30 +6,6 @@
   system,
 }:
 let
-  inherit (inputs) nixpkgs self;
-  flakeParts = inputs.flake-parts;
-  exports = { inherit (self) flakeModules lib nixosModules; };
-  # The suite and the flake-parts check share this evaluation.
-  flakePartsExample = import ../examples/flake-parts {
-    inherit
-      exports
-      flakeParts
-      nixpkgs
-      system
-      ;
-  };
-  staticNixosExample = import ../examples/static-nixos {
-    inherit exports nixpkgs system;
-  };
-  tests = import ./evaluation.nix {
-    inherit
-      exports
-      flakePartsExample
-      inputs
-      staticNixosExample
-      system
-      ;
-  };
   sourceDir = pkgs.lib.cleanSource ../.;
   sourceCheck =
     name: packages: script:
@@ -42,31 +17,14 @@ let
       touch "$out"
     '';
 in
-pkgs.lib.mapAttrs
-  (
-    name: script:
-    pkgs.runCommand "registry-${name}" { nativeBuildInputs = [ pkgs.nix ]; } ''
-      bash ${script} ${nixpkgs}/lib ${../.} ${../.}/tests ${system} ${
-        pkgs.lib.optionalString (builtins.elem name [
-          "diagnostics"
-          "recursion"
-        ]) (toString flakeParts.outPath)
-      }
-      touch "$out"
-    ''
-  )
-  {
-    diagnostics = ./diagnostics.sh;
-    ordering = ./ordering-failures.sh;
-    recursion = ./recursion.sh;
-  }
-// {
-  evaluation =
-    assert builtins.deepSeq tests true;
-    pkgs.runCommand "registry-evaluation" { } ''
-      touch "$out"
-    '';
-  flake-parts = flakePartsExample.checks.${system}.registry;
+{
+  flake-parts =
+    (import ../examples/flake-parts {
+      inherit (inputs) nixpkgs;
+      inherit system;
+      exports = { inherit (inputs.self) flakeModules lib nixosModules; };
+      flakeParts = inputs.flake-parts;
+    }).checks.${system}.registry;
   formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
   lint = sourceCheck "lint" [ pkgs.statix pkgs.deadnix ] ''
     statix check .

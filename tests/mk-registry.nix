@@ -130,8 +130,8 @@ in
           nodes = { };
         };
       in
-      (builtins.tryEval invalid.combined.backupDestinations.invalid.port).success;
-    expected = false;
+      invalid.combined.backupDestinations.invalid.port;
+    expectedError.msg = "`backupDestinations\\.invalid\\.port' is not of type `16 bit unsigned integer";
   };
 
   testValidatesCompleteCombinedData = {

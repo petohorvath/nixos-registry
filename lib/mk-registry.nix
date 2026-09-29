@@ -47,6 +47,7 @@ let
   };
 
   module = {
+    _file = toString ./mk-registry.nix;
     options.registry =
       lib.mkOption {
         type = lib.types.submoduleWith {
@@ -65,22 +66,20 @@ let
 
   getContributionOption =
     name: node:
-    builtins.addErrorContext "while collecting registry data from node `${name}':" (
-      let
-        option = node.options.registry;
-      in
-      if !(node ? options.registry) then
-        throw "nixos-registry: node `${name}` is missing options.registry; import registry.module or configure the static nixosModules.default."
-      else if
-        !(lib.isOption option)
-        || option.type.name or null != "submodule"
-        || !(option._nixosRegistry or false)
-        || !(option ? definitionsWithLocations && option ? highestPrio)
-      then
-        throw "nixos-registry: node `${name}` has an incompatible options.registry; import registry.module or configure the static nixosModules.default."
-      else
-        option
-    );
+    let
+      option = node.options.registry;
+    in
+    if !(node ? options.registry) then
+      throw "nixos-registry: node `${name}` is missing options.registry; import registry.module or configure the static nixosModules.default."
+    else if
+      !(lib.isOption option)
+      || option.type.name or null != "submodule"
+      || !(option._nixosRegistry or false)
+      || !(option ? definitionsWithLocations && option ? highestPrio)
+    then
+      throw "nixos-registry: node `${name}` has an incompatible options.registry; import registry.module or configure the static nixosModules.default."
+    else
+      option;
 
   contributions = lib.pipe nodes [
     (lib.mapAttrsToList (
@@ -88,26 +87,27 @@ let
       let
         option = getContributionOption name node;
       in
-      map
-        (
-          definition:
-          let
-            value = checkContribution name definition.file schemaOptions [ "registry" ] definition.value;
-            # Root ordering is separate from the contribution's override
-            # priority.
-            ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
-          in
-          {
-            _file = "node ${name}: ${definition.file}";
-            config.registry = lib.mkOverride option.highestPrio ordered;
-          }
-        )
-        (
-          builtins.addErrorContext "while collecting registry data from node `${name}':" (
-            (option._nixosRegistrySelectContributions or (_: lib.id)) schemaOptions
+      # Native module-system errors from the node's option lack its name.
+      builtins.addErrorContext "while collecting registry data from node `${name}':" (
+        map
+          (
+            definition:
+            let
+              value = checkContribution name definition.file schemaOptions [ "registry" ] definition.value;
+              # Root ordering is separate from the contribution's override
+              # priority.
+              ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
+            in
+            {
+              _file = "node ${name}: ${definition.file}";
+              config.registry = lib.mkOverride option.highestPrio ordered;
+            }
+          )
+          (
+            (option._nixosRegistrySelectContributions or (_: _: lib.id)) name schemaOptions
               option.definitionsWithLocations
           )
-        )
+      )
     ))
     lib.concatLists
   ];

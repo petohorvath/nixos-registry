@@ -94,8 +94,8 @@ in
               disabledModules = [ ./fixtures/required-endpoint.nix ];
             });
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `[^`]*/required-endpoint\\.nix`";
   };
 
   testContributionsCanDisableContributionModules = {
@@ -179,8 +179,8 @@ in
               disabledModules = [ "required-endpoint.nix" ];
             };
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `[^`]*/required-endpoint\\.nix`";
   };
 
   testContributionsCannotDisableImportedSchemaModules = {
@@ -198,8 +198,8 @@ in
               disabledModules = [ ./fixtures/required-endpoint.nix ];
             });
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `[^`]*/required-endpoint\\.nix`";
   };
 
   testRejectsDisablingSchemaModulesByOptionPath = {
@@ -223,15 +223,26 @@ in
               }
             );
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `service`";
   };
 
-  testContributionModuleSyntaxCannotExtendTheSchema = {
-    expr =
-      let
-        openRegistry =
-          mkContributionRegistry
+  contributionModuleSyntaxCannotExtendTheSchema =
+    let
+      metaShape = {
+        type = lib.types.submodule {
+          options.meta = lib.mkOption {
+            type = entryType;
+            description = "Service metadata.";
+          };
+        };
+        wrap = lib.id;
+      };
+    in
+    {
+      testFreeformType = {
+        expr =
+          (mkContributionRegistry
             {
               type = entryType;
               wrap = lib.id;
@@ -240,45 +251,38 @@ in
               freeformType = lib.types.attrsOf lib.types.anything;
               endpoint = "backup.example.test:443";
               injected = "undeclared data";
-            });
-        metaShape = {
-          type = lib.types.submodule {
-            options.meta = lib.mkOption {
-              type = entryType;
-              description = "Service metadata.";
-            };
-          };
-          wrap = lib.id;
-        };
-        metaRegistry = mkContributionRegistry metaShape (_: {
-          config = { };
-          meta =
-            { lib, ... }:
-            {
-              options.injected = lib.mkOption {
-                type = lib.types.str;
-                default = "node-owned schema";
-                description = "An option absent from schemaModules.";
-              };
-              config.endpoint = "backup.example.test:443";
-            };
-        });
-        validMetaRegistry = mkContributionRegistry metaShape (_: {
-          config = { };
-          meta.endpoint = "backup.example.test:443";
-        });
-      in
-      {
-        freeform = (builtins.tryEval openRegistry.validate).success;
-        meta = (builtins.tryEval metaRegistry.validate).success;
-        metaEndpoint = validMetaRegistry.combined.service.meta.endpoint;
+            })
+          ).validate;
+        expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` sets freeformType";
       };
-    expected = {
-      freeform = false;
-      meta = false;
-      metaEndpoint = "backup.example.test:443";
+
+      testMetaOptions = {
+        expr =
+          (mkContributionRegistry metaShape (_: {
+            config = { };
+            meta =
+              { lib, ... }:
+              {
+                options.injected = lib.mkOption {
+                  type = lib.types.str;
+                  default = "node-owned schema";
+                  description = "An option absent from schemaModules.";
+                };
+                config.endpoint = "backup.example.test:443";
+              };
+          })).validate;
+        expectedError.msg = "contribution at `registry\\.service\\.meta` from node `publisher` in `[^`]*` declares options";
+      };
+
+      testMetaData = {
+        expr =
+          (mkContributionRegistry metaShape (_: {
+            config = { };
+            meta.endpoint = "backup.example.test:443";
+          })).combined.service.meta.endpoint;
+        expected = "backup.example.test:443";
+      };
     };
-  };
 
   testFreeformContributionsPreserveModuleMetadata = {
     expr =
@@ -326,8 +330,8 @@ in
               ];
             });
       in
-      (builtins.tryEval registry.validate).success;
-    expected = false;
+      registry.validate;
+    expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` declares options";
   };
 
   testFunctionsCannotDeclareResultOptions = {
@@ -352,9 +356,8 @@ in
               }
             );
       in
-      (builtins.tryEval (builtins.deepSeq (registry.combined.service "backup.example.test:443") true))
-      .success;
-    expected = false;
+      registry.combined.service "backup.example.test:443";
+    expectedError.msg = "contribution at `registry\\.service\\.<function body>` from node `publisher` in `[^`]*` declares options";
   };
 
   testFunctionsKeepTheirDataAndArguments = {
@@ -419,13 +422,11 @@ in
 
   testInvalidSubmoduleValuesRetainTypeFailures = {
     expr =
-      (builtins.tryEval
-        (mkContributionRegistry {
-          type = entryType;
-          wrap = lib.id;
-        } "not a module").validate
-      ).success;
-    expected = false;
+      (mkContributionRegistry {
+        type = entryType;
+        wrap = lib.id;
+      } "not a module").validate;
+    expectedError.msg = "`service' is not of type `submodule'";
   };
 
   testCollectionTypesKeepDataOnlySubmoduleFunctions = {
@@ -451,11 +452,11 @@ in
     };
   };
 
-  testCollectionsRejectContributionSchemaExtensions = {
-    expr = builtins.mapAttrs (
-      _: shape:
-      let
-        registry = mkContributionRegistry shape (
+  collectionsRejectContributionSchemaExtensions = lib.mapAttrs' (
+    name: shape:
+    lib.nameValuePair "test${lib.toSentenceCase name}" {
+      expr =
+        (mkContributionRegistry shape (
           { lib, ... }:
           {
             options.injected = lib.mkOption {
@@ -465,19 +466,8 @@ in
             };
             config.endpoint = "backup.example.test:443";
           }
-        );
-      in
-      (builtins.tryEval registry.validate).success
-    ) shapes;
-    expected = {
-      attributes = false;
-      list = false;
-      nullable = false;
-      unique = false;
-      union = false;
-      coercion = false;
-      tagged = false;
-      freeform = false;
-    };
-  };
+        )).validate;
+      expectedError.msg = "contribution at `registry\\.service[^`]*` from node `publisher` in `[^`]*` declares options";
+    }
+  ) shapes;
 }
