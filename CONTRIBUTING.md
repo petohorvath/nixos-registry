@@ -1,16 +1,16 @@
 # Contributing
 
-Follow the selected [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md) and the local [development guide](docs/development.md). Policy enrollment is active, and GitHub enforces the required policy checks on `main`.
+Follow the shared project policy linked from [CI and policy](docs/development.md#ci-and-policy) and the local [development guide](docs/development.md). GitHub enforces the required policy checks on `main`.
 
 ## Changes and review
 
 Work on a branch and open a PR with a Conventional Commit title, such as `fix: Preserve contribution source locations`. Describe the resulting behavior, compatibility effects, and validation. Mark breaking changes with `!` and provide migration notes in the [changelog](CHANGELOG.md).
 
-Run root `nix fmt --no-update-lock-file` and `nix flake check --no-update-lock-file`. Run stable and unstable public-constructor coverage through the selected policy runner with trusted current policy records. Add meaningful tests at public interfaces for behavior changes. Ordinary validation requires no VM execution or virtualization permissions.
+Run root `nix fmt --no-update-lock-file` and `nix flake check --no-update-lock-file`. Run the [policy's local checks](docs/development.md#ci-and-policy), including the stable and unstable test runs that cover the public constructor. Add meaningful tests at public interfaces for behavior changes. Ordinary validation requires no VM execution or virtualization permissions.
 
 A docs-only change edits only Markdown files and leaves their Nix code blocks unchanged; code blocks such as the examples in `docs/examples.md` count as example sources. Locally, a docs-only change needs only the root formatting and flake checks above. When it edits a documented command or that command's documented result, run the command once with its documented setup and record the host and result on the PR. Required hosted checks still apply before merge.
 
-Each PR is squash-merged to one Conventional Commit using its title as the subject. Every merge requires human approval and passing applicable checks; the maintainer may approve and merge without a second reviewer. Agents do not gain merge or bypass authority from successful checks. GitHub requires an up-to-date PR and all 11 [policy status checks](docs/development.md#hosted-checks) on `main`, including for administrators. A human may document an urgent exception during a CI infrastructure outage, including the reason, completed checks, and checks owed after recovery; known code or test failures do not qualify.
+Each PR is squash-merged to one Conventional Commit using its title as the subject. Every merge requires human approval and passing applicable checks; the maintainer may approve and merge without a second reviewer. Agents do not gain merge or bypass authority from successful checks. GitHub requires an up-to-date PR and the [required policy statuses](docs/development.md#ci-and-policy) on `main`, including for administrators. A human may document an urgent exception during a CI infrastructure outage, including the reason, completed checks, and checks owed after recovery; known code or test failures do not qualify.
 
 Keep usage, design, and architectural decisions in repository documentation. Keep implementation history and validation evidence in commits, issues, PRs, and CI rather than separate progress or validation reports.
 

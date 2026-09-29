@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Breaking CI statuses: policy v0.5
+
+Call nixos-project-policy `v0.5` through its minor-series tag, with no caller inputs; the policy's default systems are `x86_64-linux` and `aarch64-linux`. The policy checks inputs, public outputs, the development shell, and the formatter, and runs root `nix flake check` with the locked, stable, and unstable nixpkgs revisions. Root checks, dependency locks, and public interfaces are unchanged.
+
+Remove the repository-owned formatting/lint job: `Policy / Tests (locked, <system>)` runs root `nix flake check`, which includes the `formatting`, `lint`, and `workflows` checks. The workflow no longer runs when a PR is only edited, because the policy no longer checks the PR title.
+
+Policy `v0.5` replaces the required statuses rather than renaming them. In the branch protection of `main`, replace `Policy / Verify policy version and load shared pins`, `Policy / Compliance (<system>)`, `Policy / Formatting and lint (<system>)`, `Policy / Project tests (<system>)`, and `Policy / Compatibility (stable|unstable, <system>)` with `Policy / Check (<system>)` and `Policy / Tests (locked|stable|unstable, <system>)` for both Linux systems. The project has no VM tests, so `Policy / VM tests` is skipped and not required. Run the policy locally with `nix run github:petohorvath/nixos-project-policy/v0.5 -- check .`; `--policy-root`, the records checkout, and replay are no longer used. See [CI and policy](docs/development.md#ci-and-policy).
+
 ### Breaking flake-parts root
 
 Assemble the root flake with flake-parts. The root declares `nixpkgs` and `flake-parts`, whose `nixpkgs-lib` input follows `nixpkgs`, so flake consumers gain flake-parts in their lock graph but no second Nixpkgs input. The root `lib` contains only `mkRegistry`. A `dev` partition supplies `checks`, `devShells`, and `formatter`, so evaluating `lib`, `nixosModules.default`, or `flakeModules.default` loads no development code. [ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md) records the decision.

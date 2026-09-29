@@ -1,6 +1,6 @@
 # Development
 
-The [root flake](../flake.nix) delegates the development shell, formatter, and checks to a `dev` flake-parts partition in [dev/](../dev/default.nix), under [nixos-project-policy v0.4.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/POLICY.md). Policy enrollment is active, and `main` requires the [hosted policy checks](#hosted-checks) before merging.
+The [root flake](../flake.nix) delegates the development shell, formatter, and checks to a `dev` flake-parts partition in [dev/](../dev/default.nix). CI runs the shared project policy, and `main` requires its checks before merging, as [CI and policy](#ci-and-policy) describes.
 
 ## Host prerequisites
 
@@ -30,7 +30,7 @@ The root checks also cover formatting, statix, deadnix, and workflow validation.
 
 `nix flake check --no-update-lock-file` runs all tests; there are no separate test commands. Its `evaluation` check runs every case in the suite, and the integration tests assert the result of every example.
 
-The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy runner tests the full suite with each shared revision.
+The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy's stable and unstable test runs cover the full suite.
 
 The static flake-module tests use the root `flake-parts` input with the selected root module library. They evaluate both public static imports with real NixOS nodes, composed project settings, explicit membership, empty nodes, and separate schema/central and node arguments. The [separate-source example tests](../tests/integration/flake-parts.nix) call the flake-parts example twice, with the root flake's exports and with the path-based exports, and check its configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its nodes are evaluation-only configurations for the selected system. The diagnostic check covers missing required settings, duplicate node names and argument keys, and source attribution for central conflicts.
 
@@ -57,80 +57,25 @@ nix fmt --no-update-lock-file -- --ci
 
 ## Dependencies and policy
 
-The root declares two inputs, `nixpkgs` and `flake-parts`, whose exact revisions are recorded in [flake.lock](../flake.lock). The `flake-parts` library follows `nixpkgs`, and the `dev` partition reuses both inputs without a separate inputs flake. Development tools, formatting, all examples, and all root checks use the selected `nixpkgs`, including the flake-parts example and static flake-module tests. The committed `nixpkgs` revision may differ from the shared compatibility pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
+The root declares two inputs, `nixpkgs` and `flake-parts`, whose exact revisions are recorded in [flake.lock](../flake.lock). The `flake-parts` library follows `nixpkgs`, and the `dev` partition reuses both inputs without a separate inputs flake. Development tools, formatting, all examples, and all root checks use the selected `nixpkgs`, including the flake-parts example and static flake-module tests. The committed `nixpkgs` revision may differ from the policy's stable and unstable pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
 
-The flake-parts example has no lock of its own. Root checks call it as a function with the root `flake-parts` input and the selected `nixpkgs`, so the policy runner's `nixpkgs` override also controls it, and `nix flake check --no-update-lock-file` covers it without a separate validation step. Update `flake-parts` deliberately with `nix flake update flake-parts`, commit the lock, and rerun ordinary and compatibility checks.
+The flake-parts example has no lock of its own. Root checks call it as a function with the root `flake-parts` input and the selected `nixpkgs`, so the policy's `nixpkgs` override also controls it, and `nix flake check --no-update-lock-file` covers it without a separate validation step. Update `flake-parts` deliberately with `nix flake update flake-parts`, commit the lock, and rerun ordinary and compatibility checks.
 
-The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. Compatibility pins live in policy records, without an additional root input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports.
+The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. The shared policy bundles its stable and unstable pins, so the root needs no additional input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports.
 
-The immutable v0.4.0 release supplies the policy rules, checker, and workflow. The [policy caller](../.github/workflows/check.yml) owns release selection, required architectures, and additional required checks. Current [pin records](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/pins.json) supply approved compatibility revisions; the [member roster](https://github.com/petohorvath/nixos-project-policy/blob/main/policy/members.json) records enrolled repository identities. Pin changes follow the shared maintenance procedure and require renewed validation; they do not change the selected policy release.
+## CI and policy
 
-The policy repository is not a flake input, shell dependency, or build dependency. Run the release's shell probe externally to check default-shell startup and command execution in a cleared inherited environment and evaluate the root formatter:
+The [CI workflow](../.github/workflows/check.yml) calls the [shared project policy](https://github.com/petohorvath/nixos-project-policy/blob/v0.5/POLICY.md) in a job named `Policy`. The workflow's `uses:` reference selects the policy release. Apart from the changelog and historical citations in ADRs, that reference and the policy link in this paragraph are the only places that name the policy version; a policy upgrade updates both and adds a changelog entry.
 
-```sh
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- shell "$PWD"
-```
+The workflow runs for every opened, synchronized, or reopened PR, for pushes to `main`, and on manual dispatch, with read-only repository permissions. The caller sets no inputs, so the policy runs on its default systems, `x86_64-linux` and `aarch64-linux`. The policy repository is not a flake input, shell dependency, or build dependency.
 
-### Policy records and compliance
+The policy checks the inputs, public outputs, development shell, and formatter. It also runs root `nix flake check` with the locked `nixpkgs` and with the stable and unstable nixpkgs pins that each policy release bundles, so the repository-owned `formatting`, `lint`, and `workflows` checks run on every system. To run the same checks locally, use the policy's `check .` and `test . --nixpkgs locked|stable|unstable` commands as its [README](https://github.com/petohorvath/nixos-project-policy#local-check) describes. Each local run covers only its host system.
 
-Policy checking requires an explicit trusted checkout of current policy records. Clone it from policy `main` into a temporary directory outside the member checkout, and retain its commit with the PR's validation evidence.
-
-The policy check, both [compatibility runs](#compatibility-checks), and the [hosted checks](#hosted-checks) `ci` command reuse `$NIXOS_REGISTRY_RECORDS_DIR`, so run them in one shell. In a new shell, the variable is empty and the commands fail. Set the variable only through its `mktemp -d` command and never point it at another checkout, because the cleanup command deletes whatever directory it names.
-
-```sh
-NIXOS_REGISTRY_RECORDS_DIR=$(mktemp -d)
-git clone --branch main --single-branch https://github.com/petohorvath/nixos-project-policy.git "$NIXOS_REGISTRY_RECORDS_DIR"
-git -C "$NIXOS_REGISTRY_RECORDS_DIR" rev-parse HEAD
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" \
-  check "$PWD" --project nixos-registry --shell
-```
-
-The caller selects `policy_version: v0.4.0` and declares `required_architectures` as a literal JSON list containing `x86_64-linux` and `aarch64-linux`. Its `additional_required_checks` retains both formatting/lint statuses. VM targets default to an empty list. The normal check must report `pass` against approved pins and separately report `enrollment: "enrolled"` from the current roster. Static reports identify compatibility as `not-run`; execute the separate compatibility checks below for that evidence. For future enrollment changes, follow the selected release's [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#enrollment). Successful checks against proposed policy records neither change enrollment nor approve pins.
+The policy's Caller section lists the statuses to require, and the workflow's `Plan` job writes them to its step summary on every run. GitHub requires an up-to-date PR and these statuses on `main`, including for administrators. Registry has no VM tests, so the policy's VM job is skipped and not required. Passing local checks does not configure GitHub settings or authorize a merge.
 
 ### Compatibility checks
 
-Commit any deliberate root lock changes before compatibility validation: the runner requires the root lock to match its committed copy. Use the same policy records checkout for both runs:
-
-```sh
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" \
-  compatibility "$PWD" --project nixos-registry --channel stable
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" \
-  compatibility "$PWD" --project nixos-registry --channel unstable
-```
-
-The runner verifies the effective root input through Nix metadata and executes full root host checks with an exact `--override-input nixpkgs`. It checks that the member source and lock remain unchanged and saves metadata and result artifacts. Each run creates a temporary evidence directory and reports its path as `artifacts`; to choose the location, pass `--output` with a new directory outside the member checkout, such as `"$(mktemp -d)/stable"`. These runs intentionally use a different effective graph from the committed-lock check; they do not update the member lock. Keep both kinds of evidence on the PR, with the member, checker, and policy records commits and the policy records digest. Run compatibility on each recorded Linux architecture; cached builds can satisfy checks. See the [checker reference](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/checker.md#compatibility-execution-and-evidence) for replay instructions.
-
-### Hosted checks
-
-[Project checks](../.github/workflows/check.yml) calls the immutable v0.4.0 reusable workflow with read-only repository permissions. Its unconditional job is named `Policy` and runs for every opened, synchronized, reopened, or edited PR, including title edits, with no PR branch or path filters. Pushes to `main` and manual dispatch also run the workflow.
-
-The workflow verifies the published immutable release and captures one checker commit and one current policy records commit for the run. Job logs identify the exact member revision, normally GitHub's candidate merge commit for a PR. The caller's `required_architectures` input retains `x86_64-linux` and `aarch64-linux` for both ordinary and compatibility checks.
-
-After the shared snapshot job, compliance, project tests, and stable/unstable compatibility run independently on each architecture. Compliance includes the cleared-environment shell smoke test. Project tests use the committed lock and include the repository-owned formatting, lint, and workflow checks; compatibility runs override the selected input. Review verifies the Conventional Commit PR title. Registry has no VM targets, so the VM result is `not-applicable` and provides no VM-suite evidence.
-
-The member-owned formatting/lint job runs independently on both Linux architectures against the same event revision as Policy. It builds the root formatting, lint, and workflow checks with the committed lock and retains the existing `Policy / Formatting and lint (<architecture>)` status names. These two additional gates preserve the existing merge contract now that the reusable policy workflow delegates formatting and lint to members.
-
-The selected checker derives required gates from the release and the caller settings, including `additional_required_checks`. Generate the complete list with the trusted policy records checkout, cloned into `$NIXOS_REGISTRY_RECORDS_DIR` in the current shell as described in [Policy records and compliance](#policy-records-and-compliance):
-
-```sh
-nix run --no-update-lock-file github:petohorvath/nixos-project-policy/v0.4.0 -- \
-  --policy-root "$NIXOS_REGISTRY_RECORDS_DIR" ci "$PWD" --project nixos-registry
-```
-
-After this last command that uses `$NIXOS_REGISTRY_RECORDS_DIR`, remove the temporary policy records checkout:
-
-```sh
-rm -rf "${NIXOS_REGISTRY_RECORDS_DIR:?}"
-```
-
-The required statuses are `Policy / Verify policy version and load shared pins`, plus `Policy / Compliance (<architecture>)`, `Policy / Formatting and lint (<architecture>)`, `Policy / Project tests (<architecture>)`, and `Policy / Compatibility (stable, <architecture>)` and `(unstable, <architecture>)` for both Linux architectures. All 11 statuses are bound to GitHub Actions and required on an up-to-date PR before a human approves its squash merge. Protection applies to administrators. No VM gate is required.
-
-The nixos-project-policy member audit inspects adopted members and their GitHub merge controls using the read-only access described in the [maintenance procedure](https://github.com/petohorvath/nixos-project-policy/blob/v0.4.0/docs/maintenance.md#audit-access). Keep member, checker, and policy records revisions and hosted job links on the relevant PRs.
-
-Future policy upgrades use reviewed member PRs that update the caller and policy links together. Verify hosted statuses and obtain human approval for merge and any gate changes. Ordinary upgrades leave the member roster unchanged; enrollment changes and shared-pin approval require reviewed nixos-project-policy PRs. The hosted workflow captures current policy records from policy `main`; proposed policy records remain separate until their PR is merged.
+The stable and unstable test runs override root `nixpkgs` with `--override-input`, verify the effective input through Nix metadata, and run the full root suite. They use a different effective graph from the committed-lock check, and they fail if the run changes the lock or the sources. The pins stay outside the root lock and consumer dependency graphs, so a pin bump in a policy patch release needs no change here. Nix may reuse cached builds, so a passing run does not mean every check executed again.
 
 ## Documentation and issues
 

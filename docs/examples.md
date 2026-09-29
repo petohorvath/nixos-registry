@@ -2,7 +2,7 @@
 
 The [README](../README.md#quickstart) contains a complete flake with two NixOS configurations sharing a service address. The examples below cover other ways to use the same API.
 
-Each section states what its example demonstrates and its expected result. The root checks evaluate every example and assert these results; run them from the repository root with `nix flake check --no-update-lock-file`. The [root flake](../flake.nix) uses the `nixpkgs` selection in [flake.lock](../flake.lock). The [development guide](development.md#compatibility-checks) explains how the policy runner checks these examples against both shared revisions.
+Each section states what its example demonstrates and its expected result. The root checks evaluate every example and assert these results; run them from the repository root with `nix flake check --no-update-lock-file`. The [root flake](../flake.nix) uses the `nixpkgs` selection in [flake.lock](../flake.lock). The [development guide](development.md#compatibility-checks) explains how the policy's test runs check these examples against its stable and unstable pins.
 
 ## NixOS
 
