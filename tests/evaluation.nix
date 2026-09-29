@@ -8,7 +8,7 @@ let
   pathExports = import ./helpers/plain-exports.nix;
   inherit (exports.lib) mkRegistry;
 
-  exportTests = exports: {
+  exportSuites = exports: {
     flakeModule = import ./flake-module.nix {
       inherit
         exports
@@ -68,8 +68,6 @@ in
     nixos = import ./integration/nixos.nix { inherit mkRegistry nixpkgs system; };
     examples = import ./integration/examples.nix { inherit lib mkRegistry; };
   };
-}
-// exportTests exports
-// {
-  pathImported = exportTests pathExports;
+  inherit (exportSuites exports) flakeModule nixosModule flakePartsExample;
+  pathImported = exportSuites pathExports;
 }

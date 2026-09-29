@@ -387,7 +387,8 @@ in
           "conflicting contribution interface" = [
             {
               _file = "/modules/conflicting-interface.nix";
-              # A type extension must not repeat the generated option's description.
+              # A type extension must not repeat the generated option's
+              # description.
               options.registry = lib.mkOption { type = lib.types.str; };
             }
           ];

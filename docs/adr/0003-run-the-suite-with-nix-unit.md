@@ -12,9 +12,15 @@ The previous suite needed four runners. A hand-written Nix runner compared `expr
 
 - **Source: `pkgs.nix-unit`.** The package follows the selected `nixpkgs`, so the policy's stable and unstable runs use their matching nix-unit, and the root gains no input.
 - **Flake-mode invocation.** The suite needs the real flake `self` for root output tests, so the check runs `nix-unit --flake` against the source with a writable chroot store for NixOS evaluation.
-- **A `tests` output.** The suite is a public development output, which also gives single-suite runs. This amends [ADR 0002](0002-assemble-the-root-flake-with-flake-parts.md), which kept tests out of outputs and rejected a focused evaluation output. `nix flake check` warns that `tests` is an unknown output.
+- **A `tests` output.** The suite is a public development output, which also gives single-suite runs. This amends [ADR 0002](0002-assemble-the-root-flake-with-flake-parts.md), which kept tests out of outputs and rejected a focused evaluation output.
 - **One `evaluation` check.** It replaces the `evaluation`, `diagnostics`, `ordering`, and `recursion` checks.
 - **Self-contained error messages.** nix-unit matches the error message but not its trace. Library errors therefore name the node and source file in the message, replacing error contexts that only repeated them.
+
+## Consequences
+
+- `nix flake check` warns that `tests` is an unknown output. Under the policy, the output must evaluate and cannot be removed after a release without a version bump.
+- Contribution and static reserved-name error messages change wording, as the [changelog](../../CHANGELOG.md) records.
+- A native module-system error, such as a second `registry` option declaration, still names its node only in the trace, so its diagnostic case cannot assert the node name.
 
 ## Considered options
 
