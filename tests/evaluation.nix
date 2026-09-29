@@ -1,14 +1,14 @@
 # Assemble the evaluation suite; a failing case throws with both values.
 {
   exports,
-  flake,
-  flakeParts,
   flakePartsExample,
-  nixpkgs,
+  inputs,
   staticNixosExample,
   system,
 }:
 let
+  inherit (inputs) nixpkgs;
+  flakeParts = inputs.flake-parts;
   inherit (exports.lib) mkRegistry;
   inherit (nixpkgs) lib;
   pathExports = import ./helpers/plain-exports.nix;
@@ -47,7 +47,10 @@ let
     // import ./wrap-central-module.nix { inherit lib mkRegistry; }
     // import ./get-active-module-keys.nix { inherit lib mkRegistry; }
     // import ./static-interface.nix { inherit nixpkgs system; }
-    // import ./flake.nix { inherit flake lib; }
+    // import ./flake.nix {
+      inherit lib;
+      flake = inputs.self;
+    }
     // import ./lib.nix { inherit lib; }
     // importFlakeModuleTests exports
     // importNixosModuleTests exports

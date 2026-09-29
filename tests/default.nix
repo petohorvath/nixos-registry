@@ -1,15 +1,15 @@
 # Assemble the named root checks from the evaluation suite, examples, and
 # source checks.
 {
-  flake,
-  flakeParts,
   formatter,
-  nixpkgs,
+  inputs,
   pkgs,
   system,
 }:
 let
-  exports = { inherit (flake) flakeModules lib nixosModules; };
+  inherit (inputs) nixpkgs self;
+  flakeParts = inputs.flake-parts;
+  exports = { inherit (self) flakeModules lib nixosModules; };
   # The suite and the flake-parts check share this evaluation.
   flakePartsExample = import ../examples/flake-parts {
     inherit
@@ -25,10 +25,8 @@ let
   tests = import ./evaluation.nix {
     inherit
       exports
-      flake
-      flakeParts
       flakePartsExample
-      nixpkgs
+      inputs
       staticNixosExample
       system
       ;
