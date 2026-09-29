@@ -3,15 +3,15 @@
   import.
 */
 {
+  registry,
   nixpkgs,
   system ? "x86_64-linux",
-  registryFlake ? (import ../../flake.nix).outputs { },
 }:
 let
   inherit (nixpkgs) lib;
   settings.schemaModules = [ ../plain-nix/service-schema.nix ];
 
-  registry = registryFlake.lib.mkRegistry (
+  shared = registry.lib.mkRegistry (
     settings
     // {
       inherit lib nodes;
@@ -20,10 +20,10 @@ let
   );
 
   commonModule = {
-    imports = [ registryFlake.nixosModules.default ];
+    imports = [ registry.nixosModules.default ];
     registry = {
       inherit settings;
-      inherit (registry) central combined validate;
+      inherit (shared) central combined validate;
     };
   };
 
@@ -44,9 +44,10 @@ let
   };
 in
 {
-  inherit nodes registry;
+  inherit nodes;
+  registry = shared;
   result = {
-    inherit (registry) central combined validate;
+    inherit (shared) central combined validate;
     endpoint = nodes."metrics publisher".config.environment.etc."metrics-endpoint".text;
   };
 }

@@ -1,78 +1,72 @@
+# Assemble the named root checks from the evaluation suite, examples, and
+# source checks.
 {
-  exports,
+  flake,
   flakeParts,
+  formatter,
   nixpkgs,
+  pkgs,
   system,
 }:
 let
-  inherit (exports.lib) mkRegistry;
-  inherit (nixpkgs) lib;
-  pathExports = import ./helpers/plain-exports.nix;
-  flakeModuleTests =
-    moduleExports:
-    import ./flake-module.nix {
-      inherit flakeParts nixpkgs system;
-      exports = moduleExports;
-    };
-  nixosModuleTests =
-    moduleExports:
-    import ./nixos/module.nix {
-      inherit nixpkgs system;
-      exports = moduleExports;
-    };
-  flakePartsExampleTests =
-    exampleExports:
-    import ./integration/flake-parts.nix {
-      inherit lib;
-      inherit (exampleExports.lib) mkRegistry;
-      example = import ../examples/flake-parts {
-        inherit flakeParts nixpkgs system;
-        registry = exampleExports;
-      };
-    };
-
-  # Rerun selected scenarios with the public exports loaded by path.
-  pathImportedTests =
-    tests: names:
-    lib.mapAttrs' (name: lib.nameValuePair "testPathImported${lib.removePrefix "test" name}") (
-      lib.getAttrs names tests
-    );
-
-  tests =
-    import ./mk-registry.nix { inherit lib mkRegistry; }
-    // import ./check-contribution.nix { inherit lib mkRegistry; }
-    // import ./wrap-central-module.nix { inherit lib mkRegistry; }
-    // import ./get-active-module-keys.nix { inherit lib mkRegistry; }
-    // import ./static-interface.nix { inherit nixpkgs system; }
-    // import ./flake.nix { inherit lib; }
-    // import ./lib.nix { inherit lib; }
-    // flakeModuleTests exports
-    // nixosModuleTests exports
-    // pathImportedTests (flakeModuleTests pathExports) [
-      "testStaticFlakeModuleSharesOneRegistryWithNixosNodes"
-      "testStaticFlakeModuleUsesConsumerLibraryAndSeparateArguments"
-    ]
-    // pathImportedTests (nixosModuleTests pathExports) [
-      "testStaticNixosModuleContributesAndReadsSharedResults"
-      "testStaticNixosModuleUsesCallerSchemaAndSeparateArguments"
-    ]
-    // import ./integration/static-reads.nix { inherit flakeParts nixpkgs system; }
-    // import ./integration/nixos.nix {
-      inherit mkRegistry nixpkgs system;
-    }
-    // flakePartsExampleTests exports
-    // pathImportedTests (flakePartsExampleTests pathExports) [
-      "testFlakePartsExampleEvaluatesAndValidates"
-      "testSeparateSourceNodesKeepLocalContributionsDistinct"
-      "testSeparateSourceExampleCompletesPartialRecords"
-      "testSeparateSourceGenericModulesKeepConstructorAccess"
-    ]
-    // import ./integration/examples.nix { inherit lib mkRegistry; };
+  tests = import ./evaluation.nix {
+    inherit
+      flake
+      flakeParts
+      nixpkgs
+      system
+      ;
+  };
+  flakePartsExample = import ../examples/flake-parts {
+    inherit flakeParts nixpkgs system;
+    registry = flake;
+  };
+  sourceDir = pkgs.lib.cleanSource ../.;
+  sourceCheck =
+    name: packages: script:
+    pkgs.runCommand "registry-${name}" { nativeBuildInputs = packages; } ''
+      cp -R ${sourceDir} source
+      chmod -R u+w source
+      cd source
+      ${script}
+      touch "$out"
+    '';
 in
-lib.mapAttrs (
-  name: test:
-  if test.expr == test.expected then
-    true
-  else
-    throw "${name}: expected ${builtins.toJSON test.expected}, got ${builtins.toJSON test.expr}"
-) tests
+pkgs.lib.mapAttrs
+  (
+    name: script:
+    pkgs.runCommand "registry-${name}" { nativeBuildInputs = [ pkgs.nix ]; } ''
+      bash ${script} ${nixpkgs}/lib ${../.} ${../.}/tests ${system} ${
+        pkgs.lib.optionalString (builtins.elem name [
+          "diagnostics"
+          "recursion"
+        ]) (toString flakeParts.outPath)
+      }
+      touch "$out"
+    ''
+  )
+  {
+    diagnostics = ./diagnostics.sh;
+    ordering = ./ordering-failures.sh;
+    recursion = ./recursion.sh;
+  }
+// {
+  evaluation =
+    assert builtins.deepSeq tests true;
+    pkgs.runCommand "registry-evaluation" { } ''
+      touch "$out"
+    '';
+  flake-parts = flakePartsExample.checks.${system}.registry;
+  formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
+  lint = sourceCheck "lint" [ pkgs.statix pkgs.deadnix ] ''
+    statix check .
+    deadnix --fail .
+  '';
+  workflows = sourceCheck "workflows" [ pkgs.actionlint ] ''
+    shopt -s nullglob
+    workflows=(.github/workflows/*.yml .github/workflows/*.yaml)
+    if (( ''${#workflows[@]} )); then
+      actionlint "''${workflows[@]}"
+    fi
+  '';
+}

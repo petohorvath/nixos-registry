@@ -45,7 +45,11 @@ in
   };
 
   testStaticNixosExampleEvaluatesAndValidates = {
-    expr = (import ../../examples/static-nixos { inherit nixpkgs system; }).result;
+    expr =
+      (import ../../examples/static-nixos {
+        inherit nixpkgs system;
+        registry = exports;
+      }).result;
     expected = {
       central = {
         domain = "example.test";

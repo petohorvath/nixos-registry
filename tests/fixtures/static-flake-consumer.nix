@@ -10,7 +10,7 @@
   modules ? [ ],
 }:
 let
-  registryFlake = (import ../../flake.nix).outputs { };
+  exports = import ../helpers/plain-exports.nix;
   inputs = {
     inherit nixpkgs;
     self = consumer // {
@@ -23,7 +23,7 @@ let
     let
       shared = config.registry;
       commonModule = {
-        imports = [ registryFlake.nixosModules.default ];
+        imports = [ exports.nixosModules.default ];
         nixpkgs.hostPlatform = system;
         system.stateVersion = "26.05";
         registry = {
@@ -33,7 +33,7 @@ let
       };
     in
     {
-      imports = [ registryFlake.flakeModules.default ] ++ modules;
+      imports = [ exports.flakeModules.default ] ++ modules;
       systems = [ system ];
       registry.settings = {
         inherit centralModules schemaModules;

@@ -1,85 +1,84 @@
-{ lib }:
+{ flake, lib }:
 let
-  mkRegistry = ((import ../flake.nix).outputs { }).lib.mkRegistry;
-  registry = mkRegistry {
-    inherit lib nodes;
-    schemaModules = [
-      {
-        options.paths = lib.mkOption {
-          type = lib.types.listOf lib.types.str;
-          default = [ ];
-          description = "Paths shared by the plain-import nodes.";
-        };
-      }
-    ];
-    centralModules = [ { paths = [ "/srv/central" ]; } ];
-  };
-  nodes.backup = lib.evalModules {
-    modules = [
-      registry.module
-      { registry.paths = lib.mkAfter [ "/srv/backup" ]; }
-    ];
-  };
+  systems = [
+    "aarch64-linux"
+    "x86_64-linux"
+  ];
+  declarationsOf =
+    module: optionPath:
+    (lib.getAttrFromPath optionPath (lib.evalModules { modules = [ module ]; }).options).declarations;
 in
 {
-  testConstructorKeepsSchemaNamesReservedByStaticModules = {
-    expr =
-      let
-        legacy = mkRegistry {
-          inherit lib;
-          schemaModules = [
-            {
-              options = lib.genAttrs [ "settings" "central" "combined" "validate" ] (
-                name:
-                lib.mkOption {
-                  type = lib.types.str;
-                  description = "Schema-owned ${name} through the constructor.";
-                }
-              );
-            }
-          ];
-          nodes.generic = lib.evalModules {
-            modules = [
-              legacy.module
-              {
-                registry = {
-                  settings = "local settings";
-                  central = "local central";
-                  combined = "local combined";
-                  validate = "local validate";
-                };
-              }
-            ];
-          };
-        };
-      in
-      {
-        inherit (legacy) combined validate;
-      };
+  testRootLibraryExportsOnlyMkRegistry = {
+    expr = builtins.attrNames flake.lib;
+    expected = [ "mkRegistry" ];
+  };
+
+  testRootSystemOutputsCoverOnlyLinuxSystems = {
+    expr = lib.genAttrs [ "checks" "devShells" "formatter" "legacyPackages" ] (
+      name: builtins.attrNames flake.${name}
+    );
+    expected = lib.genAttrs [ "checks" "devShells" "formatter" "legacyPackages" ] (_: systems);
+  };
+
+  testRootModuleExportsDeclareOptionsFromTheirFiles = {
+    expr = {
+      nixos = declarationsOf flake.nixosModules.default [ "registry" ];
+      flakeParts = declarationsOf flake.flakeModules.default [
+        "registry"
+        "settings"
+        "schemaModules"
+      ];
+    };
     expected = {
-      combined = {
-        settings = "local settings";
-        central = "local central";
-        combined = "local combined";
-        validate = "local validate";
-      };
-      validate = true;
+      nixos = [ (toString ../nixos/module.nix) ];
+      flakeParts = [ (toString ../flake-module.nix) ];
     };
   };
 
-  testPlainImportUsesCallerLibraryWithoutDevelopmentInputs = {
-    expr = {
-      inherit (registry) central combined validate;
-      local = nodes.backup.config.registry;
-    };
-    expected = {
-      central.paths = [ "/srv/central" ];
-      combined.paths = [
-        "/srv/central"
-        "/srv/backup"
+  testRootChecksKeepTheirNames = {
+    expr = lib.genAttrs systems (system: builtins.attrNames flake.checks.${system});
+    expected = lib.genAttrs systems (_: [
+      "diagnostics"
+      "evaluation"
+      "flake-parts"
+      "formatting"
+      "lint"
+      "ordering"
+      "recursion"
+      "workflows"
+    ]);
+  };
+
+  testRootLegacyPackagesExposeTestsAndExamples = {
+    expr = lib.genAttrs systems (
+      system:
+      let
+        focused = flake.legacyPackages.${system};
+      in
+      {
+        names = builtins.attrNames focused;
+        examples = builtins.attrNames focused.examples;
+      }
+    );
+    expected = lib.genAttrs systems (_: {
+      names = [
+        "examples"
+        "tests"
       ];
-      local.paths = [ "/srv/backup" ];
-      validate = true;
-    };
+      examples = [
+        "collectionLaziness"
+        "combinedReads"
+        "conditionalOrdering"
+        "default"
+        "flakeParts"
+        "nixos"
+        "partialContributions"
+        "priorities"
+        "scalarConflicts"
+        "staticNixos"
+        "valueCycles"
+      ];
+    });
   };
 }
