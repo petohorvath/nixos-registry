@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### Breaking test suites: one node type per behavior
+### Breaking test suites: registry behavior through the generated module
 
 Registry behavior is tested once, through nodes that import the generated module, and static module cases cover only what the static module changes at the `registry` root, its wiring, its settings, and error attribution. Two suites under `tests.<system>` are removed:
 

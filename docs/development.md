@@ -49,7 +49,14 @@ Failure cases set nix-unit's `expectedError`, which also catches native type err
 
 nix-unit matches the error message but not its trace, so library errors name their node and source file in the message itself. A native module-system error, such as a second `registry` option declaration, keeps the node name only in the trace. Tests use `tryEval` only to compare whether reads succeed or fail, as the laziness cases do.
 
-Registry behavior, including merging, priorities, ordering, partial records, contribution checks, and validation, is tested once, through nodes that import the generated module. The static module changes contributions only at the `registry` root, so a static NixOS module case stays only if it puts a module property (`mkIf`, `mkMerge`, `mkOverride`, `mkOrder`, `mkDefault`, or `mkForce`) or a reserved name at that root, reads through the `registry.central`, `registry.combined`, or `registry.validate` wiring, covers settings or argument separation, or covers error attribution to a static node's source file. The [static contribution suite](../tests/static-interface.nix) holds the root-property and wiring cases, and the diagnostic suite's static set holds the attribution cases. A static flake-parts module case stays only if it covers settings composed from several project modules, the flake-check derivation, or the example's end-to-end result.
+Registry behavior, including merging, priorities, ordering, partial records, contribution checks, and validation, is tested once, through nodes that import the generated module. The static module changes contributions only at the `registry` root, so a static NixOS module case stays only if it does one of the following:
+
+- It puts a module property (`mkIf`, `mkMerge`, `mkOverride`, `mkOrder`, `mkDefault`, or `mkForce`) or a reserved name at that root.
+- It reads through the `registry.central`, `registry.combined`, or `registry.validate` wiring.
+- It covers settings or argument separation.
+- It covers error attribution to a static node's source file.
+
+The [static contribution suite](../tests/static-interface.nix) holds the root-property and wiring cases, and the diagnostic suite's static set holds the attribution cases. A static flake-parts module case stays only if it covers settings composed from several project modules, the flake-check derivation, or the example's end-to-end result.
 
 ## Formatting and lint
 
