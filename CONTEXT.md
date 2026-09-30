@@ -20,6 +20,14 @@ _Avoid_: Participant, host, source repository, node module
 Option definitions supplied by a node or a central module. A contribution can contain only part of a shared record.
 _Avoid_: Publication, registration
 
+**Generated module**:
+The module a registry returns for its nodes to import, declaring each node's contribution root under that registry's schema.
+_Avoid_: Node adapter, registry module, constructor-generated module
+
+**Static module**:
+A module imported by path, independent of any one registry, through which a node contributes and reads shared data or a project holds registry settings and results.
+_Avoid_: Static interface, static adapter
+
 **Central data**:
 Shared data from central definitions and schema defaults, without node contributions. Central definitions have the same precedence as node definitions unless an explicit priority changes it.
 _Avoid_: Global defaults, central store

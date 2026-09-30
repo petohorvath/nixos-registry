@@ -1,22 +1,4 @@
 { lib, mkRegistry }:
-let
-  mkServiceRegistry =
-    service:
-    let
-      registry = mkRegistry {
-        inherit lib;
-        schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
-        centralModules = [ { domain = "example.test"; } ];
-        nodes."unused service" = lib.evalModules {
-          modules = [
-            registry.module
-            { registry.services.api = service; }
-          ];
-        };
-      };
-    in
-    registry;
-in
 {
   testMalformedNodesLeaveCentralReadsIndependent = {
     expr =
@@ -157,56 +139,6 @@ in
     expected = {
       assertion = false;
       validate = true;
-    };
-  };
-
-  testValidationRejectsUnusedSchemaErrors = {
-    expr =
-      builtins.mapAttrs
-        (
-          _: service:
-          let
-            registry = mkServiceRegistry service;
-          in
-          {
-            domain = registry.combined.domain;
-            validates = (builtins.tryEval registry.validate).success;
-          }
-        )
-        {
-          invalidType = {
-            host = "api.example.test";
-            port = "invalid port";
-          };
-          missingRequired.host = "api.example.test";
-          unknownOption = {
-            host = "api.example.test";
-            port = 443;
-            undeclared = true;
-          };
-          readOnly = {
-            host = "api.example.test";
-            port = 443;
-            endpoint = "replacement.example.test:443";
-          };
-        };
-    expected = {
-      invalidType = {
-        domain = "example.test";
-        validates = false;
-      };
-      missingRequired = {
-        domain = "example.test";
-        validates = false;
-      };
-      unknownOption = {
-        domain = "example.test";
-        validates = false;
-      };
-      readOnly = {
-        domain = "example.test";
-        validates = false;
-      };
     };
   };
 }

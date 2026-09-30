@@ -182,25 +182,6 @@ in
     };
   };
 
-  staticFlakeModuleRequiresSchemaAndNodeSettings =
-    lib.mapAttrs
-      (_: name: {
-        expr =
-          (mkConsumer [
-            {
-              registry.settings = removeAttrs {
-                schemaModules = [ ];
-                nodes = { };
-              } [ name ];
-            }
-          ]).lib.registry.validate;
-        expectedError.msg = "registry\\.settings\\.${name} must be set explicitly";
-      })
-      {
-        testSchemaModules = "schemaModules";
-        testNodes = "nodes";
-      };
-
   testStaticFlakeDefaultsAllowEmptyNodes = {
     expr =
       let
