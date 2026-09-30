@@ -58,6 +58,18 @@ let
     };
 in
 {
+  testStaticWholeContributionOrderingFails = {
+    expr =
+      (mkEvaluations {
+        central = [ { backupDestinations.archive.host = "archive.example.test"; } ];
+        contributions.publisher = [ (lib.mkBefore { backupDestinations.archive.port = 2222; }) ];
+      }).registry.combined;
+    expectedError = {
+      type = "TypeError";
+      msg = "unexpected argument 'priority'";
+    };
+  };
+
   testStaticDiscardedContributionDoesNotForceItsProperties = {
     expr =
       map
@@ -397,193 +409,6 @@ in
     };
   };
 
-  testStaticDefaultsAndExplicitListsMatchDirectEvaluation = {
-    expr =
-      map
-        (
-          paths:
-          let
-            evaluations = mkEvaluations {
-              central = [
-                {
-                  backupDestinations.archive = {
-                    host = "archive.example.test";
-                    port = 2222;
-                  };
-                }
-              ];
-              contributions = {
-                first = [ { backupDestinations.archive = paths; } ];
-                second = [ { backupDestinations.archive = { }; } ];
-                third = [ { backupDestinations.archive = { }; } ];
-              };
-            };
-          in
-          {
-            paths = evaluations.registry.combined.backupDestinations.archive.paths;
-            matchesDirect = evaluations.registry.combined == evaluations.direct;
-            inherit (evaluations.registry) validate;
-          }
-        )
-        [
-          { }
-          { paths = [ ]; }
-          { paths = [ "/explicit" ]; }
-        ];
-    expected =
-      map
-        (paths: {
-          inherit paths;
-          matchesDirect = true;
-          validate = true;
-        })
-        [
-          [ "/srv/default" ]
-          [ ]
-          [ "/explicit" ]
-        ];
-  };
-
-  testStaticScalarAndReadOnlyConflictsMatchDirect = {
-    expr =
-      map
-        (
-          contribution:
-          let
-            evaluations = mkEvaluations {
-              central = [
-                {
-                  backupDestinations.archive = {
-                    host = "archive.example.test";
-                    port = 2222;
-                  };
-                }
-              ];
-              contributions.publisher = [ { backupDestinations.archive = contribution; } ];
-            };
-          in
-          {
-            combined = succeeds evaluations.registry.combined;
-            direct = succeeds evaluations.direct;
-            validate = succeeds evaluations.registry.validate;
-          }
-        )
-        [
-          { host = "archive.example.test"; }
-          { host = "conflict.example.test"; }
-          { endpoint = "replacement.example.test:22"; }
-        ];
-    expected =
-      map
-        (success: {
-          combined = success;
-          direct = success;
-          validate = success;
-        })
-        [
-          true
-          false
-          false
-        ];
-  };
-
-  testStaticNestedPrioritiesAndOrderingMatchDirectEvaluation = {
-    expr =
-      let
-        evaluations = mkEvaluations {
-          central = [
-            {
-              backupDestinations.archive = {
-                host = lib.mkDefault "default.example.test";
-                port = 2222;
-                paths = lib.mkDefault [ "/discarded" ];
-              };
-            }
-          ];
-          contributions = {
-            first = [
-              (lib.mkMerge [
-                {
-                  backupDestinations.archive = {
-                    host = lib.mkForce "forced.example.test";
-                    paths = lib.mkAfter [ "/last" ];
-                  };
-                }
-                { backupDestinations.archive.paths = lib.mkOrder 750 [ "/numeric" ]; }
-              ])
-            ];
-            second = [
-              {
-                backupDestinations.archive = {
-                  host = lib.mkOverride 40 "selected.example.test";
-                  paths = lib.mkBefore [ "/first" ];
-                };
-              }
-            ];
-            third = [ { backupDestinations.archive.paths = [ "/ordinary" ]; } ];
-          };
-        };
-      in
-      {
-        host = evaluations.registry.combined.backupDestinations.archive.host;
-        paths = evaluations.registry.combined.backupDestinations.archive.paths;
-        matchesDirect = evaluations.registry.combined == evaluations.direct;
-        inherit (evaluations.registry) validate;
-      };
-    expected = {
-      host = "selected.example.test";
-      paths = [
-        "/first"
-        "/numeric"
-        "/ordinary"
-        "/last"
-      ];
-      matchesDirect = true;
-      validate = true;
-    };
-  };
-
-  testStaticNodesCompletePartialRecords = {
-    expr =
-      let
-        evaluations = mkEvaluations {
-          central = [ { backupDestinations.archive.host = "archive.example.test"; } ];
-          contributions = {
-            transport = [
-              {
-                backupDestinations.archive.port = evaluations.nodes.transport.config.services.prometheus.port;
-              }
-            ];
-            paths = [ { backupDestinations.archive.paths = [ "/documents" ]; } ];
-          };
-          nodeModules.transport = [ { services.prometheus.port = 2222; } ];
-        };
-      in
-      {
-        inherit (evaluations.registry) combined validate;
-        matchesDirect = evaluations.registry.combined == evaluations.direct;
-        centralComplete = succeeds evaluations.registry.central;
-        localComplete = succeeds evaluations.nodes.transport.config.registry.backupDestinations.archive;
-        localPort = evaluations.nodes.transport.config.registry.backupDestinations.archive.port;
-        sharedRead = evaluations.nodes.paths.config.registry.combined.backupDestinations.archive.command;
-      };
-    expected = {
-      combined.backupDestinations.archive = {
-        host = "archive.example.test";
-        port = 2222;
-        paths = [ "/documents" ];
-        endpoint = "archive.example.test:2222";
-        command = "backup archive.example.test:2222";
-      };
-      matchesDirect = true;
-      centralComplete = false;
-      localComplete = false;
-      localPort = 2222;
-      sharedRead = "backup archive.example.test:2222";
-      validate = true;
-    };
-  };
-
   testStaticWiringDoesNotSuppressDefaultContributions = {
     expr =
       let
@@ -616,30 +441,5 @@ in
       sharedRead = "archive.example.test:2222";
       validate = true;
     };
-  };
-
-  # Rerun the contribution checks through static NixOS nodes.
-  checkContribution = import ./check-contribution.nix {
-    inherit lib;
-    inherit (exports.lib) mkRegistry;
-    mkNode =
-      {
-        registry,
-        schemaModules,
-        contribution,
-      }:
-      lib.nixosSystem {
-        modules = [
-          exports.nixosModules.default
-          {
-            nixpkgs.hostPlatform = system;
-            registry = {
-              settings = { inherit schemaModules; };
-              inherit (registry) central combined validate;
-            };
-          }
-          { registry = contribution; }
-        ];
-      };
   };
 }

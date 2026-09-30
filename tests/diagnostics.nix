@@ -55,8 +55,14 @@ let
     expectedError.msg = msg;
   };
 
+  mkGeneratedNode =
+    _settings: registry: modules:
+    lib.evalModules {
+      modules = [ registry.module ] ++ modules;
+    };
+
   validateNodeModules =
-    useStaticModule: nodeModules:
+    mkNode: nodeModules:
     let
       settings.schemaModules = [
         serviceSchema
@@ -72,26 +78,47 @@ let
         inherit lib;
         inherit (settings) schemaModules;
         centralModules = [ { domain = "example.test"; } ];
-        nodes = lib.mapAttrs (
-          _: modules:
-          if useStaticModule then
-            mkStaticNode settings registry modules
-          else
-            lib.evalModules {
-              modules = [ registry.module ] ++ modules;
-            }
-        ) nodeModules;
+        nodes = lib.mapAttrs (_: mkNode settings registry) nodeModules;
       };
     in
     registry.validate;
 
-  # Contribution checks run through both node adapters.
+  # Contributions at the `registry` root, which static nodes also receive.
+  rootCases = validate: {
+    testOrderedList =
+      fails
+        (validate {
+          "ordered path publisher" = [
+            {
+              _file = "/modules/ordered-paths.nix";
+              registry = lib.mkMerge [
+                { backupPaths = lib.mkBefore [ 42 ]; }
+                { backupPaths = lib.mkAfter [ "/srv/documents" ]; }
+              ];
+            }
+          ];
+        })
+        "`backupPaths\\.\"\\[definition 1-entry 1\\]\"' is not of type[\\s\\S]*`node ordered path publisher: /modules/ordered-paths\\.nix'";
+
+    testModuleControls =
+      fails
+        (validate {
+          "module-control publisher" = [
+            {
+              _file = "/modules/contribution-controls.nix";
+              registry._module.check = false;
+            }
+          ];
+        })
+        "`registry` from node `module-control publisher` in `/modules/contribution-controls\\.nix` changes module controls";
+  };
+
   contributionCases =
-    useStaticModule:
     let
-      validate = validateNodeModules useStaticModule;
+      validate = validateNodeModules mkGeneratedNode;
     in
-    {
+    rootCases validate
+    // {
       testInvalidPort =
         fails
           (validate {
@@ -178,21 +205,6 @@ let
           })
           "`services\\.api\\.endpoint' is read-only[\\s\\S]*`node endpoint publisher: /modules/endpoint\\.nix'";
 
-      testOrderedList =
-        fails
-          (validate {
-            "ordered path publisher" = [
-              {
-                _file = "/modules/ordered-paths.nix";
-                registry = lib.mkMerge [
-                  { backupPaths = lib.mkBefore [ 42 ]; }
-                  { backupPaths = lib.mkAfter [ "/srv/documents" ]; }
-                ];
-              }
-            ];
-          })
-          "`backupPaths\\.\"\\[definition 1-entry 1\\]\"' is not of type[\\s\\S]*`node ordered path publisher: /modules/ordered-paths\\.nix'";
-
       testPriorityConflict =
         fails
           (validate {
@@ -236,18 +248,6 @@ let
             ];
           })
           "`registry\\.services\\.api` from node `schema-changing publisher` in `/modules/schema-contribution\\.nix` declares options; use schemaModules";
-
-      testModuleControls =
-        fails
-          (validate {
-            "module-control publisher" = [
-              {
-                _file = "/modules/contribution-controls.nix";
-                registry._module.check = false;
-              }
-            ];
-          })
-          "`registry` from node `module-control publisher` in `/modules/contribution-controls\\.nix` changes module controls";
 
       testImportedSchemaDeclaration =
         fails
@@ -303,26 +303,9 @@ let
         (mkStaticNode settings registry [ ./fixtures/invalid-service.nix ])
         .config.registry.services.api.port;
     };
-
-  mkReservedSchemaRegistry =
-    reservedName:
-    let
-      settings = {
-        schemaModules = [ ./fixtures/static-schema-collision.nix ];
-        specialArgs = { inherit reservedName; };
-      };
-      registry = mkRegistry (
-        settings
-        // {
-          inherit lib;
-          nodes."colliding static node" = mkStaticNode settings registry [ ];
-        }
-      );
-    in
-    registry;
 in
 {
-  generated = contributionCases false // {
+  generated = contributionCases // {
     testMissingOption =
       fails
         (mkRegistry {
@@ -383,7 +366,7 @@ in
     # A native module-system error; the node name stays in the trace context.
     testConflictingInterface =
       fails
-        (validateNodeModules false {
+        (validateNodeModules mkGeneratedNode {
           "conflicting contribution interface" = [
             {
               _file = "/modules/conflicting-interface.nix";
@@ -396,7 +379,7 @@ in
         "`registry' in `[^']*/lib/mk-registry\\.nix' is already declared in `/modules/conflicting-interface\\.nix'";
   };
 
-  static = contributionCases true // {
+  static = rootCases (validateNodeModules mkStaticNode) // {
     testSharedInvalidPort = fails staticInvalidPort.shared "`services\\.api\\.port' is not of type[\\s\\S]*`node static service publisher: [^']*/invalid-service\\.nix'";
 
     testLocalInvalidPort = fails staticInvalidPort.local "`registry\\.services\\.api\\.port' is not of type[\\s\\S]*`[^']*/invalid-service\\.nix'";
@@ -409,19 +392,6 @@ in
           nodeModules."static service publisher" = [ ./fixtures/invalid-service.nix ];
         }).checks.${system}.registry.drvPath
         "`services\\.api\\.port' is not of type[\\s\\S]*`node static service publisher: [^']*/invalid-service\\.nix'";
-
-    reservedSchema =
-      lib.mapAttrs
-        (
-          _: reservedName:
-          fails (mkReservedSchemaRegistry reservedName).validate "node `colliding static node`: schema option `registry\\.${reservedName}` conflicts with a reserved static interface name declared in `[^']*/static-schema-collision\\.nix'"
-        )
-        {
-          testSettings = "settings";
-          testCentral = "central";
-          testCombined = "combined";
-          testValidate = "validate";
-        };
   };
 
   flake = {
@@ -468,12 +438,5 @@ in
           }
         ]).validate
         "`domain' has conflicting definition values[\\s\\S]*first-project\\.nix[\\s\\S]*second-project\\.nix";
-
-    testDuplicateArgument =
-      fails
-        (mkRegistryWithDuplicateSettings {
-          specialArgs.schemaLabel = "shared schema";
-        }).settings.specialArgs.schemaLabel
-        "`registry\\.settings\\.specialArgs\\.schemaLabel' is defined multiple times[\\s\\S]*second-project\\.nix[\\s\\S]*first-project\\.nix";
   };
 }

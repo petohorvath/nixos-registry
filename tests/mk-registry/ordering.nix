@@ -1,8 +1,30 @@
 { lib, mkRegistry }:
 let
   mkEvaluations = import ../fixtures/evaluate-properties.nix { inherit lib mkRegistry; };
+  # The module system accepts no ordering property at an option's root.
+  orderingFailure = expr: {
+    inherit expr;
+    expectedError = {
+      type = "TypeError";
+      msg = "unexpected argument 'priority'";
+    };
+  };
 in
 {
+  testWholeCentralOrderingFails =
+    orderingFailure
+      (mkEvaluations {
+        central = [ (lib.mkBefore { backupPaths = [ "/ordered" ]; }) ];
+        contributions.publisher = [ { backupPaths = [ "/node" ]; } ];
+      }).central;
+
+  testWholeContributionOrderingFails =
+    orderingFailure
+      (mkEvaluations {
+        central = [ { backupPaths = [ "/central" ]; } ];
+        contributions.publisher = [ (lib.mkBefore { backupPaths = [ "/ordered" ]; }) ];
+      }).combined;
+
   testEqualListOrdersPreserveModuleAndFragmentOrder = {
     expr =
       let

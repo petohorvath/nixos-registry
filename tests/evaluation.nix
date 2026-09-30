@@ -5,32 +5,7 @@ let
   inherit (nixpkgs) lib;
   flakeParts = inputs.flake-parts;
   exports = { inherit (self) flakeModules lib nixosModules; };
-  pathExports = import ./helpers/plain-exports.nix;
   inherit (exports.lib) mkRegistry;
-
-  exportSuites = exports: {
-    flakeModule = import ./flake-module.nix {
-      inherit
-        exports
-        flakeParts
-        nixpkgs
-        system
-        ;
-    };
-    nixosModule = import ./nixos/module.nix { inherit exports nixpkgs system; };
-    flakePartsExample = import ./integration/flake-parts.nix {
-      inherit lib;
-      inherit (exports.lib) mkRegistry;
-      example = import ../examples/flake-parts {
-        inherit
-          exports
-          flakeParts
-          nixpkgs
-          system
-          ;
-      };
-    };
-  };
 in
 {
   mkRegistry = import ./mk-registry.nix { inherit lib mkRegistry; };
@@ -51,7 +26,6 @@ in
       system
       ;
   };
-  orderingFailures = import ./ordering-failures.nix { inherit exports nixpkgs system; };
   recursion = import ./recursion.nix {
     inherit
       exports
@@ -68,6 +42,24 @@ in
     nixos = import ./integration/nixos.nix { inherit mkRegistry nixpkgs system; };
     examples = import ./integration/examples.nix { inherit lib mkRegistry; };
   };
-  inherit (exportSuites exports) flakeModule nixosModule flakePartsExample;
-  pathImported = exportSuites pathExports;
+  flakeModule = import ./flake-module.nix {
+    inherit
+      exports
+      flakeParts
+      nixpkgs
+      system
+      ;
+  };
+  nixosModule = import ./nixos/module.nix { inherit exports nixpkgs system; };
+  flakePartsExample = import ./integration/flake-parts.nix {
+    inherit lib mkRegistry;
+    example = import ../examples/flake-parts {
+      inherit
+        exports
+        flakeParts
+        nixpkgs
+        system
+        ;
+    };
+  };
 }

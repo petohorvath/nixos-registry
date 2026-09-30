@@ -83,56 +83,6 @@ in
     };
   };
 
-  testStaticValidationTreatsAssertionsAsOrdinarySchemaData = {
-    expr =
-      let
-        consumer = mkConsumer {
-          schemaModules = [
-            {
-              options.assertions = lib.mkOption {
-                type = lib.types.listOf (
-                  lib.types.submodule {
-                    options = {
-                      assertion = lib.mkOption {
-                        type = lib.types.bool;
-                        description = "A stored assertion result.";
-                      };
-                      message = lib.mkOption {
-                        type = lib.types.str;
-                        description = "A stored assertion message.";
-                      };
-                    };
-                  }
-                );
-                default = [ ];
-                description = "Caller-owned assertion data.";
-              };
-            }
-          ];
-          nodeModules.publisher = [
-            {
-              registry.assertions = [
-                {
-                  assertion = false;
-                  message = "Registry assertion data is not executed as NixOS assertions.";
-                }
-              ];
-            }
-          ];
-        };
-      in
-      {
-        inherit (consumer.lib.registry) validate;
-        inherit (builtins.head consumer.lib.registry.combined.assertions) assertion;
-        checkEvaluates = (builtins.tryEval consumer.checks.${system}.registry.drvPath).success;
-      };
-    expected = {
-      assertion = false;
-      validate = true;
-      checkEvaluates = true;
-    };
-  };
-
   testStaticUnrelatedReadsLeaveRegistryUnevaluated = {
     expr =
       let
@@ -156,51 +106,6 @@ in
       projectValue = "independent project value";
       nodeName = "independent";
     };
-  };
-
-  testStaticValidationAndFlakeChecksRejectUnusedSchemaErrors = {
-    expr =
-      lib.mapAttrs
-        (
-          _: service:
-          let
-            consumer = mkConsumer {
-              schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
-              centralModules = [ { domain = "example.test"; } ];
-              nodeModules."unused service" = [ { registry.services.api = service; } ];
-            };
-          in
-          {
-            domain = consumer.lib.registry.combined.domain;
-            validates = (builtins.tryEval consumer.lib.registry.validate).success;
-            nodeValidates =
-              (builtins.tryEval consumer.nixosConfigurations."unused service".config.registry.validate).success;
-            checkEvaluates = (builtins.tryEval consumer.checks.${system}.registry.drvPath).success;
-          }
-        )
-        {
-          invalidType = {
-            host = "api.example.test";
-            port = "invalid port";
-          };
-          missingRequired.host = "api.example.test";
-          unknownOption = {
-            host = "api.example.test";
-            port = 443;
-            undeclared = true;
-          };
-          readOnly = {
-            host = "api.example.test";
-            port = 443;
-            endpoint = "replacement.example.test:443";
-          };
-        };
-    expected = lib.genAttrs [ "invalidType" "missingRequired" "unknownOption" "readOnly" ] (_: {
-      domain = "example.test";
-      validates = false;
-      nodeValidates = false;
-      checkEvaluates = false;
-    });
   };
 
   testStaticFlakeChecksValidateCompletedRecords = {

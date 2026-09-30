@@ -1,15 +1,4 @@
-{
-  lib,
-  mkRegistry,
-  mkNode ?
-    { registry, contribution, ... }:
-    lib.evalModules {
-      modules = [
-        registry.module
-        { registry = contribution; }
-      ];
-    },
-}:
+{ lib, mkRegistry }:
 let
   entryType = lib.types.submodule {
     options.endpoint = lib.mkOption {
@@ -72,9 +61,11 @@ let
       ];
       registry = mkRegistry {
         inherit lib schemaModules;
-        nodes.publisher = mkNode {
-          inherit registry schemaModules;
-          contribution.service = shape.wrap contribution;
+        nodes.publisher = lib.evalModules {
+          modules = [
+            registry.module
+            { registry.service = shape.wrap contribution; }
+          ];
         };
       };
     in

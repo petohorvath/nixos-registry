@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Breaking test suites: one node type per behavior
+
+Registry behavior is tested once, through nodes that import the generated module, and static module cases cover only what the static module changes at the `registry` root, its wiring, its settings, and error attribution. Two suites under `tests.<system>` are removed:
+
+| Removed suite                     | Replacement                                                                                                                                     |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests.<system>.orderingFailures` | the whole-contribution ordering cases in `tests.<system>.mkRegistry` and `tests.<system>.staticInterface`                                       |
+| `tests.<system>.pathImported`     | `tests.<system>.lib` and the output-declaration case in `tests.<system>.flake`, which cover the path-based exports; `nix flake check` runs both |
+
 ### Breaking checks: nix-unit suite
 
 Run every test with [nix-unit](https://github.com/nix-community/nix-unit) from the selected root `nixpkgs`. The `evaluation` check now runs the whole suite, including the failure cases that the `diagnostics`, `ordering`, and `recursion` checks ran as separate `nix eval` processes; those three checks are removed. The shell scripts and the hand-written runner are removed, and the root gains no input. [ADR 0003](docs/adr/0003-run-the-suite-with-nix-unit.md) records the decision.
