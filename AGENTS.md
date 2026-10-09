@@ -16,4 +16,4 @@ Triage uses the five default labels. Before applying triage roles, read `docs/ag
 
 ### Domain docs
 
-Single-context layout: root `CONTEXT.md` and `docs/adr/`. Before exploring the codebase, read `docs/agents/domain.md`.
+Single-context layout: root `GLOSSARY.md` and `docs/adr/`. Before exploring the codebase, read `docs/agents/domain.md`.

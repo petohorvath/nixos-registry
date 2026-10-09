@@ -4,7 +4,7 @@ This repository uses a single-context layout.
 
 ## Before exploring the codebase
 
-- Read the root `CONTEXT.md` for domain terminology.
+- Read the root `GLOSSARY.md` for domain terminology.
 - Read relevant decisions under `docs/adr/`.
 
 Missing domain documents are skipped silently. The `domain-modeling` skill creates them when terms or decisions are resolved.
@@ -13,7 +13,7 @@ Missing domain documents are skipped silently. The `domain-modeling` skill creat
 
 ```text
 /
-├── CONTEXT.md
+├── GLOSSARY.md
 └── docs/
     └── adr/
         └── 0001-<decision>.md
@@ -21,7 +21,7 @@ Missing domain documents are skipped silently. The `domain-modeling` skill creat
 
 ## Vocabulary
 
-Issue titles, proposals, hypotheses, and test names use terms defined in `CONTEXT.md`. New concepts are checked against existing terminology; unresolved gaps are recorded for `domain-modeling`.
+Issue titles, proposals, hypotheses, and test names use terms defined in `GLOSSARY.md`. New concepts are checked against existing terminology; unresolved gaps are recorded for `domain-modeling`.
 
 ## ADR conflicts
 

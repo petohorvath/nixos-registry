@@ -182,4 +182,4 @@ Follow the [contribution guide](CONTRIBUTING.md) for Conventional Commit PR titl
 - [API reference](docs/api.md): arguments, returned attributes, option paths, merging, validation, and recursion.
 - [Examples](docs/examples.md): NixOS, plain Nix modules, flake-parts, and specific merge rules, with their expected results.
 - [Development](docs/development.md): tests, formatting, and pinned dependencies.
-- [Glossary](CONTEXT.md): project terms.
+- [Glossary](GLOSSARY.md): project terms.
