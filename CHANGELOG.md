@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Nixpkgs policy v0.5.1 pin
+
+The root lock moves `nixpkgs` (`nixos-26.05`) from `c3eea5b2156db11c7eeeada3dc737711255b253e` to `0d9e9b832d03ac387417e16ce1febf73b2e631e1`, the stable pin of nixos-project-policy v0.5.1. Inputs, checks, and public interfaces are unchanged.
+
 ### Breaking test suites: registry behavior through the generated module
 
 Registry behavior is tested once, through nodes that import the generated module, and static module cases cover only what the static module changes at the `registry` root, its wiring, its settings, and error attribution. Two suites under `tests.<system>` are removed:
