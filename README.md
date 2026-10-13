@@ -11,7 +11,7 @@ The name refers to this registry of shared data. Nix's [flake registry](https://
 ## Requirements
 
 - Nix with the `nix-command` and `flakes` experimental features, for the flake outputs. The library also loads by path without flakes, as [plain-import access](docs/api.md#plain-import-access) describes.
-- A Nixpkgs library whose module system matches that of every node. CI tests revisions of the `nixos-26.05` and `nixos-unstable` branches on `x86_64-linux` and `aarch64-linux`.
+- A Nixpkgs library whose module system matches that of every node. [CI](docs/development.md#ci-and-policy) tests the locked `nixos-26.05` revision and the shared policy's stable and unstable Nixpkgs pins on `x86_64-linux` and `aarch64-linux`.
 
 ## Install
 
@@ -24,7 +24,7 @@ inputs.nixos-registry = {
 };
 ```
 
-The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs` and `flake-parts` inputs enter the lock graph, but registry evaluation uses the Nixpkgs library that the caller passes in.
+The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs` and `flake-parts` inputs enter the lock graph but do not select the module system: `mkRegistry` uses the library its caller passes in, and the static modules use the library of their enclosing evaluation.
 
 ## Usage
 
@@ -131,7 +131,7 @@ $ nix eval .#lib.registry.validate
 true
 ```
 
-The `mkRegistry` call takes the schema and the nodes, and returns `registry.module` for each node to import. The server contributes by setting `registry.services.metrics`. The client receives the registry through its own `specialArgs` and reads the merged record from `registry.combined`. The `let` binding allows the registry and the configurations to refer to each other; the schema must stay independent of node data.
+The `mkRegistry` call takes the schema and the nodes, and returns `registry.module` for each node to import. The server contributes by setting `registry.services.metrics`. The client receives the registry through its own `specialArgs` and reads the merged record from `registry.combined`; the `specialArgs` argument of `mkRegistry` reaches only the schema and central modules, not the nodes. The `let` binding allows the registry and the configurations to refer to each other; the schema must stay independent of node data.
 
 These commands evaluate the configurations without building either system. A deployable system also needs its hardware, boot, and filesystem settings.
 
@@ -141,26 +141,22 @@ The [example guide](docs/examples.md) covers plain Nix modules, both static modu
 
 Each export connects nodes to a registry in a different way:
 
-| Export                 | Wiring                                                                                                      | Nodes read shared data from                              |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `lib.mkRegistry`       | Call it once and import the returned `registry.module` in each node, as in [Usage](#usage)                  | A `registry` argument passed through `specialArgs`       |
-| `nixosModules.default` | Import it in each NixOS node and pass the schema and one `mkRegistry` result in through its options         | `config.registry.central` and `config.registry.combined` |
-| `flakeModules.default` | Import it in a flake-parts project, set `registry.settings`, and import `nixosModules.default` in each node | `config.registry.central` and `config.registry.combined` |
+| Export                 | Wiring                                                                                                                                                                             | Nodes read shared data from                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `lib.mkRegistry`       | Call it once and import the returned `registry.module` in each node, as in [Usage](#usage) or the [plain Nix example](docs/examples.md#plain-nix-modules)                          | A `registry` argument passed through `specialArgs`       |
+| `nixosModules.default` | Import it in each NixOS node and pass the schema and one `mkRegistry` result in through its options, as in the [ordinary-flake example](docs/examples.md#static-nixos-module)      | `config.registry.central` and `config.registry.combined` |
+| `flakeModules.default` | Import it in a flake-parts project, set `registry.settings`, and import `nixosModules.default` in each node, as in the [flake-parts example](docs/examples.md#static-flake-module) | `config.registry.central` and `config.registry.combined` |
 
-Flake-parts is optional: an ordinary flake can use `nixosModules.default` with its own `mkRegistry` call. With either static module, the caller still constructs each node and lists it explicitly as a member. The static modules reserve `settings`, `central`, `combined`, and `validate` beneath a node's `registry` option, so a schema used with them cannot declare those names.
-
-The [API reference](docs/api.md) documents the arguments, options, and wiring of each export.
+With either static module, the caller still constructs each node and lists it explicitly as a member. `nixosModules.default` reserves `settings`, `central`, `combined`, and `validate` beneath a node's `registry` option, so a schema used with either static module cannot declare those names. The [API reference](docs/api.md) documents the arguments, options, and wiring of each export.
 
 ## Merging and validation
 
-Central definitions and node contributions follow the schema's ordinary module rules. Lists merge, equal scalar values agree, and conflicting scalar values fail. `lib.mkDefault`, `lib.mkForce`, and `lib.mkOverride` set priorities. Different contributions can supply different fields of one record, which the combined data completes.
-
-Reads are lazy: reading one shared field does not evaluate the others, so an invalid value elsewhere can go unnoticed. `registry.validate` evaluates all combined data, returning `true` or raising an evaluation error. The API reference shows how to [run validation as a flake check](docs/api.md#validation-and-diagnostics).
+Central definitions and node contributions merge under the schema's ordinary module rules, so different contributions can [complete one record](docs/api.md#partial-records-defaults-and-derived-values) and [priorities](docs/api.md#override-a-field-or-a-whole-contribution) settle conflicts. Reading one shared field does not evaluate the others; `registry.validate` evaluates all combined data, returning `true` or raising an evaluation error. The API reference shows how to [run validation as a flake check](docs/api.md#validation-and-diagnostics).
 
 ## Limitations
 
 - Data is shared only during evaluation. Every node must be evaluated in the same Nix evaluation, including configurations whose modules come from separate repositories.
-- Schema declarations and the module imports of each node must not depend on node data. A contribution that reads a strict collection, such as `attrsOf`, that it also contributes to, or two values that read each other, causes infinite recursion. The API reference describes the [evaluation rules](docs/api.md#evaluation-and-recursion).
+- Schema declarations and the module imports of each node must not depend on node data. A contribution that reads a collection it also contributes to, when the collection type merges strictly as `attrsOf str` does, or two values that read each other, can cause infinite recursion. The API reference describes the [evaluation rules](docs/api.md#evaluation-and-recursion).
 - No version has been released. The [changelog](CHANGELOG.md) records breaking changes and migration steps.
 
 ## Contributing
