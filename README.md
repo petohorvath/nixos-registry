@@ -1,39 +1,43 @@
 # nixos-registry
 
-`nixos-registry` is a Nix library for sharing configuration data between NixOS configurations. One configuration can contribute a service address, and another can use that address. Shared data uses option types, defaults, and merge rules from the Nix module system.
+nixos-registry is a Nix library that shares typed configuration data between NixOS configurations during evaluation: one configuration contributes a value, such as a service address, and others read the merged result. Projects that evaluate several configurations together use it to define each shared value once, with option types, defaults, and merge rules from the Nix module system.
 
-The public library entrypoint is `lib.mkRegistry`. The function takes shared option declarations and named configurations called nodes. It returns a module to import, the shared data, and a validation value.
+## Overview
 
-NixOS consumers can also import the static `nixosModules.default` and configure its schema through `registry.settings`. Contributions keep paths such as `registry.services.metrics.port`; shared reads use `config.registry.central` and `config.registry.combined`. The [ordinary-flake example](docs/examples.md#static-nixos-module) wires these options to one caller-owned registry without flake-parts.
+A **schema** declares the shared options. Each **node**, a named and evaluated configuration, contributes definitions beneath its `registry` option, and **central modules** define shared values outside the nodes. The registry merges these definitions into two read-only data sets: **central data** holds the schema defaults and central definitions, and **combined data** adds every node's contribution. [GLOSSARY.md](GLOSSARY.md) defines these terms.
 
-Flake-parts consumers can import `flakeModules.default` to compose the shared registry through project-level `registry.settings` options. The [separate-source example](docs/examples.md#flake-parts-and-separate-source-repositories) uses both static imports, constructs its own NixOS nodes, and passes schema settings and shared results through a common module. Central definitions and a node complete an API record that another node reads while contributing its own service.
+The name refers to this registry of shared data. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry), which maps flake names to locations, is unrelated.
 
-The static node interface reserves `settings`, `central`, `combined`, and `validate` beneath `registry`; schema contributions keep their other direct paths. Shared validation uses `config.registry.validate`. These interfaces are additive: ordinary flakes can use the static NixOS module without flake-parts, and the constructor retains generic nodes, plain-import access, and schemas using those names. See the [API reference](docs/api.md#static-nixos-module) for wiring and setup restrictions.
+## Requirements
 
-Data is shared during Nix evaluation. All nodes must be available in the same Nix evaluation, including configurations defined in separate repositories. Nix's [flake registry](https://nix.dev/manual/nix/stable/command-ref/new-cli/nix3-registry) is a separate feature for looking up flake names.
+- Nix with the `nix-command` and `flakes` experimental features, for the flake outputs. The library also loads by path without flakes, as [plain-import access](docs/api.md#plain-import-access) describes.
+- A Nixpkgs library whose module system matches that of every node. CI tests revisions of the `nixos-26.05` and `nixos-unstable` branches on `x86_64-linux` and `aarch64-linux`.
 
-## Support
+## Install
 
-The library is checked against the shared policy's stable and unstable Nixpkgs module systems. Development outputs and CI support `x86_64-linux` and `aarch64-linux`.
+Add the flake as an input:
 
-The required [hosted checks](.github/workflows/check.yml) run the shared project policy, which tests the committed root input and the policy's stable and unstable nixpkgs pins on both Linux architectures before a human approves a squash merge to `main`. See [CI and policy](docs/development.md#ci-and-policy). Report problems through [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues).
+```nix
+inputs.nixos-registry = {
+  url = "github:petohorvath/nixos-registry";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
 
-## Quickstart
+The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs` and `flake-parts` inputs enter the lock graph, but registry evaluation uses the Nixpkgs library that the caller passes in.
 
-This example assumes familiarity with flakes and NixOS modules. It defines two configurations:
+## Usage
 
-- `server` runs Prometheus and contributes its hostname and configured port.
-- `client` reads that service address into an `/etc/metrics-endpoint` file.
-
-A **node** is a named, evaluated configuration included in the registry; its name need not be a hostname. Both configurations are nodes. The **schema** declares the shared options; each node adds data by setting its `registry` option.
-
-Save the following as `flake.nix` in a new directory:
+This flake defines two NixOS configurations. `server` contributes the address of its Prometheus service, and `client` reads that address into `/etc/metrics-endpoint`:
 
 ```nix
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    nixos-registry.url = "github:petohorvath/nixos-registry";
+    nixos-registry = {
+      url = "github:petohorvath/nixos-registry";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -45,10 +49,8 @@ Save the following as `flake.nix` in a new directory:
         inherit lib;
         nodes = nixosConfigurations;
         schemaModules = [
-          ({ lib, ... }: {
+          {
             options.services = lib.mkOption {
-              description = "Service addresses shared by configurations.";
-              default = { };
               type = lib.types.attrsOf (
                 lib.types.submodule {
                   options = {
@@ -63,8 +65,10 @@ Save the following as `flake.nix` in a new directory:
                   };
                 }
               );
+              default = { };
+              description = "Service addresses shared by configurations.";
             };
-          })
+          }
         ];
       };
 
@@ -72,16 +76,19 @@ Save the following as `flake.nix` in a new directory:
         server = lib.nixosSystem {
           modules = [
             registry.module
-            ({ config, ... }: {
-              nixpkgs.hostPlatform = "x86_64-linux";
-              system.stateVersion = "26.05";
-              networking.hostName = "server";
-              services.prometheus.enable = true;
-              registry.services.metrics = {
-                host = "${config.networking.hostName}.example.test";
-                port = config.services.prometheus.port;
-              };
-            })
+            (
+              { config, ... }:
+              {
+                nixpkgs.hostPlatform = "x86_64-linux";
+                system.stateVersion = "26.05";
+                networking.hostName = "server";
+                services.prometheus.enable = true;
+                registry.services.metrics = {
+                  host = "${config.networking.hostName}.example.test";
+                  inherit (config.services.prometheus) port;
+                };
+              }
+            )
           ];
         };
 
@@ -89,15 +96,18 @@ Save the following as `flake.nix` in a new directory:
           specialArgs = { inherit registry; };
           modules = [
             registry.module
-            ({ registry, ... }: {
-              nixpkgs.hostPlatform = "x86_64-linux";
-              system.stateVersion = "26.05";
-              environment.etc."metrics-endpoint".text =
-                let
-                  metrics = registry.combined.services.metrics;
-                in
-                "${metrics.host}:${toString metrics.port}";
-            })
+            (
+              { registry, ... }:
+              {
+                nixpkgs.hostPlatform = "x86_64-linux";
+                system.stateVersion = "26.05";
+                environment.etc."metrics-endpoint".text =
+                  let
+                    inherit (registry.combined.services) metrics;
+                  in
+                  "${metrics.host}:${toString metrics.port}";
+              }
+            )
           ];
         };
       };
@@ -109,77 +119,54 @@ Save the following as `flake.nix` in a new directory:
 }
 ```
 
-Run these commands in that directory with Nix's `nix-command` and `flakes` features enabled. `nix flake lock` records the input revisions in `flake.lock`.
+Save it as `flake.nix` in an empty directory, then lock its inputs and evaluate the shared data:
 
-```sh
-nix flake lock
-nix eval .#nixosConfigurations.client.config.environment.etc.metrics-endpoint.text
-# "server.example.test:9090"
-
-nix eval .#lib.registry.combined --json
-# {"services":{"metrics":{"host":"server.example.test","port":9090}}}
-
-nix eval .#lib.registry.validate
-# true
+```console
+$ nix flake lock
+$ nix eval .#nixosConfigurations.client.config.environment.etc.metrics-endpoint.text
+"server.example.test:9090"
+$ nix eval .#lib.registry.combined --json
+{"services":{"metrics":{"host":"server.example.test","port":9090}}}
+$ nix eval .#lib.registry.validate
+true
 ```
 
-These commands evaluate the configuration without building or starting either system. The example includes the settings needed to evaluate the shared data; deploying a NixOS system also requires its normal hardware and boot configuration.
+The `mkRegistry` call takes the schema and the nodes, and returns `registry.module` for each node to import. The server contributes by setting `registry.services.metrics`. The client receives the registry through its own `specialArgs` and reads the merged record from `registry.combined`. The `let` binding allows the registry and the configurations to refer to each other; the schema must stay independent of node data.
 
-The example connects four parts:
+These commands evaluate the configurations without building either system. A deployable system also needs its hardware, boot, and filesystem settings.
 
-1. `schemaModules` declares `services` as an attribute set of records with a required `host` and `port`.
-2. `nodes = nixosConfigurations` includes the evaluated configurations. Each imports the returned `registry.module`.
-3. The server sets `registry.services.metrics` to contribute data. Its `config.registry` contains its local contribution.
-4. The client receives `registry` through `specialArgs` and reads `registry.combined.services.metrics` to get the shared data.
+The [example guide](docs/examples.md) covers plain Nix modules, both static modules, configurations from separate repositories, and specific merge rules, each with its expected result.
 
-The `let` block lets the registry and configurations refer to each other. Shared option declarations must stay independent of the node configurations. The [evaluation rules](docs/api.md#evaluation-and-recursion) explain which shared reads can cause recursion.
+## Choose an interface
 
-## API overview
+Each export connects nodes to a registry in a different way:
 
-Call `inputs.nixos-registry.lib.mkRegistry` with an attribute set containing:
+| Export                 | Wiring                                                                                                      | Nodes read shared data from                              |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `lib.mkRegistry`       | Call it once and import the returned `registry.module` in each node, as in [Usage](#usage)                  | A `registry` argument passed through `specialArgs`       |
+| `nixosModules.default` | Import it in each NixOS node and pass the schema and one `mkRegistry` result in through its options         | `config.registry.central` and `config.registry.combined` |
+| `flakeModules.default` | Import it in a flake-parts project, set `registry.settings`, and import `nixosModules.default` in each node | `config.registry.central` and `config.registry.combined` |
 
-| Argument         | Meaning                                                                     | Default                  |
-| ---------------- | --------------------------------------------------------------------------- | ------------------------ |
-| `lib`            | Nixpkgs library used by the nodes                                           | Required                 |
-| `schemaModules`  | Modules that declare the shared options                                     | Required                 |
-| `nodes`          | Attribute set of evaluated configurations, each importing `registry.module` | Required; `{ }` is valid |
-| `centralModules` | Modules that define shared values outside the nodes                         | `[ ]`                    |
-| `specialArgs`    | Arguments for the schema and central modules                                | `{ }`                    |
+Flake-parts is optional: an ordinary flake can use `nixosModules.default` with its own `mkRegistry` call. With either static module, the caller still constructs each node and lists it explicitly as a member. The static modules reserve `settings`, `central`, `combined`, and `validate` beneath a node's `registry` option, so a schema used with them cannot declare those names.
 
-Use the same Nixpkgs module-system revision for `lib` and every node. The caller supplies the library used for registry evaluation. Flake consumers acquire the root `nixpkgs` and `flake-parts` inputs in their lock graphs; the `flake-parts` library follows that `nixpkgs`. [Plain-import access](docs/api.md#plain-import-access) loads the constructor and static modules by path without evaluating flake inputs.
+The [API reference](docs/api.md) documents the arguments, options, and wiring of each export.
 
-The function returns an attribute set:
+## Merging and validation
 
-| Attribute           | Use                                                                          |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `registry.module`   | Import this module in each node to declare its `registry` option.            |
-| `registry.central`  | Read data from the schema and central modules only.                          |
-| `registry.combined` | Read data merged from central modules and all nodes.                         |
-| `registry.validate` | Evaluate all combined data. Returns `true` or raises a Nix evaluation error. |
+Central definitions and node contributions follow the schema's ordinary module rules. Lists merge, equal scalar values agree, and conflicting scalar values fail. `lib.mkDefault`, `lib.mkForce`, and `lib.mkOverride` set priorities. Different contributions can supply different fields of one record, which the combined data completes.
 
-With the constructor's generated module, `config.registry` is local to one node and `registry.combined` contains the shared data. Pass `registry` to a node through that configuration's `specialArgs` when its modules need shared reads; the `specialArgs` argument to `mkRegistry` does not do this. Static nodes instead receive the common settings and shared results through options and read `config.registry.combined`.
+Reads are lazy: reading one shared field does not evaluate the others, so an invalid value elsewhere can go unnoticed. `registry.validate` evaluates all combined data, returning `true` or raising an evaluation error. The API reference shows how to [run validation as a flake check](docs/api.md#validation-and-diagnostics).
 
-Central definitions and node contributions use the same merge rules. Lists normally merge; conflicting scalar values fail. Reading one field does not check every other field. Use `registry.validate` to check all combined data.
+## Limitations
 
-## Development
-
-After installing the [host prerequisites](docs/development.md#host-prerequisites), run the normal workflow from the repository root:
-
-```sh
-nix develop --no-update-lock-file
-nix fmt --no-update-lock-file
-nix flake check --no-update-lock-file
-```
-
-`direnv allow` activates the same shell. The [development guide](docs/development.md) covers tests, formatting, and pinned inputs. Normal validation evaluates configurations without building systems or running VMs.
+- Data is shared only during evaluation. Every node must be evaluated in the same Nix evaluation, including configurations whose modules come from separate repositories.
+- Schema declarations and the module imports of each node must not depend on node data. A contribution that reads a strict collection, such as `attrsOf`, that it also contributes to, or two values that read each other, causes infinite recursion. The API reference describes the [evaluation rules](docs/api.md#evaluation-and-recursion).
+- No version has been released. The [changelog](CHANGELOG.md) records breaking changes and migration steps.
 
 ## Contributing
 
-Follow the [contribution guide](CONTRIBUTING.md) for Conventional Commit PR titles, human-approved squash merges, the public contract, and independent releases. Original code uses the [MIT license](LICENSE). The [changelog](CHANGELOG.md) records migration steps.
+Pull requests are accepted; [CONTRIBUTING.md](CONTRIBUTING.md) describes the review process and the public contract. Report bugs and ask questions in [GitHub Issues](https://github.com/petohorvath/nixos-registry/issues). The [development guide](docs/development.md) covers the development shell, checks, and formatting.
 
-## Documentation
+## License
 
-- [API reference](docs/api.md): arguments, returned attributes, option paths, merging, validation, and recursion.
-- [Examples](docs/examples.md): NixOS, plain Nix modules, flake-parts, and specific merge rules, with their expected results.
-- [Development](docs/development.md): tests, formatting, and pinned dependencies.
-- [Glossary](GLOSSARY.md): project terms.
+MIT. See [LICENSE](LICENSE).
