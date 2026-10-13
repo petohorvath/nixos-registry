@@ -6,7 +6,7 @@
 
 Call nixos-project-policy `v0.6` through its minor-series tag. The policy's test runs evaluate every root output and build every entry of the `checks` output with the locked, stable, and unstable nixpkgs revisions; a run whose revision equals that of an earlier mode passes without building. Root checks, dependency locks, and public interfaces are unchanged.
 
-The required statuses stay `Policy / Check (<system>)` and `Policy / Tests (locked|stable|unstable, <system>)` for both Linux systems. The project has no VM tests, so no `Policy / VM tests (<nixpkgs>, <system>)` status applies. See [CI and policy](docs/development.md#ci-and-policy).
+The required statuses stay `Policy / Check (<system>)` and `Policy / Tests (locked|stable|unstable, <system>)` for both Linux systems. The project has no VM tests, so no `Policy / VM tests (locked|stable|unstable, <system>)` status applies. See [CI and policy](docs/development.md#ci-and-policy).
 
 ### Nixpkgs policy v0.5.1 pin
 
