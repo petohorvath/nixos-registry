@@ -2,7 +2,7 @@
 
 The flake exports `lib.mkRegistry`, a function that combines shared data from central modules and named nodes; `nixosModules.default`, a static node module; and `flakeModules.default`, a static flake-parts module for project-level registry settings and results. The consuming project supplies the option declarations and evaluates the node configurations.
 
-Start with the complete [README example](../README.md#quickstart). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
+Start with the complete [README example](../README.md#usage). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
 
 ## Call `mkRegistry`
 
