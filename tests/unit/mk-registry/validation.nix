@@ -1,4 +1,5 @@
 {
+  fixtures,
   helpers,
   lib,
   registryLib,
@@ -16,7 +17,7 @@ in
           let
             registry = mkRegistry {
               inherit lib;
-              schemaModules = [ ../../../examples/plain-nix/service-schema.nix ];
+              schemaModules = [ fixtures.schemas.service ];
               centralModules = [ { domain = "example.test"; } ];
               nodes."invalid node" = node;
             };

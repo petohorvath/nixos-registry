@@ -1,11 +1,12 @@
 {
+  fixtures,
   helpers,
   lib,
   registryLib,
   ...
 }:
 let
-  schemaModules = [ ../../examples/plain-nix/partial-schema.nix ];
+  schemaModules = [ fixtures.schemas.partial ];
   succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
 
   mkEvaluations =

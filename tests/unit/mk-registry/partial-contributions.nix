@@ -1,7 +1,12 @@
-{ lib, registryLib, ... }:
+{
+  fixtures,
+  lib,
+  registryLib,
+  ...
+}:
 let
   inherit (registryLib) mkRegistry;
-  schema = ../../../examples/plain-nix/partial-schema.nix;
+  schema = fixtures.schemas.partial;
 
   mkEvaluations =
     {

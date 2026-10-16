@@ -159,7 +159,7 @@ The example is a function taking these arguments:
 | `nixpkgs`     | Nixpkgs flake that supplies `lib.nixosSystem` and the check's package set |
 | `system`      | System for the nodes and `checks`; defaults to `x86_64-linux`             |
 
-It returns flake outputs: `lib.result`, `lib.nodes`, `lib.registry`, and `checks.<system>.registry`. The `flake-parts` integration suite calls it with the [path-based exports](api.md#plain-import-access), passing the root `flake-parts` input and the selected `nixpkgs`. Flake-parts, the registry, and the nodes therefore use the same module-system revision under the committed root selection and each policy compatibility override.
+It returns flake outputs: `lib.result`, `lib.nodes`, `lib.registry`, and `checks.<system>.registry`. The `flake-parts-example` integration suite calls it with the [path-based exports](api.md#plain-import-access), passing the root `flake-parts` input and the selected `nixpkgs`. Flake-parts, the registry, and the nodes therefore use the same module-system revision under the committed root selection and each policy compatibility override.
 
 The flake-parts module imports `exports.flakeModules.default` and captures `config.registry` as `registry`. Each node imports this common module before its source module:
 
@@ -181,7 +181,7 @@ Each local `config.registry.services` contains only that node's service. The API
 
 The nodes are evaluation examples for the selected system, exposed under `lib.nodes`. They omit machine-specific boot and filesystem settings and are not exported as deployable `nixosConfigurations`. The `registry` check validates registry data without demanding a NixOS system build or running a VM.
 
-The `flake-parts` integration suite asserts that the example validates and checks its central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command.
+The `flake-parts-example` integration suite asserts that the example validates and that its `registry` check's derivation evaluates, and checks its central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command.
 
 A consumer flake obtains the same exports from its `nixos-registry` input and passes its own inputs to `mkFlake`. The `follows` settings keep one Nixpkgs and one flake-parts revision in its lock graph. Copy the example's [schema](../examples/flake-parts/schema.nix) to `schema.nix` beside this `flake.nix`:
 

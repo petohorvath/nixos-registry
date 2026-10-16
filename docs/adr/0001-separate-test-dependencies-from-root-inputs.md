@@ -4,6 +4,8 @@ status: proposed
 
 # Separate test dependencies from root inputs
 
+Amended by [ADR 0004](0004-adopt-the-devnix-labs-test-standard.md): the root gains a `nix-unit` input that only the tests use, for nix-unit's flake-parts module. Its `nixpkgs` follows the root one, so consumers lock the nix-unit source but no second Nixpkgs, and they can leave it out with `inputs.nixos-registry.inputs.nix-unit.follows = "";`.
+
 Keep one selected `nixpkgs` input in the root flake for development tools, formatting, ordinary checks, and examples. Under [nixos-project-policy v0.3.0](https://github.com/petohorvath/nixos-project-policy/blob/v0.3.0/POLICY.md), the external policy runner supplies shared stable and unstable revisions through exact root-input overrides. This separates compatibility coverage from the root dependency graph without adding a second Nixpkgs input or a compatibility flake.
 
 The root checks evaluate the flake-parts example with the selected root module library, including during compatibility overrides. [ADR 0002](0002-assemble-the-root-flake-with-flake-parts.md) replaces the original integration helper, which fetched flake-parts using the standalone example lock, with a root `flake-parts` input and an example called as a function.

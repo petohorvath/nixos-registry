@@ -1,6 +1,7 @@
 # Helpers that evaluate the project's library and modules for the suites.
 {
   exports,
+  fixtures,
   flake-parts,
   lib,
   nixpkgs,
@@ -60,5 +61,5 @@ in
 
   evaluateProperties = args: import ./evaluate-properties.nix ({ inherit lib mkRegistry; } // args);
 
-  diagnostics = import ./diagnostics.nix { inherit lib mkRegistry; };
+  diagnostics = import ./diagnostics.nix { inherit fixtures lib mkRegistry; };
 }

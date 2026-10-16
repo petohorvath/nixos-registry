@@ -14,11 +14,7 @@ let
     nixosModules.default = ../nixos/module.nix;
     flakeModules.default = ../flake-module.nix;
   };
-in
-{
-  inherit lib registryLib self;
-  pkgs = nixpkgs.legacyPackages.${system};
-  helpers = import ./helpers {
+  fixtures = import ./fixtures {
     inherit
       exports
       flake-parts
@@ -27,9 +23,19 @@ in
       system
       ;
   };
-  fixtures = import ./fixtures {
+in
+{
+  inherit
+    fixtures
+    lib
+    registryLib
+    self
+    ;
+  pkgs = nixpkgs.legacyPackages.${system};
+  helpers = import ./helpers {
     inherit
       exports
+      fixtures
       flake-parts
       lib
       nixpkgs

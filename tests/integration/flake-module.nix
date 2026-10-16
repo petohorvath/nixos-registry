@@ -1,4 +1,5 @@
 {
+  fixtures,
   helpers,
   lib,
   ...
@@ -33,7 +34,7 @@ let
       in
       {
         registry.settings = {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [
             {
               domain = "example.test";

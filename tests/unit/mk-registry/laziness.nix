@@ -1,4 +1,9 @@
-{ lib, registryLib, ... }:
+{
+  fixtures,
+  lib,
+  registryLib,
+  ...
+}:
 let
   inherit (registryLib) mkRegistry;
   mkCollectionEvaluations =
@@ -46,7 +51,7 @@ in
       let
         registry = mkRegistry {
           inherit lib;
-          schemaModules = [ ../../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodes.publisher = lib.evalModules {
             modules = [

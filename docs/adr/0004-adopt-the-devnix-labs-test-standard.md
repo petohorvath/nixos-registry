@@ -12,7 +12,7 @@ Organize the tests as the devnix-labs repositories do: a unit and an integration
 - **Source imports.** `tests/test-context.nix` imports the `lib` directory and both static modules by path, as consumers that plainly import the project do. The `flake-outputs` integration suite checks that the flake's outputs expose the same code.
 - **nix-unit's flake-parts module.** The entry points take `nixpkgs`, `flake-parts`, `self`, and `system` without defaults. `dev/default.nix` passes the flake's inputs and sets the module's `inputs` to every root input, so the policy's `--override-input` runs reach every suite and a new input cannot be left out. The module's `tests.systems.<system>` output holds the suites under `unit` and `integration`, with the module's system-agnostic tests turned off, and its `nix-unit` check replaces `evaluation`. Only the integration entry point takes `system`, because only its suites evaluate NixOS.
 - **A `nix-unit` root input.** Its `nixpkgs` input follows the root one, and its `treefmt-nix` and `nix-github-actions` inputs follow nothing, so consumers lock only the nix-unit source. The check takes the nix-unit program from `nixpkgs`, as ADR 0003 chose.
-- **Fewer checks.** The `flake-parts` check is removed, because the `flake-parts` integration suite already asserts the example's results, and the `workflows` check joins `lint`.
+- **Fewer checks.** The `flake-parts` check is removed, because the `flake-parts-example` integration suite asserts the example's results and evaluates its check's derivation, and the `workflows` check joins `lint`.
 
 ## Consequences
 

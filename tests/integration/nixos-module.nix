@@ -1,4 +1,5 @@
 {
+  fixtures,
   helpers,
   lib,
   registryLib,
@@ -6,7 +7,7 @@
 }:
 let
   inherit (registryLib) mkRegistry;
-  schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+  schemaModules = [ fixtures.schemas.service ];
   registry = mkRegistry {
     inherit lib schemaModules;
     centralModules = [ { domain = "example.test"; } ];

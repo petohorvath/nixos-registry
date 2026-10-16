@@ -1,10 +1,12 @@
 {
   fixtures,
   lib,
+  pkgs,
   registryLib,
   ...
 }:
 let
+  inherit (pkgs.stdenv.hostPlatform) system;
   example = fixtures.examples.flake-parts;
   api = example.lib.nodes."api publisher".config;
   backup = example.lib.nodes."backup consumer".config;
@@ -35,6 +37,12 @@ in
       backupCommand = "backup --api api.example.test:8443";
       validate = true;
     };
+  };
+
+  # Evaluating the check's derivation demands registry validation.
+  testFlakePartsExampleCheckEvaluates = {
+    expr = builtins.isString example.checks.${system}.registry.drvPath;
+    expected = true;
   };
 
   testSeparateSourceNodesKeepLocalContributionsDistinct = {
@@ -85,7 +93,7 @@ in
       let
         registry = registryLib.mkRegistry {
           inherit lib nodes;
-          schemaModules = [ ../../examples/flake-parts/schema.nix ];
+          schemaModules = [ fixtures.schemas.flake-parts ];
           centralModules = [ { domain = "example.test"; } ];
         };
         nodes =
@@ -101,8 +109,8 @@ in
               }
             )
             {
-              "api publisher" = ../../examples/sources/service-publisher/module.nix;
-              "backup consumer" = ../../examples/sources/backup-client/module.nix;
+              "api publisher" = fixtures.sources.service-publisher;
+              "backup consumer" = fixtures.sources.backup-client;
             };
       in
       {

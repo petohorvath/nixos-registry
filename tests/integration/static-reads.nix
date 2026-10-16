@@ -1,4 +1,5 @@
 {
+  fixtures,
   helpers,
   lib,
   pkgs,
@@ -109,7 +110,7 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [
             {
               domain = "example.test";
@@ -159,7 +160,7 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodeModules.reader = [
             ({ config, ... }: {
@@ -175,7 +176,7 @@ in
           ];
         };
         shapeOnly = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ (throw "Listing schema keys must not evaluate central modules.") ];
           nodeModules.unused = [ (throw "Listing schema keys must not evaluate nodes.") ];
         };
@@ -206,7 +207,7 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodeModules.publisher = [
             ({ config, ... }: {

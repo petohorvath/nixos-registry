@@ -1,6 +1,11 @@
 # Strict collection reads and cyclic values recurse through static shared
 # reads.
-{ helpers, lib, ... }:
+{
+  fixtures,
+  helpers,
+  lib,
+  ...
+}:
 let
   staticStrict = (helpers.mkStaticCollectionConsumer lib.types.attrsOf).lib.registry;
   staticValueCycle =
@@ -28,7 +33,7 @@ let
     }).lib.registry;
   staticImportCycle =
     (helpers.mkStaticConsumer {
-      schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+      schemaModules = [ fixtures.schemas.service ];
       centralModules = [ { domain = "example.test"; } ];
       nodeModules.publisher = [
         ({ config, ... }: {

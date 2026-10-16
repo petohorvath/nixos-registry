@@ -22,6 +22,17 @@ in
   serviceEndpoints = ./service-endpoints.nix;
   sharedSchemaData = ./shared-schema-data.nix;
 
+  # Example files that suites put into module lists, by path.
+  schemas = {
+    flake-parts = ../../examples/flake-parts/schema.nix;
+    partial = ../../examples/plain-nix/partial-schema.nix;
+    service = ../../examples/plain-nix/service-schema.nix;
+  };
+  sources = {
+    backup-client = ../../examples/sources/backup-client/module.nix;
+    service-publisher = ../../examples/sources/service-publisher/module.nix;
+  };
+
   # The evaluated examples, built from the source exports.
   examples = {
     collection-laziness = callPlainExample ../../examples/plain-nix/collection-laziness.nix;

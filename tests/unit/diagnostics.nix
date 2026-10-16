@@ -10,7 +10,7 @@
 let
   inherit (registryLib) mkRegistry;
   inherit (helpers.diagnostics) fails rootCases validateNodeModules;
-  serviceSchema = ../../examples/plain-nix/service-schema.nix;
+  serviceSchema = fixtures.schemas.service;
 
   mkGeneratedNode =
     _settings: registry: modules:

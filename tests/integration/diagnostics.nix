@@ -13,7 +13,7 @@ let
   inherit (pkgs.stdenv.hostPlatform) system;
   inherit (registryLib) mkRegistry;
   inherit (helpers.diagnostics) fails rootCases validateNodeModules;
-  serviceSchema = ../../examples/plain-nix/service-schema.nix;
+  serviceSchema = fixtures.schemas.service;
 
   mkProjectRegistry =
     modules:

@@ -1,7 +1,11 @@
 # Diagnostic helpers and the cases that generated and static nodes share.
 # Diagnostics name the option path, node, and available source files; each
 # regex lists those facts in message order.
-{ lib, mkRegistry }:
+{
+  fixtures,
+  lib,
+  mkRegistry,
+}:
 let
   fails = expr: msg: {
     inherit expr;
@@ -14,7 +18,7 @@ let
     mkNode: nodeModules:
     let
       settings.schemaModules = [
-        ../../examples/plain-nix/service-schema.nix
+        fixtures.schemas.service
         {
           options.backupPaths = lib.mkOption {
             type = lib.types.listOf lib.types.str;
