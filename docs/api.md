@@ -300,7 +300,7 @@ nodes = {
 };
 ```
 
-Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/static-interface.nix) evaluate this split with actual NixOS nodes and compare the completed record with direct module evaluation.
+Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/integration/static-interface.nix) evaluate this split with actual NixOS nodes and compare the completed record with direct module evaluation.
 
 Schema defaults apply once per shared evaluation, regardless of node count. An explicit list definition, including `[ ]`, replaces its schema default. Multiple explicit lists merge normally. Derived values use the fields from that evaluation; read-only defaults in the combined data therefore use the combined fields. Additional definitions of read-only values fail under normal module rules.
 

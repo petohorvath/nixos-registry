@@ -1,13 +1,12 @@
 {
-  nixpkgs,
-  flakeParts,
-  system,
+  helpers,
+  lib,
+  pkgs,
+  ...
 }:
 let
-  inherit (nixpkgs) lib;
-  mkConsumer = import ../fixtures/static-flake-consumer.nix {
-    inherit flakeParts nixpkgs system;
-  };
+  inherit (pkgs.stdenv.hostPlatform) system;
+  mkConsumer = helpers.mkStaticConsumer;
 in
 {
   testStaticCollectionStrictnessMatchesDirectEvaluation = {
@@ -65,9 +64,7 @@ in
   testStaticLazyCollectionSupportsSharedReadsWhileContributing = {
     expr =
       let
-        consumer = import ../fixtures/static-collection-consumer.nix {
-          inherit flakeParts nixpkgs system;
-        } lib.types.lazyAttrsOf;
+        consumer = helpers.mkStaticCollectionConsumer lib.types.lazyAttrsOf;
       in
       {
         inherit (consumer.lib.registry) combined validate;

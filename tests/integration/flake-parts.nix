@@ -1,9 +1,11 @@
 {
-  example,
+  helpers,
   lib,
-  mkRegistry,
+  registryLib,
+  ...
 }:
 let
+  example = helpers.importFlakePartsExample { };
   api = example.lib.nodes."api publisher".config;
   backup = example.lib.nodes."backup consumer".config;
 in
@@ -81,7 +83,7 @@ in
   testSeparateSourceGenericModulesKeepConstructorAccess = {
     expr =
       let
-        registry = mkRegistry {
+        registry = registryLib.mkRegistry {
           inherit lib nodes;
           schemaModules = [ ../../examples/flake-parts/schema.nix ];
           centralModules = [ { domain = "example.test"; } ];

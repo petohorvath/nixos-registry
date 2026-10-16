@@ -22,22 +22,31 @@ Run commands from the repository root. Reject lock updates during ordinary valid
 nix flake check --no-update-lock-file
 ```
 
-The suite evaluates the public `lib.mkRegistry` function, generated node module, central data, combined data, and validation using the selected root Nixpkgs module system. Merge tests compare behavior with direct evaluation using the same library. Path-import checks load the `lib` directory and both static modules without the root flake; the library check constructs and uses a registry with a caller-provided library and no flake inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
+The suite evaluates the public `lib.mkRegistry` function, generated node module, central data, combined data, and validation using the selected root Nixpkgs module system. Merge tests compare behavior with direct evaluation using the same library. The suites load the `lib` directory and both static modules by path, without the root flake; the library suite constructs and uses a registry with a caller-provided library and no flake inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
 
-Test entrypoints mirror source module paths: `lib/mk-registry.nix` maps to `tests/mk-registry.nix`, the other `lib/` helpers have matching files under `tests/`, the `lib/default.nix` entry point maps to `tests/lib.nix`, and the exported `flake-module.nix` and `nixos/module.nix` map to `tests/flake-module.nix` and `tests/nixos/module.nix`. The constructor entrypoint collects smaller case files from `tests/mk-registry/`. Helper behavior is exercised through the public registry interfaces. Cross-module examples and static shared-read cases live in `tests/integration/`; shared fixtures stay in `tests/fixtures/`. `tests/flake.nix` covers the root output shapes declared in `flake.nix`, and `tests/helpers/plain-exports.nix` loads the public exports by path. [tests/evaluation.nix](../tests/evaluation.nix) nests these suites, by source module, into the `tests.<system>` output. [dev/checks.nix](../dev/checks.nix) runs that output with [nix-unit](https://github.com/nix-community/nix-unit) as the `evaluation` check and adds the flake-parts example, formatting, lint, and workflow checks from `tests/default.nix`.
+The tests follow the devnix-labs test standard. Two nix-unit entry points list their suites by hand, and each suite receives one `testContext` argument from [tests/test-context.nix](../tests/test-context.nix): the selected Nixpkgs `lib` and `pkgs`, the `lib` directory as `registryLib`, the [helpers](../tests/helpers/default.nix) that evaluate the static modules, and the [fixture](../tests/fixtures/default.nix) module paths.
 
-The root checks also cover formatting, statix, deadnix, and workflow validation. Workflow validation checks every `.yml` and `.yaml` file in `.github/workflows` when present; a repository without workflows needs no placeholder. NixOS checks evaluate the affected configuration options for the selected system without building a full system or executing a VM. Normal checks have no VM build dependencies.
+- [tests/unit/](../tests/unit/default.nix) holds the suites that use only `lib` and `mkRegistry`. Each suite of one source file mirrors its path: `lib/check-contribution.nix` maps to `tests/unit/check-contribution.nix`, `lib/default.nix` to `tests/unit/lib.nix`, and `lib/mk-registry.nix` to the suites in `tests/unit/mk-registry/`. The `diagnostics`, `recursion`, and `plain-nix-examples` suites cover several source files.
+- [tests/integration/](../tests/integration/default.nix) holds the suites that evaluate NixOS or flake-parts: the static modules (`nixos-module`, `flake-module`, `static-interface`, `static-reads`), the NixOS and flake-parts examples, the static `diagnostics` and `recursion` cases, and `flake-outputs`, which builds the root outputs from `flake.nix` with the selected inputs.
 
-`nix flake check --no-update-lock-file` runs all tests. Its `evaluation` check runs every case in the suite, and the integration tests assert the result of every example. To run the suite, or one suite within it, with the locked nix-unit and report each case, pass an attribute path under `tests.<system>`:
+[tests/default.nix](../tests/default.nix) runs each entry point through the [nix-unit runner](../tests/runners/nix-unit.nix) as the `unit` and `integration` checks. The runner passes the flake's inputs, rebuilt from store paths, and runs each group of cases in its own nix-unit process. [dev/checks.nix](../dev/checks.nix) adds the `formatting` and `lint` checks.
+
+`nix flake check --no-update-lock-file` runs all tests, and the suites assert the result of every example. To run one entry point, or one suite in it, with the locked nix-unit and report each case, pass its directory and an optional attribute path:
 
 ```sh
-nix run --inputs-from . nixpkgs#nix-unit -- --flake .#tests.x86_64-linux
-nix run --inputs-from . nixpkgs#nix-unit -- --flake .#tests.x86_64-linux.diagnostics
+nix run --inputs-from . nixpkgs#nix-unit -- tests/unit
+nix run --inputs-from . nixpkgs#nix-unit -- tests/integration --attr diagnostics
+```
+
+The entry points default to the root flake's locked inputs. Pass `--arg nixpkgs …` to run the suites against another Nixpkgs. The integration suites evaluate many NixOS systems in one process, so run them one suite at a time when memory is short. To run one check, build it:
+
+```sh
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.integration
 ```
 
 The alternate-package test selects Prometheus from a separately extended package set while retaining the selected NixOS module system. It verifies package selection and registry behavior without a second Nixpkgs input. Cross-revision package mixing is no longer a separate test commitment; the policy's stable and unstable test runs cover the full suite.
 
-The static flake-module tests use the root `flake-parts` input with the selected root module library. They evaluate both public static imports with real NixOS nodes, composed project settings, explicit membership, empty nodes, and separate schema/central and node arguments. The [separate-source example tests](../tests/integration/flake-parts.nix) call the flake-parts example with the root flake's exports and check its configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its nodes are evaluation-only configurations for the selected system. The diagnostic suite covers missing required settings, duplicate node names, and source attribution for central conflicts.
+The static flake-module tests use the root `flake-parts` input with the selected root module library. They evaluate both public static imports with real NixOS nodes, composed project settings, explicit membership, empty nodes, and separate schema/central and node arguments. The [separate-source example tests](../tests/integration/flake-parts.nix) call the flake-parts example with the path-based exports and check its configured NixOS ports, completed partial records, distinct local contributions, and dependent backup command. Its nodes are evaluation-only configurations for the selected system. The diagnostic suite covers missing required settings, duplicate node names, and source attribution for central conflicts.
 
 The [static read tests](../tests/integration/static-reads.nix) cover independent central and combined reads, partial records, strict and lazy collections, and explicit validation through consumer flake checks. They demand the check's derivation for valid data, while ordinary reads leave validation unevaluated. The diagnostic suite verifies error attribution through this flake-check path; the recursion suite also covers static collection forcing, value cycles, and node imports selected from their own registry configuration.
 
@@ -45,7 +54,7 @@ The [example guide](examples.md) lists the plain-Nix, NixOS, and flake-parts exa
 
 ### Failure and diagnostic tests
 
-Failure cases set nix-unit's `expectedError`, which also catches native type errors and infinite recursion that `builtins.tryEval` cannot. The ordering cases show that whole-contribution ordering fails, the [recursion suite](../tests/recursion.nix) demands strict collection reads and cyclic values, and the [diagnostic suite](../tests/diagnostics.nix) asserts option paths, node identities, and available source filenames rather than complete error snapshots. Each diagnostic case matches one regex that lists those facts in message order.
+Failure cases set nix-unit's `expectedError`, which also catches native type errors and infinite recursion that `builtins.tryEval` cannot. The ordering cases show that whole-contribution ordering fails, the recursion suites ([unit](../tests/unit/recursion.nix) and [integration](../tests/integration/recursion.nix)) demand strict collection reads and cyclic values, and the diagnostic suites ([unit](../tests/unit/diagnostics.nix) and [integration](../tests/integration/diagnostics.nix)) assert option paths, node identities, and available source filenames rather than complete error snapshots. Each diagnostic case matches one regex that lists those facts in message order.
 
 nix-unit matches the error message but not its trace, so library errors name their node and source file in the message itself. A native module-system error, such as a second `registry` option declaration, keeps the node name only in the trace. Tests use `tryEval` only to compare whether reads succeed or fail, as the laziness cases do.
 
@@ -56,7 +65,7 @@ Registry behavior, including merging, priorities, ordering, partial records, con
 - It covers settings or argument separation.
 - It covers error attribution to a static node's source file.
 
-The [static contribution suite](../tests/static-interface.nix) holds the root-property and wiring cases, and the diagnostic suite's static set holds the attribution cases. A static flake-parts module case stays only if it covers settings composed from several project modules, the flake-check derivation, or the example's end-to-end result.
+The [static contribution suite](../tests/integration/static-interface.nix) holds the root-property and wiring cases, and the `static` group of the integration diagnostic suite holds the attribution cases. A static flake-parts module case stays only if it covers settings composed from several project modules, the flake-check derivation, or the example's end-to-end result.
 
 ## Formatting and lint
 
@@ -65,7 +74,7 @@ nix fmt --no-update-lock-file
 nix fmt --no-update-lock-file -- --ci
 ```
 
-`nix flake check --no-update-lock-file` also runs the `formatting`, `lint`, and `workflows` checks.
+`nix flake check --no-update-lock-file` also runs the `formatting` and `lint` checks; `lint` includes the workflow validation.
 
 [treefmt.toml](../dev/treefmt.toml) covers first-party Nix, shell (including `.envrc`), Markdown, YAML, and JSON. Add any new extensionless shell scripts to its shell includes. Git and direnv state, result links, lockfiles, and generated or vendored trees are excluded. Current fixtures are Nix modules whose exact text is not asserted, so they remain formatted; exclude future exact-text fixtures explicitly. Prettier preserves existing prose wrapping; new prose uses one source line per paragraph.
 
@@ -75,7 +84,7 @@ The root declares two inputs, `nixpkgs` and `flake-parts`, whose exact revisions
 
 The flake-parts example has no lock of its own. Root checks call it as a function with the root `flake-parts` input and the selected `nixpkgs`, so the policy's `nixpkgs` override also controls it, and `nix flake check --no-update-lock-file` covers it without a separate validation step. Update `flake-parts` deliberately with `nix flake update flake-parts`, commit the lock, and rerun ordinary and compatibility checks.
 
-The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. The shared policy bundles its stable and unstable pins, so the root needs no additional input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports. [ADR 0003](adr/0003-run-the-suite-with-nix-unit.md) records the nix-unit suite, its `pkgs.nix-unit` source, and the `tests` output.
+The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. The shared policy bundles its stable and unstable pins, so the root needs no additional input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports. [ADR 0003](adr/0003-run-the-suite-with-nix-unit.md) records the nix-unit suite and its `pkgs.nix-unit` source, and [ADR 0004](adr/0004-adopt-the-devnix-labs-test-standard.md) the unit and integration entry points that replace the `tests` output.
 
 ## CI and policy
 
@@ -83,7 +92,7 @@ The [CI workflow](../.github/workflows/check.yml) calls the [shared project poli
 
 The workflow runs for every opened, synchronized, or reopened PR, for pushes to `main`, and on manual dispatch, with read-only repository permissions. The caller sets no inputs, so the policy runs on its default systems, `x86_64-linux` and `aarch64-linux`. The policy repository is not a flake input, shell dependency, or build dependency.
 
-The policy checks the inputs, public outputs, development shell, and formatter. It also evaluates every root output and builds every entry of the `checks` output with the locked `nixpkgs` and with the stable and unstable nixpkgs pins that each policy release bundles, so the repository-owned `formatting`, `lint`, and `workflows` checks run on every system. To run the same checks locally, use the policy's `check .` and `test . --nixpkgs locked|stable|unstable` commands as its [README](https://github.com/petohorvath/nixos-project-policy#local-check) describes. Each local run covers only its host system.
+The policy checks the inputs, public outputs, development shell, and formatter. It also evaluates every root output and builds every entry of the `checks` output with the locked `nixpkgs` and with the stable and unstable nixpkgs pins that each policy release bundles, so the repository-owned `unit`, `integration`, `formatting`, and `lint` checks run on every system. To run the same checks locally, use the policy's `check .` and `test . --nixpkgs locked|stable|unstable` commands as its [README](https://github.com/petohorvath/nixos-project-policy#local-check) describes. Each local run covers only its host system.
 
 The policy's Caller section lists the statuses to require, and the workflow's `Plan` job writes them to its step summary on every run. GitHub requires an up-to-date PR and these statuses on `main`, including for administrators. The project has no VM tests, so no VM test status applies. Passing local checks does not configure GitHub settings or authorize a merge.
 

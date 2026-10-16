@@ -1,28 +1,14 @@
+{ inputs, ... }:
 {
-  config,
-  inputs,
-  lib,
-  ...
-}:
-{
-  flake.tests = lib.genAttrs config.systems (
-    system: import ../tests/evaluation.nix { inherit inputs system; }
-  );
-
   perSystem =
-    {
-      config,
-      pkgs,
-      system,
-      ...
-    }:
+    { config, pkgs, ... }:
     {
       formatter = pkgs.callPackage ./formatter.nix { };
       devShells.default = pkgs.callPackage ./shell.nix {
         inherit (config) formatter;
       };
       checks = import ./checks.nix {
-        inherit inputs pkgs system;
+        inherit inputs pkgs;
         inherit (config) formatter;
       };
     };

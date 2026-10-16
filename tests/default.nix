@@ -1,40 +1,34 @@
-# Assemble the root checks that run the flake-parts example and source tools.
-{
-  formatter,
-  inputs,
-  pkgs,
-  system,
-}:
+# The test entries of the root checks.
+{ inputs, pkgs }:
 let
-  sourceDir = pkgs.lib.cleanSource ../.;
-  sourceCheck =
-    name: packages: script:
-    pkgs.runCommand "registry-${name}" { nativeBuildInputs = packages; } ''
-      cp -R ${sourceDir} source
-      chmod -R u+w source
-      cd source
-      ${script}
-      touch "$out"
-    '';
+  inherit (pkgs) lib;
+  repo = "registry";
+  srcDir = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions [
+      ../dev
+      ../examples
+      ../flake-module.nix
+      ../flake.nix
+      ../lib
+      ../nixos
+      ../tests
+    ];
+  };
+  runNixUnit = import ./runners/nix-unit.nix {
+    inherit
+      inputs
+      pkgs
+      repo
+      srcDir
+      ;
+  };
 in
 {
-  flake-parts =
-    (import ../examples/flake-parts {
-      inherit (inputs) nixpkgs;
-      inherit system;
-      exports = { inherit (inputs.self) flakeModules lib nixosModules; };
-      flakeParts = inputs.flake-parts;
-    }).checks.${system}.registry;
-  formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
-  lint = sourceCheck "lint" [ pkgs.statix pkgs.deadnix ] ''
-    statix check .
-    deadnix --fail .
-  '';
-  workflows = sourceCheck "workflows" [ pkgs.actionlint ] ''
-    shopt -s nullglob
-    workflows=(.github/workflows/*.yml .github/workflows/*.yaml)
-    if (( ''${#workflows[@]} )); then
-      actionlint "''${workflows[@]}"
-    fi
-  '';
+  unit = runNixUnit { kind = "unit"; };
+  # Parallel NixOS evaluations need much memory.
+  integration = runNixUnit {
+    kind = "integration";
+    jobs = 2;
+  };
 }

@@ -1,7 +1,7 @@
-{ example }:
+{ helpers, ... }:
 {
   testStaticNixosExampleEvaluatesAndValidates = {
-    expr = example.result;
+    expr = (helpers.importStaticNixosExample { }).result;
     expected = {
       central = {
         domain = "example.test";
