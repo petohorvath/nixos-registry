@@ -1,15 +1,36 @@
 { inputs, ... }:
 {
+  imports = [ inputs.nix-unit.modules.flake.default ];
+
   perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      system,
+      ...
+    }:
     {
       formatter = pkgs.callPackage ./formatter.nix { };
       devShells.default = pkgs.callPackage ./shell.nix {
         inherit (config) formatter;
       };
       checks = import ./checks.nix {
-        inherit inputs pkgs;
+        inherit pkgs;
         inherit (config) formatter;
+      };
+      nix-unit = {
+        package = pkgs.nix-unit;
+        inputs = removeAttrs inputs [ "self" ];
+        tests = {
+          unit = import ../tests/unit {
+            inherit (inputs) nixpkgs;
+            inherit system;
+          };
+          integration = import ../tests/integration {
+            inherit (inputs) flake-parts nixpkgs self;
+            inherit system;
+          };
+        };
       };
     };
 }

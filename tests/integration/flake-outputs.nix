@@ -1,11 +1,10 @@
 {
-  helpers,
   lib,
   registryLib,
+  self,
   ...
 }:
 let
-  flake = helpers.rootFlake;
   systems = [
     "aarch64-linux"
     "x86_64-linux"
@@ -21,25 +20,27 @@ let
 in
 {
   testRootLibraryExportsOnlyMkRegistry = {
-    expr = builtins.attrNames flake.lib;
+    expr = builtins.attrNames self.lib;
     expected = [ "mkRegistry" ];
   };
 
   # The suites test the library that test-context.nix imports from source.
   testRootLibraryIsTheSourceLibrary = {
-    expr = flake.lib == registryLib;
+    expr = self.lib == registryLib;
     expected = true;
   };
 
   testRootSystemOutputsCoverOnlyLinuxSystems = {
-    expr = lib.genAttrs outputs (name: builtins.attrNames flake.${name});
-    expected = lib.genAttrs outputs (_: systems);
+    expr = lib.genAttrs outputs (name: builtins.attrNames self.${name}) // {
+      tests = builtins.attrNames self.tests.systems;
+    };
+    expected = lib.genAttrs (outputs ++ [ "tests" ]) (_: systems);
   };
 
   testRootModuleExportsDeclareOptionsFromTheirFiles = {
     expr = {
-      nixos = declarationsOf flake.nixosModules.default [ "registry" ];
-      flakeParts = declarationsOf flake.flakeModules.default [
+      nixos = declarationsOf self.nixosModules.default [ "registry" ];
+      flakeParts = declarationsOf self.flakeModules.default [
         "registry"
         "settings"
         "schemaModules"
@@ -52,12 +53,11 @@ in
   };
 
   testRootChecksKeepTheirNames = {
-    expr = lib.genAttrs systems (system: builtins.attrNames flake.checks.${system});
+    expr = lib.genAttrs systems (system: builtins.attrNames self.checks.${system});
     expected = lib.genAttrs systems (_: [
       "formatting"
-      "integration"
       "lint"
-      "unit"
+      "nix-unit"
     ]);
   };
 }

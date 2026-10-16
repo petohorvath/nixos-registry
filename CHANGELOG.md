@@ -2,21 +2,21 @@
 
 ## Unreleased
 
-### Breaking checks: unit and integration entry points
+### Breaking checks: nix-unit's flake-parts module
 
-The tests follow the devnix-labs test standard, as [ADR 0004](docs/adr/0004-adopt-the-devnix-labs-test-standard.md) records. The `dev` partition no longer adds a `tests.<system>` output; the `unit` and `integration` checks run the nix-unit entry points `tests/unit` and `tests/integration` with the selected root inputs.
+The tests follow the devnix-labs test standard, as [ADR 0004](docs/adr/0004-adopt-the-devnix-labs-test-standard.md) records. nix-unit's flake-parts module runs the unit and integration entry points `tests/unit` and `tests/integration` with the selected root inputs. The root flake gains a `nix-unit` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the nix-unit source but no second Nixpkgs.
 
-| Removed                       | Replacement                                                                                   |
-| ----------------------------- | --------------------------------------------------------------------------------------------- |
-| `checks.<system>.evaluation`  | `checks.<system>.unit` and `checks.<system>.integration`                                      |
-| `checks.<system>.flake-parts` | the `flake-parts` suite of `checks.<system>.integration`, which asserts the example's results |
-| `checks.<system>.workflows`   | `checks.<system>.lint`                                                                        |
-| `tests.<system>`              | `nix run --inputs-from . nixpkgs#nix-unit -- tests/unit` and `-- tests/integration`           |
-| `tests.<system>.<suite>`      | `--attr <suite>` on the entry point that holds the suite                                      |
+| Removed                       | Replacement                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------- |
+| `checks.<system>.evaluation`  | `checks.<system>.nix-unit`                                                            |
+| `checks.<system>.flake-parts` | the `flake-parts` integration suite, which asserts the example's results              |
+| `checks.<system>.workflows`   | `checks.<system>.lint`                                                                |
+| `tests.<system>`              | `tests.systems.<system>`, with the suites under `unit` and `integration`              |
+| `tests.<system>.<suite>`      | `tests.systems.<system>.unit.<suite>` or `tests.systems.<system>.integration.<suite>` |
 
 Suite names are now their file names. The suites that call `mkRegistry` directly are unit suites, and those that evaluate NixOS or flake-parts are integration suites:
 
-| Previous suite                                                                                 | Entry point   | Suite                                                                        |
+| Previous suite                                                                                 | Kind          | Suite                                                                        |
 | ---------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------- |
 | `mkRegistry`                                                                                   | `unit`        | `mk-registry.*`, one suite per case file                                     |
 | `checkContribution`, `wrapCentralModule`, `getActiveModuleKeys`, `lib`                         | `unit`        | `check-contribution`, `wrap-central-module`, `get-active-module-keys`, `lib` |

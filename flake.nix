@@ -11,6 +11,14 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    nix-unit = {
+      url = "github:nix-community/nix-unit";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        treefmt-nix.follows = "";
+        nix-github-actions.follows = "";
+      };
+    };
   };
 
   outputs =
@@ -29,6 +37,7 @@
         checks = "dev";
         devShells = "dev";
         formatter = "dev";
+        tests = "dev";
       };
 
       flake = {

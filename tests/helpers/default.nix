@@ -92,10 +92,4 @@ in
       }
       // args
     );
-
-  # The root flake's outputs as consumers see them, from the selected inputs.
-  rootFlake = import ./evaluation-inputs.nix {
-    path = toString ../..;
-    inputs = { inherit flake-parts nixpkgs; };
-  };
 }

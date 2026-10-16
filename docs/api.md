@@ -57,7 +57,7 @@ registry = mkRegistry {
 
 Use the same caller-provided `lib` for node evaluation. Import the static modules as `"${inputs.nixos-registry}/nixos/module.nix"` and `"${inputs.nixos-registry}/flake-module.nix"`. The root flake's `lib` output imports the same `lib` directory, and its `nixosModules.default` and `flakeModules.default` outputs reference the same module files.
 
-Plain import through the flake's `outputs` function no longer works because the root flake is assembled with flake-parts. Normal flake consumption adds the root `nixpkgs` and `flake-parts` inputs to a consumer's lock graph. This supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md#breaking-flake-parts-root) and [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md).
+Plain import through the flake's `outputs` function no longer works because the root flake is assembled with flake-parts. Normal flake consumption adds the root `nixpkgs`, `flake-parts`, and `nix-unit` inputs to a consumer's lock graph. This supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md#breaking-flake-parts-root) and [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md).
 
 ### `schemaModules`
 

@@ -1,10 +1,4 @@
-let
-  rootInputs = (builtins.getFlake (toString ../..)).inputs;
-in
-{
-  nixpkgs ? rootInputs.nixpkgs,
-  system ? builtins.currentSystem,
-}:
+{ nixpkgs, system }:
 let
   testContext = import ../test-context.nix { inherit nixpkgs system; };
 in

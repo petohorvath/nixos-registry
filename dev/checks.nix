@@ -1,9 +1,5 @@
-# The root checks: the test entries and the source tools.
-{
-  formatter,
-  inputs,
-  pkgs,
-}:
+# The source-tool checks; nix-unit's flake-parts module adds the suites.
+{ formatter, pkgs }:
 let
   sourceDir = pkgs.lib.cleanSource ../.;
   sourceCheck =
@@ -16,7 +12,7 @@ let
       touch "$out"
     '';
 in
-pkgs.lib.attrsets.unionOfDisjoint (import ../tests { inherit inputs pkgs; }) {
+{
   formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
   lint =
     sourceCheck "lint"
