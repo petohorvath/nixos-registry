@@ -4,7 +4,7 @@
 
 ### Breaking checks: nix-unit's flake-parts module
 
-The tests follow the devnix-labs test standard, as [ADR 0004](docs/adr/0004-adopt-the-devnix-labs-test-standard.md) records. nix-unit's flake-parts module runs the unit and integration entry points `tests/unit` and `tests/integration` with the selected root inputs. The root flake gains a `nix-unit` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the nix-unit source but no second Nixpkgs.
+The tests follow the devnix-labs test standard, as [ADR 0004](docs/adr/0004-adopt-the-devnix-labs-test-standard.md) records. nix-unit's flake-parts module runs the unit and integration entry points `tests/unit` and `tests/integration` with the selected root inputs. The root flake gains a `nix-unit` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the nix-unit source but no second Nixpkgs. A consumer can leave it out with `inputs.nixos-registry.inputs.nix-unit.follows = "";`.
 
 | Removed                       | Replacement                                                                           |
 | ----------------------------- | ------------------------------------------------------------------------------------- |

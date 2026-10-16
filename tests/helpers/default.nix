@@ -1,18 +1,13 @@
 # Helpers that evaluate the project's library and modules for the suites.
 {
+  exports,
   flake-parts,
   lib,
   nixpkgs,
-  registryLib,
   system,
 }:
 let
-  inherit (registryLib) mkRegistry;
-  exports = {
-    lib = registryLib;
-    nixosModules.default = ../../nixos/module.nix;
-    flakeModules.default = ../../flake-module.nix;
-  };
+  inherit (exports.lib) mkRegistry;
 
   # A NixOS system for the selected system that imports the static module.
   mkStaticNode =
@@ -66,30 +61,4 @@ in
   evaluateProperties = args: import ./evaluate-properties.nix ({ inherit lib mkRegistry; } // args);
 
   diagnostics = import ./diagnostics.nix { inherit lib mkRegistry; };
-
-  importNixosExample =
-    args:
-    import ../../examples/nixos (
-      {
-        inherit mkRegistry nixpkgs system;
-      }
-      // args
-    );
-
-  importStaticNixosExample =
-    args: import ../../examples/static-nixos ({ inherit exports nixpkgs system; } // args);
-
-  importFlakePartsExample =
-    args:
-    import ../../examples/flake-parts (
-      {
-        inherit
-          exports
-          flake-parts
-          nixpkgs
-          system
-          ;
-      }
-      // args
-    );
 }

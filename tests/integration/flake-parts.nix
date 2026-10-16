@@ -1,11 +1,11 @@
 {
-  helpers,
+  fixtures,
   lib,
   registryLib,
   ...
 }:
 let
-  example = helpers.importFlakePartsExample { };
+  example = fixtures.examples.flake-parts;
   api = example.lib.nodes."api publisher".config;
   backup = example.lib.nodes."backup consumer".config;
 in

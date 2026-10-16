@@ -1,11 +1,8 @@
 # Strict collection reads and cyclic values recurse through the constructor.
-{ lib, registryLib, ... }:
+{ fixtures, ... }:
 let
-  inherit (registryLib) mkRegistry;
-  collectionLaziness = import ../../examples/plain-nix/collection-laziness.nix {
-    inherit lib mkRegistry;
-  };
-  valueCycle = import ../../examples/plain-nix/value-cycle.nix { inherit lib mkRegistry; };
+  collectionLaziness = fixtures.examples.collection-laziness;
+  valueCycle = fixtures.examples.value-cycle;
   recurses = expr: {
     inherit expr;
     expectedError = {

@@ -21,11 +21,9 @@
       nix-unit = {
         package = pkgs.nix-unit;
         inputs = removeAttrs inputs [ "self" ];
+        enableSystemAgnostic = false;
         tests = {
-          unit = import ../tests/unit {
-            inherit (inputs) nixpkgs;
-            inherit system;
-          };
+          unit = import ../tests/unit { inherit (inputs) nixpkgs; };
           integration = import ../tests/integration {
             inherit (inputs) flake-parts nixpkgs self;
             inherit system;

@@ -1,10 +1,7 @@
-{ lib, registryLib, ... }:
-let
-  inherit (registryLib) mkRegistry;
-in
+{ fixtures, ... }:
 {
   testNodeContributesFromCombinedDomainExample = {
-    expr = import ../../examples/plain-nix/combined-reads.nix { inherit lib mkRegistry; };
+    expr = fixtures.examples.combined-reads;
     expected = {
       centralDomain = "example.test";
       localHost = "api.example.test";
@@ -22,7 +19,7 @@ in
   };
 
   testLazyCollectionExampleReadsSiblingEntries = {
-    expr = (import ../../examples/plain-nix/collection-laziness.nix { inherit lib mkRegistry; }).lazy;
+    expr = fixtures.examples.collection-laziness.lazy;
     expected = {
       combined.settings = {
         domain = "example.test";
@@ -33,7 +30,7 @@ in
   };
 
   testLocallyEnabledOrderedContributionExample = {
-    expr = import ../../examples/plain-nix/conditional-ordering.nix { inherit lib mkRegistry; };
+    expr = fixtures.examples.conditional-ordering;
     expected = {
       enabled = {
         combined.backupDestinations.archive = {
@@ -61,7 +58,7 @@ in
   };
 
   testPlainNixContributionPrioritiesExample = {
-    expr = import ../../examples/plain-nix/priorities.nix { inherit lib mkRegistry; };
+    expr = fixtures.examples.priorities;
     expected = {
       defaultContribution = {
         combined.backupDestinations = {
@@ -105,7 +102,7 @@ in
   };
 
   testPlainNixBackupDestinationExample = {
-    expr = import ../../examples/plain-nix { inherit lib mkRegistry; };
+    expr = fixtures.examples.plain-nix;
     expected = {
       central.backupDestinations.archive = {
         host = "archive.example.test";
@@ -138,12 +135,12 @@ in
   };
 
   testPlainNixScalarConflictExampleFails = {
-    expr = import ../../examples/plain-nix/scalar-conflict.nix { inherit lib mkRegistry; };
+    expr = fixtures.examples.scalar-conflict;
     expectedError.msg = "`backupDestinations\\.archive\\.host' has conflicting definition values[\\s\\S]*`node conflicting backup job: ";
   };
 
   testPlainNixPartialContributionsExample = {
-    expr = import ../../examples/plain-nix/partial-contributions.nix { inherit lib mkRegistry; };
+    expr = fixtures.examples.partial-contributions;
     expected = {
       centralHost = "archive.example.test";
       localPort = 2222;

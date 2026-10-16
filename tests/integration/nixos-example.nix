@@ -1,11 +1,11 @@
 {
-  helpers,
+  fixtures,
   lib,
   pkgs,
   ...
 }:
 let
-  example = helpers.importNixosExample { };
+  example = fixtures.examples.nixos;
 in
 {
   testNixosExampleEvaluatesAndValidates = {
@@ -84,7 +84,7 @@ in
           }
         );
         package = alternatePkgs.prometheus;
-        alternate = helpers.importNixosExample { inherit package; };
+        alternate = fixtures.examples.nixos-with-package package;
         config = alternate.nodes."metrics publisher".config;
         command = config.systemd.services.prometheus.serviceConfig.ExecStart;
       in

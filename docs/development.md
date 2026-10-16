@@ -24,7 +24,7 @@ nix flake check --no-update-lock-file
 
 The suite evaluates the public `lib.mkRegistry` function, generated node module, central data, combined data, and validation using the selected root Nixpkgs module system. Merge tests compare behavior with direct evaluation using the same library. The suites load the `lib` directory and both static modules by path, without the root flake; the library suite constructs and uses a registry with a caller-provided library and no flake inputs. Nix checks option types during evaluation; the project has no separate static typechecker.
 
-The tests follow the devnix-labs test standard. Two nix-unit entry points list their suites by hand, and each suite receives one `testContext` argument from [tests/test-context.nix](../tests/test-context.nix): the selected Nixpkgs `lib` and `pkgs`, the `lib` directory as `registryLib`, the [helpers](../tests/helpers/default.nix) that evaluate the static modules, and the [fixture](../tests/fixtures/default.nix) module paths, and, for the integration suites, the flake itself as `self`.
+The tests follow the devnix-labs test standard. Two nix-unit entry points list their suites by hand, and each suite receives one `testContext` argument from [tests/test-context.nix](../tests/test-context.nix): the selected Nixpkgs `lib` and `pkgs`, the `lib` directory as `registryLib`, the [helpers](../tests/helpers/default.nix) that evaluate the static modules, the [fixtures](../tests/fixtures/default.nix), and, for the integration suites, the flake itself as `self`. The fixtures hold module paths and, under `examples`, the evaluated examples.
 
 - [tests/unit/](../tests/unit/default.nix) holds the suites that use only `lib` and `mkRegistry`. Each suite of one source file mirrors its path: `lib/check-contribution.nix` maps to `tests/unit/check-contribution.nix`, `lib/default.nix` to `tests/unit/lib.nix`, and `lib/mk-registry.nix` to the suites in `tests/unit/mk-registry/`. The `diagnostics`, `recursion`, and `plain-nix-examples` suites cover several source files.
 - [tests/integration/](../tests/integration/default.nix) holds the suites that evaluate NixOS or flake-parts: the static modules (`nixos-module`, `flake-module`, `static-interface`, `static-reads`), the NixOS and flake-parts examples, the static `diagnostics` and `recursion` cases, and `flake-outputs`, which checks that the flake's outputs expose the same code that the suites import from source.
@@ -36,6 +36,12 @@ The tests follow the devnix-labs test standard. Two nix-unit entry points list t
 ```sh
 nix run --inputs-from . nixpkgs#nix-unit -- --flake .#tests.systems.x86_64-linux.unit
 nix run --inputs-from . nixpkgs#nix-unit -- --flake .#tests.systems.x86_64-linux.integration.diagnostics
+```
+
+To run one case, select its suite and name the case with `--attr`; nix-unit treats a selected case path as a suite:
+
+```sh
+nix run --inputs-from . nixpkgs#nix-unit -- --flake .#tests.systems.x86_64-linux.unit.diagnostics --attr testInvalidPort
 ```
 
 Add `--override-input nixpkgs <flake-ref>` to run the suites against another Nixpkgs. To run every suite as the policy does, build the check:
