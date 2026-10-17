@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Breaking checks: nix-unit's flake-parts module
+
+The tests follow the devnix-labs test standard, as [ADR 0004](docs/adr/0004-adopt-the-devnix-labs-test-standard.md) records. nix-unit's flake-parts module runs the unit and integration entry points `tests/unit` and `tests/integration` with the selected root inputs. The root flake gains a `nix-unit` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the nix-unit source but no second Nixpkgs. A consumer can leave it out with `inputs.nixos-registry.inputs.nix-unit.follows = "";`.
+
+| Removed                       | Replacement                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `checks.<system>.evaluation`  | `checks.<system>.nix-unit`                                                                               |
+| `checks.<system>.flake-parts` | the `flake-parts-example` integration suite, which asserts the example's results and evaluates its check |
+| `checks.<system>.workflows`   | `checks.<system>.lint`                                                                                   |
+| `tests.<system>`              | `tests.systems.<system>`, with the suites under `unit` and `integration`                                 |
+| `tests.<system>.<suite>`      | `tests.systems.<system>.unit.<suite>` or `tests.systems.<system>.integration.<suite>`                    |
+
+Suite names are now their file names. The suites that call `mkRegistry` directly are unit suites, and those that evaluate NixOS or flake-parts are integration suites:
+
+| Previous suite                                                                                 | Kind          | Suite                                                                          |
+| ---------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------ |
+| `mkRegistry`                                                                                   | `unit`        | `mk-registry.*`, one suite per case file                                       |
+| `checkContribution`, `wrapCentralModule`, `getActiveModuleKeys`, `lib`                         | `unit`        | `check-contribution`, `wrap-central-module`, `get-active-module-keys`, `lib`   |
+| `integration.examples`                                                                         | `unit`        | `plain-nix-examples`                                                           |
+| `diagnostics.generated`, `recursion.constructor`                                               | `unit`        | `diagnostics`, `recursion`                                                     |
+| `diagnostics.static`, `diagnostics.flake`, `recursion.static`                                  | `integration` | `diagnostics.static`, `diagnostics.flake`, `recursion`                         |
+| `flakeModule`, `nixosModule`, `staticInterface`, `flake`                                       | `integration` | `flake-module`, `nixos-module`, `static-interface`, `flake-outputs`            |
+| `integration.nixos`, `integration.staticNixos`, `integration.staticReads`, `flakePartsExample` | `integration` | `nixos-example`, `static-nixos-example`, `static-reads`, `flake-parts-example` |
+
+The flake-parts example's `flakeParts` argument is renamed to `flake-parts`, after the root input.
+
 ### CI: policy v0.6
 
 Call nixos-project-policy `v0.6` through its minor-series tag. The policy's test runs evaluate every root output and build every entry of the `checks` output with the locked, stable, and unstable nixpkgs revisions; a run whose revision equals that of an earlier mode passes without building. Root checks, dependency locks, and public interfaces are unchanged.

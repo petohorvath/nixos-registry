@@ -1,13 +1,13 @@
 {
-  nixpkgs,
-  flakeParts,
-  system,
+  fixtures,
+  helpers,
+  lib,
+  pkgs,
+  ...
 }:
 let
-  inherit (nixpkgs) lib;
-  mkConsumer = import ../fixtures/static-flake-consumer.nix {
-    inherit flakeParts nixpkgs system;
-  };
+  inherit (pkgs.stdenv.hostPlatform) system;
+  mkConsumer = helpers.mkStaticConsumer;
 in
 {
   testStaticCollectionStrictnessMatchesDirectEvaluation = {
@@ -65,9 +65,7 @@ in
   testStaticLazyCollectionSupportsSharedReadsWhileContributing = {
     expr =
       let
-        consumer = import ../fixtures/static-collection-consumer.nix {
-          inherit flakeParts nixpkgs system;
-        } lib.types.lazyAttrsOf;
+        consumer = helpers.mkStaticCollectionConsumer lib.types.lazyAttrsOf;
       in
       {
         inherit (consumer.lib.registry) combined validate;
@@ -112,7 +110,7 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [
             {
               domain = "example.test";
@@ -162,7 +160,7 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodeModules.reader = [
             ({ config, ... }: {
@@ -178,7 +176,7 @@ in
           ];
         };
         shapeOnly = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ (throw "Listing schema keys must not evaluate central modules.") ];
           nodeModules.unused = [ (throw "Listing schema keys must not evaluate nodes.") ];
         };
@@ -209,7 +207,7 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = [ ../../examples/plain-nix/service-schema.nix ];
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodeModules.publisher = [
             ({ config, ... }: {

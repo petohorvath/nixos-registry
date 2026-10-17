@@ -57,7 +57,7 @@ registry = mkRegistry {
 
 Use the same caller-provided `lib` for node evaluation. Import the static modules as `"${inputs.nixos-registry}/nixos/module.nix"` and `"${inputs.nixos-registry}/flake-module.nix"`. The root flake's `lib` output imports the same `lib` directory, and its `nixosModules.default` and `flakeModules.default` outputs reference the same module files.
 
-Plain import through the flake's `outputs` function no longer works because the root flake is assembled with flake-parts. Normal flake consumption adds the root `nixpkgs` and `flake-parts` inputs to a consumer's lock graph. This supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md#breaking-flake-parts-root) and [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md).
+Plain import through the flake's `outputs` function no longer works because the root flake is assembled with flake-parts. Normal flake consumption adds the root `nixpkgs`, `flake-parts`, and `nix-unit` inputs to a consumer's lock graph. The `nix-unit` input serves only the project's tests and follows `nixpkgs`; a consumer can leave it out with `inputs.nixos-registry.inputs.nix-unit.follows = "";`. This supersedes the original v1 specification's input-free-flake promise; constructor arguments, defaults, and registry behavior are preserved. See the [migration notes](../CHANGELOG.md#breaking-flake-parts-root) and [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md).
 
 ### `schemaModules`
 
@@ -300,7 +300,7 @@ nodes = {
 };
 ```
 
-Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/static-interface.nix) evaluate this split with actual NixOS nodes and compare the completed record with direct module evaluation.
+Combined data contains `host = "archive.example.test"`, `port = 2222`, `paths = [ "/documents" ]`, `endpoint = "archive.example.test:2222"`, and `command = "backup archive.example.test:2222"`. Both local records and central data remain incomplete, while `config.registry.validate` returns `true`. The [static consumer tests](../tests/integration/static-interface.nix) evaluate this split with actual NixOS nodes and compare the completed record with direct module evaluation.
 
 Schema defaults apply once per shared evaluation, regardless of node count. An explicit list definition, including `[ ]`, replaces its schema default. Multiple explicit lists merge normally. Derived values use the fields from that evaluation; read-only defaults in the combined data therefore use the combined fields. Additional definitions of read-only values fail under normal module rules.
 

@@ -5,11 +5,11 @@
 */
 {
   exports,
-  flakeParts,
+  flake-parts,
   nixpkgs,
   system ? "x86_64-linux",
 }:
-flakeParts.lib.mkFlake { inputs.self.outPath = ./.; } (
+flake-parts.lib.mkFlake { inputs.self.outPath = ./.; } (
   { config, ... }:
   let
     # `systems` contains only the selected system.

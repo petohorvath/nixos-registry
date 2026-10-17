@@ -24,7 +24,7 @@ inputs.nixos-registry = {
 };
 ```
 
-The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs` and `flake-parts` inputs enter the lock graph but do not select the module system: `mkRegistry` uses the library its caller passes in, and the static modules use the library of their enclosing evaluation.
+The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs`, `flake-parts`, and `nix-unit` inputs enter the lock graph but do not select the module system: `mkRegistry` uses the library its caller passes in, and the static modules use the library of their enclosing evaluation.
 
 ## Usage
 

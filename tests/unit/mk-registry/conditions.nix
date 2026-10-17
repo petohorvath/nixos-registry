@@ -1,0 +1,192 @@
+{
+  helpers,
+  lib,
+  registryLib,
+  ...
+}:
+let
+  inherit (registryLib) mkRegistry;
+  mkEvaluations = helpers.evaluateProperties { };
+in
+{
+  testLocallyConfiguredConditionsMatchDirectEvaluation = {
+    expr =
+      map
+        (
+          enable:
+          let
+            schema.options.backupPaths = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              description = "Paths included in the backup.";
+            };
+            contribution =
+              { config, ... }:
+              {
+                options.backup = {
+                  enable = lib.mkEnableOption "backup path contribution";
+                  includeCache = lib.mkEnableOption "cache path contribution";
+                };
+                config = {
+                  backup.enable = enable;
+                  registry = lib.mkIf config.backup.enable (
+                    lib.mkMerge [
+                      { backupPaths = [ "/enabled" ]; }
+                      { backupPaths = lib.mkIf config.backup.includeCache [ "/cache" ]; }
+                    ]
+                  );
+                };
+              };
+            registry = mkRegistry {
+              inherit lib;
+              schemaModules = [ schema ];
+              nodes.publisher = lib.evalModules {
+                modules = [
+                  registry.module
+                  contribution
+                ];
+              };
+            };
+            direct = lib.evalModules {
+              modules = [
+                {
+                  options.registry = lib.mkOption {
+                    type = lib.types.submoduleWith {
+                      modules = [ schema ];
+                      shorthandOnlyDefinesConfig = true;
+                    };
+                    default = { };
+                    description = ''
+                      The independent reference's typed contribution root.
+                    '';
+                  };
+                }
+                contribution
+              ];
+            };
+          in
+          {
+            paths = registry.combined.backupPaths;
+            matchesDirect = registry.combined == direct.config.registry;
+            inherit (registry) validate;
+          }
+        )
+        [
+          false
+          true
+        ];
+    expected = [
+      {
+        paths = [ ];
+        matchesDirect = true;
+        validate = true;
+      }
+      {
+        paths = [ "/enabled" ];
+        matchesDirect = true;
+        validate = true;
+      }
+    ];
+  };
+
+  testConditionalInvalidListsMatchDirectEvaluation = {
+    expr =
+      map
+        (
+          enable:
+          let
+            evaluations = mkEvaluations {
+              central = [ { backupPaths = [ "/central" ]; } ];
+              contributions.publisher = [
+                { backupPaths = lib.mkIf enable [ 7 ]; }
+              ];
+            };
+            succeeds = value: (builtins.tryEval (builtins.deepSeq value true)).success;
+          in
+          {
+            combinedSucceeds = succeeds evaluations.combined;
+            directSucceeds = succeeds evaluations.direct;
+            validationSucceeds = succeeds evaluations.validate;
+          }
+        )
+        [
+          false
+          true
+        ];
+    expected = [
+      {
+        combinedSucceeds = true;
+        directSucceeds = true;
+        validationSucceeds = true;
+      }
+      {
+        combinedSucceeds = false;
+        directSucceeds = false;
+        validationSucceeds = false;
+      }
+    ];
+  };
+
+  testDisabledRootOrderingDoesNotForceItsContent = {
+    expr =
+      let
+        evaluations = mkEvaluations {
+          central = [
+            (lib.mkIf false (lib.mkAfter (throw "Disabled central ordering was forced.")))
+          ];
+          contributions.publisher = [
+            (lib.mkIf false (lib.mkBefore (throw "Disabled node ordering was forced.")))
+            { backupPaths = [ "/enabled" ]; }
+          ];
+        };
+      in
+      {
+        paths = evaluations.combined.backupPaths;
+        matchesDirect = evaluations.combined == evaluations.direct;
+        inherit (evaluations) validate;
+      };
+    expected = {
+      paths = [ "/enabled" ];
+      matchesDirect = true;
+      validate = true;
+    };
+  };
+
+  testConditionalMergeFragmentsMatchDirectEvaluation = {
+    expr =
+      let
+        evaluations = mkEvaluations {
+          central = [
+            (lib.mkIf true { backupPaths = lib.mkBefore [ "/central" ]; })
+            (lib.mkIf false (throw "A disabled central contribution was forced."))
+          ];
+          contributions.publisher = [
+            (lib.mkMerge [
+              (lib.mkIf true { backupPaths = [ "/node" ]; })
+              (lib.mkIf false (throw "A disabled node contribution was forced."))
+              {
+                backupPaths = lib.mkMerge [
+                  (lib.mkIf true (lib.mkAfter [ "/nested" ]))
+                  (lib.mkIf false (throw "A disabled nested value was forced."))
+                ];
+              }
+            ])
+          ];
+        };
+      in
+      {
+        paths = evaluations.combined.backupPaths;
+        matchesDirect = evaluations.combined == evaluations.direct;
+        inherit (evaluations) validate;
+      };
+    expected = {
+      paths = [
+        "/central"
+        "/node"
+        "/nested"
+      ];
+      matchesDirect = true;
+      validate = true;
+    };
+  };
+}

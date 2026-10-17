@@ -127,7 +127,7 @@ Combined data contains the metrics endpoint `monitor.example.test:9191`, validat
 
 The `registry` check demands `shared.validate`. A port changed to a string, a missing required field, an unknown option, or a conflicting read-only definition causes the check to fail during evaluation. Merely defining the check leaves independent reads lazy: for example, `lib.registry.combined.domain` remains readable with an invalid service port. Use the focused command above for these evaluation-only NixOS nodes. Full `nix flake check --no-update-lock-file` also validates NixOS system outputs and requires machine-specific boot and filesystem settings, which this example omits.
 
-Additional project modules can append schema and central modules and supply distinct node names. Duplicate names at the same priority fail when demanded. The [API reference](api.md#static-flake-module) documents argument ownership and composition. The [consumer tests](../tests/flake-module.nix) exercise this wiring with two contributing NixOS nodes, including a node reading another node's data; they also cover an empty node set and required settings. No NixOS system build or VM boot is needed.
+Additional project modules can append schema and central modules and supply distinct node names. Duplicate names at the same priority fail when demanded. The [API reference](api.md#static-flake-module) documents argument ownership and composition. The [consumer tests](../tests/integration/flake-module.nix) exercise this wiring with two contributing NixOS nodes, including a node reading another node's data; they also cover an empty node set and required settings. No NixOS system build or VM boot is needed.
 
 ## Plain Nix modules
 
@@ -152,14 +152,14 @@ Central definitions supply `domain = "example.test"` and `services.api.host = "a
 
 The example is a function taking these arguments:
 
-| Argument     | Value                                                                     |
-| ------------ | ------------------------------------------------------------------------- |
-| `exports`    | Project exports: `lib`, `nixosModules`, and `flakeModules`                |
-| `flakeParts` | flake-parts flake, whose `lib.mkFlake` assembles the example's outputs    |
-| `nixpkgs`    | Nixpkgs flake that supplies `lib.nixosSystem` and the check's package set |
-| `system`     | System for the nodes and `checks`; defaults to `x86_64-linux`             |
+| Argument      | Value                                                                     |
+| ------------- | ------------------------------------------------------------------------- |
+| `exports`     | Project exports: `lib`, `nixosModules`, and `flakeModules`                |
+| `flake-parts` | flake-parts flake, whose `lib.mkFlake` assembles the example's outputs    |
+| `nixpkgs`     | Nixpkgs flake that supplies `lib.nixosSystem` and the check's package set |
+| `system`      | System for the nodes and `checks`; defaults to `x86_64-linux`             |
 
-It returns flake outputs: `lib.result`, `lib.nodes`, `lib.registry`, and `checks.<system>.registry`. The root checks call it once with the root flake's exports and once with the [path-based exports](api.md#plain-import-access), passing the root `flake-parts` input and the selected `nixpkgs`. Flake-parts, the registry, and the nodes therefore use the same module-system revision under the committed root selection and each policy compatibility override.
+It returns flake outputs: `lib.result`, `lib.nodes`, `lib.registry`, and `checks.<system>.registry`. The `flake-parts-example` integration suite calls it with the [path-based exports](api.md#plain-import-access), passing the root `flake-parts` input and the selected `nixpkgs`. Flake-parts, the registry, and the nodes therefore use the same module-system revision under the committed root selection and each policy compatibility override.
 
 The flake-parts module imports `exports.flakeModules.default` and captures `config.registry` as `registry`. Each node imports this common module before its source module:
 
@@ -181,7 +181,7 @@ Each local `config.registry.services` contains only that node's service. The API
 
 The nodes are evaluation examples for the selected system, exposed under `lib.nodes`. They omit machine-specific boot and filesystem settings and are not exported as deployable `nixosConfigurations`. The `registry` check validates registry data without demanding a NixOS system build or running a VM.
 
-The root `flake-parts` check builds the example's `registry` check, and the root suite checks central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command.
+The `flake-parts-example` integration suite asserts that the example validates and that its `registry` check's derivation evaluates, and checks its central and combined values, configured NixOS service ports, local contributions, incomplete records, and the dependent backup command.
 
 A consumer flake obtains the same exports from its `nixos-registry` input and passes its own inputs to `mkFlake`. The `follows` settings keep one Nixpkgs and one flake-parts revision in its lock graph. Copy the example's [schema](../examples/flake-parts/schema.nix) to `schema.nix` beside this `flake.nix`:
 

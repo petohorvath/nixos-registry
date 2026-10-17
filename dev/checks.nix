@@ -1,27 +1,33 @@
+# The source-tool checks; nix-unit's flake-parts module adds the suites.
+{ formatter, pkgs }:
+let
+  sourceDir = pkgs.lib.cleanSource ../.;
+  sourceCheck =
+    name: packages: script:
+    pkgs.runCommand "registry-${name}" { nativeBuildInputs = packages; } ''
+      cp -R ${sourceDir} source
+      chmod -R u+w source
+      cd source
+      ${script}
+      touch "$out"
+    '';
+in
 {
-  formatter,
-  inputs,
-  pkgs,
-  system,
-}:
-import ../tests {
-  inherit
-    formatter
-    inputs
-    pkgs
-    system
-    ;
-}
-// {
-  # Run the nix-unit suite from the `tests` output with the selected inputs.
-  evaluation = pkgs.runCommand "registry-evaluation" { nativeBuildInputs = [ pkgs.nix-unit ]; } ''
-    export HOME=$(realpath .)
-    # NixOS evaluation writes to the store, so use a writable chroot store.
-    export NIX_REMOTE=$HOME/storedata
-    nix-unit --extra-experimental-features flakes \
-      --flake ${inputs.self}#tests.${system} \
-      --override-input nixpkgs ${inputs.nixpkgs} \
-      --override-input flake-parts ${inputs.flake-parts}
-    touch "$out"
-  '';
+  formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
+  lint =
+    sourceCheck "lint"
+      [
+        pkgs.actionlint
+        pkgs.deadnix
+        pkgs.statix
+      ]
+      ''
+        statix check .
+        deadnix --fail .
+        shopt -s nullglob
+        workflows=(.github/workflows/*.yml .github/workflows/*.yaml)
+        if (( ''${#workflows[@]} )); then
+          actionlint "''${workflows[@]}"
+        fi
+      '';
 }

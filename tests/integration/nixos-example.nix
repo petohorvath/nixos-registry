@@ -1,0 +1,106 @@
+{
+  fixtures,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  example = fixtures.examples.nixos;
+in
+{
+  testNixosExampleEvaluatesAndValidates = {
+    expr = example.result;
+    expected = {
+      central = {
+        domain = "example.test";
+        services = { };
+      };
+      combined = {
+        domain = "example.test";
+        services.metrics = {
+          host = "monitor.example.test";
+          port = 9191;
+          endpoint = "monitor.example.test:9191";
+        };
+      };
+      clientEndpoints = {
+        "metrics publisher" = "monitor.example.test:9191";
+        "standby publisher" = "monitor.example.test:9191";
+      };
+      validate = true;
+    };
+  };
+
+  testNixosContributesConfiguredServicePort = {
+    expr = {
+      service = example.registry.combined.services.metrics;
+      configuredPort = example.nodes."metrics publisher".config.services.prometheus.port;
+    };
+    expected = {
+      service = {
+        host = "monitor.example.test";
+        port = 9191;
+        endpoint = "monitor.example.test:9191";
+      };
+      configuredPort = 9191;
+    };
+  };
+
+  testDisabledNixosServiceDoesNotContribute = {
+    expr = {
+      services = builtins.attrNames example.registry.combined.services;
+      inherit (example.nodes."standby publisher".config.services.prometheus) enable port;
+    };
+    expected = {
+      services = [ "metrics" ];
+      enable = false;
+      port = 9292;
+    };
+  };
+
+  testNixosNodesReadCombinedDataWhileContributing = {
+    expr = lib.mapAttrs (_: node: {
+      domain = node.config.networking.domain;
+      endpoint = node.config.environment.etc."metrics-endpoint".text;
+    }) example.nodes;
+    expected = {
+      "metrics publisher" = {
+        domain = "example.test";
+        endpoint = "monitor.example.test:9191";
+      };
+      "standby publisher" = {
+        domain = "example.test";
+        endpoint = "monitor.example.test:9191";
+      };
+    };
+  };
+
+  testNixosUsesAnotherPackageSetWithTheSelectedModuleSystem = {
+    expr =
+      let
+        alternatePkgs = pkgs.extend (
+          _final: prev: {
+            prometheus = prev.prometheus.overrideAttrs { pname = "registry-test-prometheus"; };
+          }
+        );
+        package = alternatePkgs.prometheus;
+        alternate = fixtures.examples.nixos-with-package package;
+        config = alternate.nodes."metrics publisher".config;
+        command = config.systemd.services.prometheus.serviceConfig.ExecStart;
+      in
+      {
+        differentPackages = pkgs.prometheus.outPath != package.outPath;
+        moduleSource = toString config.nixpkgs.flake.source;
+        runsSelectedPackage = lib.hasPrefix "${package}/bin/prometheus " command;
+        port = alternate.registry.combined.services.metrics.port;
+        inherit (alternate.registry) validate;
+      };
+    expected = {
+      differentPackages = true;
+      moduleSource = toString pkgs.path;
+      runsSelectedPackage = true;
+      port = 9191;
+      validate = true;
+    };
+  };
+}

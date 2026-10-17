@@ -4,6 +4,8 @@ status: proposed
 
 # Run the suite with nix-unit
 
+Amended by [ADR 0004](0004-adopt-the-devnix-labs-test-standard.md): nix-unit's flake-parts module, through a `nix-unit` root input, replaces the hand-written `evaluation` check with a `nix-unit` check. The suites move from `tests.<system>` to `tests.systems.<system>`, under `unit` and `integration`. nix-unit still comes from the selected `nixpkgs`.
+
 Run every test through [nix-unit](https://github.com/nix-community/nix-unit), taken from the selected root `nixpkgs` as `pkgs.nix-unit`, and delete the project's own test runners. The suite becomes a `tests.<system>` output from the `dev` partition, and the `evaluation` check runs nix-unit on it in the build sandbox, overriding `nixpkgs` and `flake-parts` with the selected inputs.
 
 The previous suite needed four runners. A hand-written Nix runner compared `expr` with `expected` and threw on the first mismatch. Three shell scripts started a separate `nix eval` process per failure case, because `builtins.tryEval` cannot catch native type errors, infinite recursion, or error text. nix-unit's `expectedError` catches these in one evaluator, reports every case, and matches the error type and message.
