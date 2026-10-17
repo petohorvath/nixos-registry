@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Breaking checks: treefmt-nix
+
+Format and lint through [treefmt-nix](https://github.com/numtide/treefmt-nix), as [ADR 0005](docs/adr/0005-format-and-lint-with-treefmt-nix.md) records. `dev/treefmt.nix` enables nixfmt, deadnix, actionlint, and Prettier for the root formatter, the `treefmt` check, and the development shell. The `registry-fmt` wrapper, `dev/treefmt.toml`, and `.prettierrc.json` are removed, and shfmt no longer formats `.envrc`. The root flake gains a `treefmt-nix` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the treefmt-nix source but no second Nixpkgs. A consumer can leave it out with `inputs.nixos-registry.inputs.treefmt-nix.follows = "";`.
+
+| Removed                                          | Replacement                                                |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| `checks.<system>.formatting`                     | `checks.<system>.treefmt`                                  |
+| deadnix and actionlint in `checks.<system>.lint` | `checks.<system>.treefmt`; `lint` runs only `statix check` |
+
 ### Breaking checks: nix-unit's flake-parts module
 
 The tests follow the devnix-labs test standard, as [ADR 0004](docs/adr/0004-adopt-the-devnix-labs-test-standard.md) records. nix-unit's flake-parts module runs the unit and integration entry points `tests/unit` and `tests/integration` with the selected root inputs. The root flake gains a `nix-unit` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the nix-unit source but no second Nixpkgs. A consumer can leave it out with `inputs.nixos-registry.inputs.nix-unit.follows = "";`.

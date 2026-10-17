@@ -10,7 +10,7 @@ Install Nix with the `nix-command` and `flakes` experimental features enabled, G
 nix develop --no-update-lock-file
 ```
 
-The default shell supplies Nix CLI, nil, nixfmt, statix, deadnix, Git, shfmt, Prettier, actionlint, and the root formatter from the selected root `nixpkgs`. These tools require no KVM or other virtualization permissions.
+The default shell supplies Nix CLI, nix-unit, nil, Git, statix, and treefmt with every program that [dev/treefmt.nix](../dev/treefmt.nix) enables, all from the selected root `nixpkgs`. These tools require no KVM or other virtualization permissions.
 
 Development outputs and hosted CI support `x86_64-linux` and `aarch64-linux`. Validation evidence must identify the actual host and any untested platforms.
 
@@ -29,7 +29,7 @@ The tests follow the devnix-labs test standard. Two nix-unit entry points list t
 - [tests/unit/](../tests/unit/default.nix) holds the suites that use only `lib` and `mkRegistry`. Each suite of one source file mirrors its path: `lib/check-contribution.nix` maps to `tests/unit/check-contribution.nix`, `lib/default.nix` to `tests/unit/lib.nix`, and `lib/mk-registry.nix` to the suites in `tests/unit/mk-registry/`. The `diagnostics`, `recursion`, and `plain-nix-examples` suites cover several source files.
 - [tests/integration/](../tests/integration/default.nix) holds the suites that evaluate NixOS or flake-parts: the static modules (`nixos-module`, `flake-module`, `static-interface`, `static-reads`), the NixOS, static NixOS, and flake-parts examples (`nixos-example`, `static-nixos-example`, `flake-parts-example`), the static `diagnostics` and `recursion` cases, and `flake-outputs`, which checks that the flake's outputs expose the same code that the suites import from source.
 
-[nix-unit's flake-parts module](https://github.com/nix-community/nix-unit) runs both entry points. [dev/default.nix](../dev/default.nix) passes them the flake's inputs and exposes them as the `unit` and `integration` attributes of the `tests.systems.<system>` output. The module's `nix-unit` check runs that output in the build sandbox with nix-unit from the selected `nixpkgs`, overriding every root input with the selected one, so the policy's `nixpkgs` overrides reach the suites. The check copies each input into a store in its build directory, so each run first copies the Nixpkgs source. [dev/checks.nix](../dev/checks.nix) adds the `formatting` and `lint` checks.
+[nix-unit's flake-parts module](https://github.com/nix-community/nix-unit) runs both entry points. [dev/default.nix](../dev/default.nix) passes them the flake's inputs and exposes them as the `unit` and `integration` attributes of the `tests.systems.<system>` output. The module's `nix-unit` check runs that output in the build sandbox with nix-unit from the selected `nixpkgs`, overriding every root input with the selected one, so the policy's `nixpkgs` overrides reach the suites. The check copies each input into a store in its build directory, so each run first copies the Nixpkgs source. treefmt-nix's flake-parts module adds the `treefmt` check, and [dev/checks.nix](../dev/checks.nix) adds `lint`.
 
 `nix flake check --no-update-lock-file` runs all tests, and the suites assert the result of every example. To run one entry point, or one suite in it, with the locked nix-unit and report each case, pass its attribute path under `tests.systems.<system>`:
 
@@ -75,22 +75,31 @@ The [static contribution suite](../tests/integration/static-interface.nix) holds
 
 ## Formatting and lint
 
+[dev/treefmt.nix](../dev/treefmt.nix) configures [treefmt-nix](https://github.com/numtide/treefmt-nix), which builds the root formatter and the `treefmt` check from the same programs: nixfmt and deadnix for Nix, actionlint for the workflows, and Prettier for Markdown, YAML, and JSON. Format and fix the tree, or only the given files:
+
 ```sh
 nix fmt --no-update-lock-file
-nix fmt --no-update-lock-file -- --ci
+nix fmt --no-update-lock-file -- <path>...
 ```
 
-`nix flake check --no-update-lock-file` also runs the `formatting` and `lint` checks; `lint` includes the workflow validation.
+deadnix runs with `--edit`, so `nix fmt` also removes dead code; review the diff before committing. To check without changing files, build the `treefmt` check. It fails when a program would change a file or reports a finding that it cannot fix, and its log shows the diff that `nix fmt` would make. The `lint` check runs `statix check`, which also reports the lints that `statix fix` cannot fix:
 
-[treefmt.toml](../dev/treefmt.toml) covers first-party Nix, shell (including `.envrc`), Markdown, YAML, and JSON. Add any new extensionless shell scripts to its shell includes. Git and direnv state, result links, lockfiles, and generated or vendored trees are excluded. Current fixtures are Nix modules whose exact text is not asserted, so they remain formatted; exclude future exact-text fixtures explicitly. Prettier preserves existing prose wrapping; new prose uses one source line per paragraph.
+```sh
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.treefmt
+nix build --no-update-lock-file --no-link .#checks.x86_64-linux.lint
+```
+
+`nix flake check --no-update-lock-file` runs both. The programs come from the selected `nixpkgs`, so the policy's unstable run can report findings of a newer tool release before the committed `nixpkgs` reaches it; fix them, or configure the tool to keep its old behavior.
+
+treefmt-nix excludes lockfiles, local runs skip Git-ignored files, and the check sees only the flake source, so the configuration needs no excludes. Current fixtures are Nix modules whose exact text is not asserted, so they remain formatted; exclude future exact-text fixtures explicitly with `settings.excludes`. Prettier preserves existing prose wrapping; new prose uses one source line per paragraph.
 
 ## Dependencies and policy
 
-The root declares three inputs, `nixpkgs`, `flake-parts`, and `nix-unit`, whose exact revisions are recorded in [flake.lock](../flake.lock). The `flake-parts` library and nix-unit's `nixpkgs` input follow `nixpkgs`, and nix-unit's development-only inputs follow nothing, so consumers lock no second Nixpkgs. The `dev` partition reuses these inputs without a separate inputs flake; it uses only nix-unit's flake-parts module, and takes the nix-unit program from `nixpkgs`. Development tools, formatting, all examples, and all root checks use the selected `nixpkgs`, including the flake-parts example and static flake-module tests. The committed `nixpkgs` revision may differ from the policy's stable and unstable pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
+The root declares four inputs, `nixpkgs`, `flake-parts`, `nix-unit`, and `treefmt-nix`, whose exact revisions are recorded in [flake.lock](../flake.lock). The `flake-parts` library and the `nixpkgs` inputs of nix-unit and treefmt-nix follow `nixpkgs`, and nix-unit's development-only inputs follow nothing, so consumers lock no second Nixpkgs. The `dev` partition reuses these inputs without a separate inputs flake; it uses the flake-parts modules of nix-unit and treefmt-nix, and takes the nix-unit program from `nixpkgs`. Development tools, formatting, all examples, and all root checks use the selected `nixpkgs`, including the flake-parts example and static flake-module tests. The committed `nixpkgs` revision may differ from the policy's stable and unstable pins. Update it deliberately with `nix flake update nixpkgs`, commit the lock, and rerun ordinary and compatibility checks.
 
 The flake-parts example has no lock of its own. Root checks call it as a function with the root `flake-parts` input and the selected `nixpkgs`, so the policy's `nixpkgs` override also controls it, and `nix flake check --no-update-lock-file` covers it without a separate validation step. Update `flake-parts` deliberately with `nix flake update flake-parts`, commit the lock, and rerun ordinary and compatibility checks.
 
-The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. The shared policy bundles its stable and unstable pins, so the root needs no additional input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports. [ADR 0003](adr/0003-run-the-suite-with-nix-unit.md) records the nix-unit suite and its `pkgs.nix-unit` source, and [ADR 0004](adr/0004-adopt-the-devnix-labs-test-standard.md) the unit and integration entry points and nix-unit's flake-parts module, which now supplies the `tests` output.
+The public exports still load through a [plain import by path](api.md#plain-import-access), while normal flake consumers acquire the root inputs in their lock graphs. The [changelog](../CHANGELOG.md) documents the removed input overrides and evaluation entrypoints. The shared policy bundles its stable and unstable pins, so the root needs no additional input or compatibility flake. [ADR 0001](adr/0001-separate-test-dependencies-from-root-inputs.md) records this separation and its coverage trade-off; [ADR 0002](adr/0002-assemble-the-root-flake-with-flake-parts.md) records the flake-parts root, the `dev` partition, and path-based plain imports. [ADR 0003](adr/0003-run-the-suite-with-nix-unit.md) records the nix-unit suite and its `pkgs.nix-unit` source, and [ADR 0004](adr/0004-adopt-the-devnix-labs-test-standard.md) the unit and integration entry points and nix-unit's flake-parts module, which now supplies the `tests` output. [ADR 0005](adr/0005-format-and-lint-with-treefmt-nix.md) records the treefmt-nix input and the `treefmt` check.
 
 ## CI and policy
 
@@ -98,7 +107,7 @@ The [CI workflow](../.github/workflows/check.yml) calls the [shared project poli
 
 The workflow runs for every opened, synchronized, or reopened PR, for pushes to `main`, and on manual dispatch, with read-only repository permissions. The caller sets no inputs, so the policy runs on its default systems, `x86_64-linux` and `aarch64-linux`. The policy repository is not a flake input, shell dependency, or build dependency.
 
-The policy checks the inputs, public outputs, development shell, and formatter. It also evaluates every root output and builds every entry of the `checks` output with the locked `nixpkgs` and with the stable and unstable nixpkgs pins that each policy release bundles, so the `nix-unit`, `formatting`, and `lint` checks run on every system. To run the same checks locally, use the policy's `check .` and `test . --nixpkgs locked|stable|unstable` commands as its [README](https://github.com/petohorvath/nixos-project-policy#local-check) describes. Each local run covers only its host system.
+The policy checks the inputs, public outputs, development shell, and formatter. It also evaluates every root output and builds every entry of the `checks` output with the locked `nixpkgs` and with the stable and unstable nixpkgs pins that each policy release bundles, so the `nix-unit`, `treefmt`, and `lint` checks run on every system. To run the same checks locally, use the policy's `check .` and `test . --nixpkgs locked|stable|unstable` commands as its [README](https://github.com/petohorvath/nixos-project-policy#local-check) describes. Each local run covers only its host system.
 
 The policy's Caller section lists the statuses to require, and the workflow's `Plan` job writes them to its step summary on every run. GitHub requires an up-to-date PR and these statuses on `main`, including for administrators. The project has no VM tests, so no VM test status applies. Passing local checks does not configure GitHub settings or authorize a merge.
 
