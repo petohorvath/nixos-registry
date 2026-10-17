@@ -2,14 +2,9 @@
 
 ## Unreleased
 
-### Breaking checks: treefmt-nix
+### Changed: treefmt-nix
 
-Format and lint through [treefmt-nix](https://github.com/numtide/treefmt-nix), as [ADR 0005](docs/adr/0005-format-and-lint-with-treefmt-nix.md) records. `dev/treefmt.nix` enables nixfmt, deadnix, actionlint, and Prettier for the root formatter, the `treefmt` check, and the development shell. The `registry-fmt` wrapper, `dev/treefmt.toml`, and `.prettierrc.json` are removed, and shfmt no longer formats `.envrc`. The root flake gains a `treefmt-nix` input whose `nixpkgs` follows the root one, so consumer lock graphs gain the treefmt-nix source but no second Nixpkgs. A consumer can leave it out with `inputs.nixos-registry.inputs.treefmt-nix.follows = "";`.
-
-| Removed                                          | Replacement                                                |
-| ------------------------------------------------ | ---------------------------------------------------------- |
-| `checks.<system>.formatting`                     | `checks.<system>.treefmt`                                  |
-| deadnix and actionlint in `checks.<system>.lint` | `checks.<system>.treefmt`; `lint` runs only `statix check` |
+Format and lint through [treefmt-nix](https://github.com/numtide/treefmt-nix), as [ADR 0005](docs/adr/0005-format-and-lint-with-treefmt-nix.md) records. `dev/treefmt.nix` enables nixfmt, deadnix, actionlint, and Prettier with its defaults for the root formatter, the development shell, and the `treefmt` check, which replaces the `formatting` check; `lint` runs only `statix check`. The `registry-fmt` wrapper, `dev/treefmt.toml`, and `.prettierrc.json` are removed. The root flake gains a `treefmt-nix` input whose `nixpkgs` follows the root one; a consumer can leave it out with `inputs.nixos-registry.inputs.treefmt-nix.follows = "";`.
 
 ### Breaking checks: nix-unit's flake-parts module
 

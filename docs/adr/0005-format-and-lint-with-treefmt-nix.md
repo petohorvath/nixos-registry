@@ -8,7 +8,7 @@ Format and lint the repository as the devnix-labs code quality standard describe
 
 ## Decisions
 
-- **One configuration.** `dev/treefmt.nix` enables nixfmt, deadnix, actionlint, and Prettier, with Prettier's settings in the file instead of `.prettierrc.json`. treefmt-nix generates the formatter, the check, and the shell's tools from it, replacing the `registry-fmt` wrapper, `dev/treefmt.toml`, and the hand-written `formatting` check.
+- **One configuration.** `dev/treefmt.nix` enables nixfmt, deadnix, actionlint, and Prettier. Prettier runs with its defaults and no `.prettierrc.json`, so editors that format on save agree with `nix fmt`. treefmt-nix generates the formatter, the check, and the shell's tools from it, replacing the `registry-fmt` wrapper, `dev/treefmt.toml`, and the hand-written `formatting` check.
 - **A `treefmt` check.** It replaces the `formatting` check. It runs every enabled program on the flake source and fails when one would change a file or reports a finding it cannot fix.
 - **statix in `lint`.** treefmt-nix would run `statix fix`, which passes lints that it cannot fix, so `lint` runs `statix check` instead. deadnix and actionlint move from `lint` to treefmt.
 - **A `treefmt-nix` root input.** Its `nixpkgs` follows the root one, so every program comes from the selected `nixpkgs` and the policy's stable and unstable runs check with those releases' tool versions. nix-unit's own `treefmt-nix` input still follows nothing.
