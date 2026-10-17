@@ -1,33 +1,15 @@
-# The source-tool checks; nix-unit's flake-parts module adds the suites.
-{ formatter, pkgs }:
-let
-  sourceDir = pkgs.lib.cleanSource ../.;
-  sourceCheck =
-    name: packages: script:
-    pkgs.runCommand "registry-${name}" { nativeBuildInputs = packages; } ''
-      cp -R ${sourceDir} source
-      chmod -R u+w source
-      cd source
-      ${script}
-      touch "$out"
-    '';
-in
+# The linters outside treefmt; treefmt-nix and nix-unit add their own checks.
+{ pkgs }:
 {
-  formatting = sourceCheck "formatting" [ formatter ] "registry-fmt --ci";
   lint =
-    sourceCheck "lint"
-      [
-        pkgs.actionlint
-        pkgs.deadnix
-        pkgs.statix
-      ]
+    pkgs.runCommand "registry-lint"
+      {
+        src = ../.;
+        nativeBuildInputs = [ pkgs.statix ];
+      }
       ''
+        cd "$src"
         statix check .
-        deadnix --fail .
-        shopt -s nullglob
-        workflows=(.github/workflows/*.yml .github/workflows/*.yaml)
-        if (( ''${#workflows[@]} )); then
-          actionlint "''${workflows[@]}"
-        fi
+        touch "$out"
       '';
 }
