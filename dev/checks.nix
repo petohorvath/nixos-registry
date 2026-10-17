@@ -1,12 +1,15 @@
 # The linters outside treefmt; treefmt-nix and nix-unit add their own checks.
 { pkgs }:
-let
-  inherit (pkgs) runCommand statix;
-in
 {
-  lint = runCommand "registry-lint" { nativeBuildInputs = [ statix ]; } ''
-    cd ${../.}
-    statix check .
-    touch "$out"
-  '';
+  lint =
+    pkgs.runCommand "registry-lint"
+      {
+        src = ../.;
+        nativeBuildInputs = [ pkgs.statix ];
+      }
+      ''
+        cd "$src"
+        statix check .
+        touch "$out"
+      '';
 }
