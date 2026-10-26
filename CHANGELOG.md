@@ -4,7 +4,7 @@
 
 ### Added: references between nodes example
 
-The [reference example](docs/examples.md#references-between-nodes) carries a list of references per key between nodes, with a store on each of two nodes writing to the other. Each receiver builds one entry per reference, keyed by the reference's own fields, and sorts the references where their order shows. The `plain-nix-examples` suite asserts its result. The public interface is unchanged.
+The [reference example](docs/examples.md#references-between-nodes) carries a list of references per key between nodes, with a store on each of two nodes writing to the other. Each store builds one token copy per reference, keyed by the reference's own fields, and sorts the references where their order shows. The `plain-nix-examples` suite asserts its result, and the `recursion` suite asserts that copies keyed through their references recurse. The public interface is unchanged.
 
 ### Changed: treefmt-nix
 

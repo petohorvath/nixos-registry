@@ -30,7 +30,7 @@
   };
 
   testNodeReferencesExampleBuildsOneCopyPerReference = {
-    expr = fixtures.examples.node-references;
+    expr = fixtures.examples.node-references.keyedByFields;
     expected = {
       tokens = {
         east = {

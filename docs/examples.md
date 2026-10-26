@@ -139,20 +139,20 @@ The result includes central and combined data, validation, and the command `back
 
 ## References between nodes
 
-The [reference example](../examples/plain-nix/node-references.nix) carries references to writer tokens from nodes to metrics stores on other nodes. Its schema field `writers` holds a list of references for each store. A reference is a plain submodule naming a `node` and the `id` of a token on that node; a project using nixos-contracts would type the list's elements with `contractsLib.types.referenceTo` instead.
+The [reference example](../examples/plain-nix/node-references.nix) carries references to writer tokens from nodes to metrics stores on other nodes. Its schema field `writers` holds a list of references for each store. A reference is a plain submodule naming a `node` and the `id` of a token on that node; a project using [nixos-contracts](https://github.com/petohorvath/nixos-contracts) would type the list's elements with `contractsLib.types.referenceTo` instead.
 
-Each node holds its own token `tokens.writer` and contributes a reference to it under each store it writes to. The `east` and `west` nodes write to each other's store, and `edge` writes to both. Each store reads the combined references under its own key and builds one token copy per reference, reading the token's value through the reference from the sender's configuration.
+Each node holds its own token `tokens.writer` and contributes a reference to it under each store it writes to. The `east` and `west` nodes write to each other's store, and `edge` writes to both. Each store reads the combined references under its own key and builds one token copy per reference, reading the token's value through the reference from the writer's configuration.
 
 | Store  | Token copies and their values                                                  | `authorizedWriters`            |
 | ------ | ------------------------------------------------------------------------------ | ------------------------------ |
 | `east` | `edge_writer` is `"edge writer token"`, `west_writer` is `"west writer token"` | `"edge_writer\nwest_writer\n"` |
 | `west` | `east_writer` is `"east writer token"`, `edge_writer` is `"edge writer token"` | `"east_writer\nedge_writer\n"` |
 
-Each node also keeps its own `writer` token, `edge` holds only that one, and validation returns `true`. Every node evaluates without recursion. The receivers follow three rules:
+The example's `keyedByFields` result holds these tokens. Each node also keeps its own `writer` token, `edge` holds only that one, and validation returns `true`. Every node evaluates without recursion. The stores follow three rules:
 
-- **Key entries by the reference's own fields.** A store names each copy `<node>_<id>`, joined from the reference. A key read through the reference, such as the sender's token value, makes the store's token names depend on the sender's tokens; because `east` and `west` write to each other, evaluation would then recurse. Values read through the reference evaluate, since they do not decide which tokens exist.
+- **Key entries by the reference's own fields.** A store names each copy `<node>_<id>`, joined from the reference. A key read through the reference makes the store's token names depend on the writer's tokens; because `east` and `west` write to each other, reading either store's tokens then recurses. The example's `keyedThroughReferences` result names each copy after the writer's token value and fails this way. Values read through the reference evaluate, since they do not decide which tokens exist.
 - **Sort the references when their order shows.** The order of a combined list depends on how the registry merges node contributions: `east` receives the reference from `west` before the one from `edge`. `authorizedWriters` lists the copies in one string, so the store sorts the references by copy name first. The attribute set of copies needs no sorting.
-- **Use a lazy collection.** `writers` is a `lazyAttrsOf`, so a store reading its references evaluates only the contributions under its own key. With `attrsOf`, that read merges the contributions under every key; once a node's contribution to another store depends on the copies it built, such as through `lib.mkIf`, the read recurses. A lazy collection does not resolve a cycle: two contributions that each depend on what the other's node built still recurse. [Evaluation and recursion](api.md#evaluation-and-recursion) describes how collection types force definitions.
+- **Use a lazy collection.** `writers` is a `lazyAttrsOf`, so a store reading its references evaluates only the contributions under its own key. With `attrsOf`, that read would merge the contributions under every key, so a contribution to another store that depended on the copies its node built, such as through `lib.mkIf`, would recurse. A lazy collection does not resolve a cycle: two contributions that each depend on what the other's node built still recurse. [Evaluation and recursion](api.md#evaluation-and-recursion) describes how collection types force definitions.
 
 ## Flake-parts and separate source repositories
 
@@ -255,6 +255,6 @@ The valid results include `validate` attributes that demand validation separatel
 
 The [scalar-conflict example](../examples/plain-nix/scalar-conflict.nix) sets different archive hosts in a central module and a node. Evaluating it fails with an error for `backupDestinations.archive.host`.
 
-The strict variant of the [collection example](../examples/plain-nix/collection-laziness.nix) and the [value-cycle example](../examples/plain-nix/value-cycle.nix) fail with native recursion errors when their combined data or validation is read.
+The strict variant of the [collection example](../examples/plain-nix/collection-laziness.nix) and the [value-cycle example](../examples/plain-nix/value-cycle.nix) fail with native recursion errors when their combined data or validation is read. The `keyedThroughReferences` variant of the [reference example](#references-between-nodes) fails with a native recursion error when a store's tokens are read.
 
 The root suite asserts the scalar conflict and the native recursion errors. Both policy compatibility runs check these failures too. They demonstrate limits of the schema or data dependencies and are expected test results.
