@@ -135,7 +135,7 @@ The `mkRegistry` call takes the schema and the nodes, and returns `registry.modu
 
 These commands evaluate the configurations without building either system. A deployable system also needs its hardware, boot, and filesystem settings.
 
-The [example guide](docs/examples.md) covers plain Nix modules, both static modules, configurations from separate repositories, and specific merge rules, each with its expected result.
+The [example guide](docs/examples.md) covers plain Nix modules, references carried between nodes, both static modules, configurations from separate repositories, and specific merge rules, each with its expected result.
 
 ## Choose an interface
 

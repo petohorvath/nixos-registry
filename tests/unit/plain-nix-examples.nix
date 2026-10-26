@@ -29,6 +29,30 @@
     };
   };
 
+  testNodeReferencesExampleBuildsOneCopyPerReference = {
+    expr = fixtures.examples.node-references.keyedByFields;
+    expected = {
+      tokens = {
+        east = {
+          writer = "east writer token";
+          edge_writer = "edge writer token";
+          west_writer = "west writer token";
+        };
+        edge.writer = "edge writer token";
+        west = {
+          writer = "west writer token";
+          east_writer = "east writer token";
+          edge_writer = "edge writer token";
+        };
+      };
+      authorizedWriters = {
+        east = "edge_writer\nwest_writer\n";
+        west = "east_writer\nedge_writer\n";
+      };
+      validate = true;
+    };
+  };
+
   testLocallyEnabledOrderedContributionExample = {
     expr = fixtures.examples.conditional-ordering;
     expected = {
