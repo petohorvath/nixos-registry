@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added: references between nodes example
+
+The [reference example](docs/examples.md#references-between-nodes) carries a list of references per key between nodes, with a store on each of two nodes writing to the other. Each receiver builds one entry per reference, keyed by the reference's own fields, and sorts the references where their order shows. The `plain-nix-examples` suite asserts its result. The public interface is unchanged.
+
 ### Changed: treefmt-nix
 
 Format and lint through [treefmt-nix](https://github.com/numtide/treefmt-nix), as [ADR 0005](docs/adr/0005-format-and-lint-with-treefmt-nix.md) records. `dev/treefmt.nix` enables nixfmt, deadnix, actionlint, and Prettier with its defaults for the root formatter, the development shell, and the `treefmt` check, which replaces the `formatting` check; `lint` runs only `statix check`. The `registry-fmt` wrapper, `dev/treefmt.toml`, and `.prettierrc.json` are removed. The root flake gains a `treefmt-nix` input whose `nixpkgs` follows the root one; a consumer can leave it out with `inputs.nixos-registry.inputs.treefmt-nix.follows = "";`.

@@ -49,6 +49,7 @@ in
     nixos = callNixosExample { };
     # The NixOS example with its service package from another package set.
     nixos-with-package = package: callNixosExample { inherit package; };
+    node-references = callPlainExample ../../examples/plain-nix/node-references.nix;
     partial-contributions = callPlainExample ../../examples/plain-nix/partial-contributions.nix;
     plain-nix = callPlainExample ../../examples/plain-nix;
     priorities = callPlainExample ../../examples/plain-nix/priorities.nix;

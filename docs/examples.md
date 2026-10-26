@@ -137,6 +137,23 @@ Each node imports `registry.module`. A node that reads shared data receives `reg
 
 The result includes central and combined data, validation, and the command `backup archive.example.test local.example.test`. The combined archive paths are `[ "/srv/central" "/srv/documents" ]`.
 
+## References between nodes
+
+The [reference example](../examples/plain-nix/node-references.nix) carries references to writer tokens from nodes to metrics stores on other nodes. Its schema field `writers` holds a list of references for each store. A reference is a plain submodule naming a `node` and the `id` of a token on that node; a project using nixos-contracts would type the list's elements with `contractsLib.types.referenceTo` instead.
+
+Each node holds its own token `tokens.writer` and contributes a reference to it under each store it writes to. The `east` and `west` nodes write to each other's store, and `edge` writes to both. Each store reads the combined references under its own key and builds one token copy per reference, reading the token's value through the reference from the sender's configuration.
+
+| Store  | Token copies and their values                                                  | `authorizedWriters`            |
+| ------ | ------------------------------------------------------------------------------ | ------------------------------ |
+| `east` | `edge_writer` is `"edge writer token"`, `west_writer` is `"west writer token"` | `"edge_writer\nwest_writer\n"` |
+| `west` | `east_writer` is `"east writer token"`, `edge_writer` is `"edge writer token"` | `"east_writer\nedge_writer\n"` |
+
+Each node also keeps its own `writer` token, `edge` holds only that one, and validation returns `true`. Every node evaluates without recursion. The receivers follow three rules:
+
+- **Key entries by the reference's own fields.** A store names each copy `<node>_<id>`, joined from the reference. A key read through the reference, such as the sender's token value, makes the store's token names depend on the sender's tokens; because `east` and `west` write to each other, evaluation would then recurse. Values read through the reference evaluate, since they do not decide which tokens exist.
+- **Sort the references when their order shows.** The order of a combined list depends on how the registry merges node contributions: `east` receives the reference from `west` before the one from `edge`. `authorizedWriters` lists the copies in one string, so the store sorts the references by copy name first. The attribute set of copies needs no sorting.
+- **Use a lazy collection.** `writers` is a `lazyAttrsOf`, so a store reading its references evaluates only the contributions under its own key. With `attrsOf`, that read merges the contributions under every key; once a node's contribution to another store depends on the copies it built, such as through `lib.mkIf`, the read recurses. A lazy collection does not resolve a cycle: two contributions that each depend on what the other's node built still recurse. [Evaluation and recursion](api.md#evaluation-and-recursion) describes how collection types force definitions.
+
 ## Flake-parts and separate source repositories
 
 The [flake-parts example](../examples/flake-parts/default.nix) is one file that imports the public `flakeModules.default`, configures `registry.settings`, and constructs two named NixOS nodes from separate sources. It owns the [schema](../examples/flake-parts/schema.nix), central definitions, node membership, and common wiring. Each directory under [examples/sources](../examples/sources) stands in for a separate repository and provides a static NixOS module:
