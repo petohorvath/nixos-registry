@@ -26,14 +26,14 @@
   };
 
   outputs =
-    inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
         "aarch64-linux"
       ];
 
-      imports = [ inputs.flake-parts.flakeModules.partitions ];
+      imports = [ flake-parts.flakeModules.partitions ];
 
       partitions.dev.module = ./dev;
 
