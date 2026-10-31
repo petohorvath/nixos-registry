@@ -20,7 +20,6 @@ let
         ];
         centralModules = [ { settings.domain = "example.test"; } ];
         nodes."API publisher" = lib.evalModules {
-          specialArgs = { inherit registry; };
           modules = [
             registry.module
             (
@@ -34,7 +33,7 @@ let
       };
     in
     {
-      inherit (registry) combined validate;
+      inherit (registry) combined valid;
     };
 in
 {

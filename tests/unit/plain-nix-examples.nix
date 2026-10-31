@@ -14,7 +14,7 @@
           endpoint = "api.example.test:8443";
         };
       };
-      validate = true;
+      valid = true;
     };
   };
 
@@ -25,7 +25,7 @@
         domain = "example.test";
         endpoint = "api.example.test:8443";
       };
-      validate = true;
+      valid = true;
     };
   };
 
@@ -49,7 +49,7 @@
         east = "edge_writer\nwest_writer\n";
         west = "east_writer\nedge_writer\n";
       };
-      validate = true;
+      valid = true;
     };
   };
 
@@ -67,7 +67,7 @@
           ];
         };
         backupCommand = "backup archive.example.test /srv/documents /srv/central /srv/snapshots";
-        validate = true;
+        valid = true;
       };
       disabled = {
         combined.backupDestinations.archive = {
@@ -76,7 +76,7 @@
           paths = [ "/srv/central" ];
         };
         backupCommand = "backup archive.example.test /srv/central";
-        validate = true;
+        valid = true;
       };
     };
   };
@@ -97,7 +97,7 @@
             paths = [ ];
           };
         };
-        validate = true;
+        valid = true;
       };
       forcedContribution = {
         combined.backupDestinations.archive = {
@@ -105,7 +105,7 @@
           port = 2222;
           paths = [ ];
         };
-        validate = true;
+        valid = true;
       };
       forcedPort = {
         combined.backupDestinations = {
@@ -120,7 +120,7 @@
             paths = [ ];
           };
         };
-        validate = true;
+        valid = true;
       };
     };
   };
@@ -154,7 +154,7 @@
         };
       };
       backupCommand = "backup archive.example.test local.example.test";
-      validate = true;
+      valid = true;
     };
   };
 
@@ -184,7 +184,7 @@
           command = "backup offsite.example.test:8022";
         };
       };
-      validate = true;
+      valid = true;
     };
   };
 }

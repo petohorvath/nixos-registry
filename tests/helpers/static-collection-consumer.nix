@@ -14,8 +14,8 @@ mkStaticConsumer {
   ];
   centralModules = [ { endpoints.domain = "example.test"; } ];
   nodeModules.publisher = [
-    ({ config, ... }: {
-      registry.endpoints.api = "api.${config.registry.combined.endpoints.domain}:8443";
+    ({ registry, ... }: {
+      registry.endpoints.api = "api.${registry.combined.endpoints.domain}:8443";
     })
   ];
 }

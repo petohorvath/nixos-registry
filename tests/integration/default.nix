@@ -22,7 +22,5 @@ in
   nixos-example = import ./nixos-example.nix testContext;
   nixos-module = import ./nixos-module.nix testContext;
   recursion = import ./recursion.nix testContext;
-  static-interface = import ./static-interface.nix testContext;
-  static-nixos-example = import ./static-nixos-example.nix testContext;
   static-reads = import ./static-reads.nix testContext;
 }

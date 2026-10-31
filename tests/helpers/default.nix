@@ -10,8 +10,9 @@
 let
   inherit (exports.lib) mkRegistry;
 
-  # A NixOS system for the selected system that imports the static module.
-  mkStaticNode =
+  # A NixOS system for the selected system that imports the static NixOS
+  # module by its flake export; callers add a registry's generated module.
+  mkNixosNode =
     {
       lib ? nixpkgs.lib,
       specialArgs ? { },
@@ -46,14 +47,21 @@ let
     inherit
       lib
       mkProject
-      mkStaticNode
+      mkNixosNode
       nixpkgs
       system
       ;
   };
 in
 {
-  inherit mkProject mkStaticConsumer mkStaticNode;
+  inherit mkNixosNode mkProject mkStaticConsumer;
+
+  # A plain node that imports only the static NixOS module, without a registry.
+  mkUnregisteredNode =
+    modules:
+    lib.evalModules {
+      modules = [ exports.nixosModules.default ] ++ modules;
+    };
 
   mkStaticCollectionConsumer = import ./static-collection-consumer.nix {
     inherit lib mkStaticConsumer;

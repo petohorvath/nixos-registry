@@ -1,4 +1,4 @@
-# Diagnostic helpers and the cases that generated and static nodes share.
+# Diagnostic helpers and the cases that plain and NixOS nodes share.
 # Diagnostics name the option path, node, and available source files; each
 # regex lists those facts in message order.
 {
@@ -12,12 +12,12 @@ let
     expectedError.msg = msg;
   };
 
-  # Validates a registry whose nodes `mkNode settings registry modules`
-  # builds from each node's modules.
+  # Validates a registry whose nodes `mkNode registry modules` builds from
+  # each node's modules.
   validateNodeModules =
     mkNode: nodeModules:
     let
-      settings.schemaModules = [
+      schemaModules = [
         fixtures.schemas.service
         {
           options.backupPaths = lib.mkOption {
@@ -29,17 +29,17 @@ let
       ];
       registry = mkRegistry {
         inherit lib;
-        inherit (settings) schemaModules;
+        inherit schemaModules;
         centralModules = [ { domain = "example.test"; } ];
-        nodes = lib.mapAttrs (_: mkNode settings registry) nodeModules;
+        nodes = lib.mapAttrs (_: mkNode registry) nodeModules;
       };
     in
-    registry.validate;
+    registry.valid;
 in
 {
   inherit fails validateNodeModules;
 
-  # Contributions at the `registry` root, which static nodes also receive.
+  # Contributions at the `registry` root of any node.
   rootCases = validate: {
     testOrderedList =
       fails

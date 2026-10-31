@@ -22,8 +22,8 @@ let
       nodeModules =
         lib.mapAttrs
           (name: peer: [
-            ({ config, ... }: {
-              registry.services.${name} = config.registry.combined.services.${peer};
+            ({ registry, ... }: {
+              registry.services.${name} = registry.combined.services.${peer};
             })
           ])
           {
@@ -36,8 +36,10 @@ let
       schemaModules = [ fixtures.schemas.service ];
       centralModules = [ { domain = "example.test"; } ];
       nodeModules.publisher = [
-        ({ config, ... }: {
-          imports = lib.optional (config.registry.central.domain == "example.test") {
+        # The registry argument comes from configuration, so imports cannot
+        # depend on it; `specialArgs` supplies it to import selection.
+        ({ registry, ... }: {
+          imports = lib.optional (registry.central.domain == "example.test") {
             registry.services.api = {
               host = "api.example.test";
               port = 8443;
@@ -56,8 +58,8 @@ let
 in
 {
   testStrictCollectionCombinedRead = recurses staticStrict.combined.endpoints.domain;
-  testStrictCollectionValidation = recurses staticStrict.validate;
+  testStrictCollectionValidation = recurses staticStrict.valid;
   testValueCycleCombinedRead = recurses staticValueCycle.combined.services.east;
-  testValueCycleValidation = recurses staticValueCycle.validate;
-  testImportCycleValidation = recurses staticImportCycle.validate;
+  testValueCycleValidation = recurses staticValueCycle.valid;
+  testImportCycleValidation = recurses staticImportCycle.valid;
 }

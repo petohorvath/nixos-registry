@@ -27,7 +27,7 @@ let
       )
     ];
     centralModules = [ ({ centralHost, ... }: { host = centralHost; }) ];
-    specialArgs = {
+    moduleArgs = {
       defaultPort = 22;
       centralHost = "archive.example.test";
       nodePort = 1111;

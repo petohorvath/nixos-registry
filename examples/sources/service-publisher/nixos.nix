@@ -1,11 +1,8 @@
-/*
-  Contributes a configured API service through the common static
-  registry import.
-*/
-{ config, ... }:
+# Contributes a configured API service and reads the shared domain.
+{ config, registry, ... }:
 {
   networking.hostName = "api";
-  networking.domain = config.registry.combined.domain;
+  networking.domain = registry.combined.domain;
   services.prometheus = {
     enable = true;
     port = 8443;

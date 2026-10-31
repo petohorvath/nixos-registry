@@ -11,23 +11,23 @@
     node's contributions.
   - `centralModules`: modules defining shared values outside node
     contributions. Defaults to `[ ]`.
-  - `specialArgs`: arguments for schema and central modules. Defaults to
+  - `moduleArgs`: arguments for schema and central modules. Defaults to
     `{ }`.
 
-  Returns an attrset with `module` (the node module declaring the `registry`
-  option), `central` (central data), `combined` (combined data), and
-  `validate` (`true` once all combined data evaluates).
+  Returns the registry: the arguments other than `lib`, with their defaults,
+  plus `module` (the generated module), `central` (central data), `combined`
+  (combined data), and `valid` (`true` once all combined data evaluates).
 */
 {
   lib,
   schemaModules,
   nodes,
   centralModules ? [ ],
-  specialArgs ? { },
+  moduleArgs ? { },
 }:
 let
   schema = lib.evalModules {
-    inherit specialArgs;
+    specialArgs = moduleArgs;
     modules = schemaModules;
   };
 
@@ -41,27 +41,19 @@ let
   schemaOptions = removeAttrs schema.options [ "_module" ];
 
   checkContribution = import ./check-contribution.nix { inherit lib; };
+  mkContributionOption = import ./mk-contribution-option.nix { inherit lib; };
   wrapCentralModule = import ./wrap-central-module.nix {
     inherit lib;
     schemaGraph = schema.graph;
   };
 
-  module = {
+  # The root that selects whole contributions in the shared evaluations.
+  contributionRoot = {
     _file = toString ./mk-registry.nix;
-    options.registry =
-      lib.mkOption {
-        type = lib.types.submoduleWith {
-          inherit specialArgs;
-          modules = schemaModules;
-          shorthandOnlyDefinesConfig = true;
-        };
-        default = { };
-        description = "This node's contribution to the shared registry.";
-      }
-      // {
-        # Identify the generated interface without forcing local values.
-        _nixosRegistry = true;
-      };
+    options.registry = mkContributionOption {
+      inherit schemaModules moduleArgs;
+      description = "A contribution to the shared registry.";
+    };
   };
 
   getContributionOption =
@@ -70,14 +62,14 @@ let
       option = node.options.registry;
     in
     if !(node ? options.registry) then
-      throw "nixos-registry: node `${name}` is missing options.registry; import registry.module or configure the static nixosModules.default."
+      throw "nixos-registry: node `${name}` is missing options.registry; import registry.module."
     else if
       !(lib.isOption option)
       || option.type.name or null != "submodule"
       || !(option._nixosRegistry or false)
       || !(option ? definitionsWithLocations && option ? highestPrio)
     then
-      throw "nixos-registry: node `${name}` has an incompatible options.registry; import registry.module or configure the static nixosModules.default."
+      throw "nixos-registry: node `${name}` has an incompatible options.registry; import registry.module."
     else
       option;
 
@@ -89,24 +81,19 @@ let
       in
       # Native module-system errors from the node's option lack its name.
       builtins.addErrorContext "while collecting registry data from node `${name}':" (
-        map
-          (
-            definition:
-            let
-              value = checkContribution name definition.file schemaOptions [ "registry" ] definition.value;
-              # Root ordering is separate from the contribution's override
-              # priority.
-              ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
-            in
-            {
-              _file = "node ${name}: ${definition.file}";
-              config.registry = lib.mkOverride option.highestPrio ordered;
-            }
-          )
-          (
-            (option._nixosRegistrySelectContributions or (_: _: lib.id)) name schemaOptions
-              option.definitionsWithLocations
-          )
+        map (
+          definition:
+          let
+            value = checkContribution name definition.file schemaOptions [ "registry" ] definition.value;
+            # Root ordering is separate from the contribution's override
+            # priority.
+            ordered = if definition ? priority then lib.mkOrder definition.priority value else value;
+          in
+          {
+            _file = "node ${name}: ${definition.file}";
+            config.registry = lib.mkOverride option.highestPrio ordered;
+          }
+        ) option.definitionsWithLocations
       )
     ))
     lib.concatLists
@@ -115,15 +102,19 @@ let
   evaluateContributions =
     contributionModules:
     lib.evalModules {
-      inherit specialArgs;
+      specialArgs = moduleArgs;
       modules = [
         (
           args:
           let
             # Select whole contributions without demanding complete records.
             selected = lib.evalModules {
-              inherit specialArgs;
-              modules = [ module ] ++ map (wrapCentralModule args) centralModules ++ contributionModules;
+              specialArgs = moduleArgs;
+              modules = [
+                contributionRoot
+              ]
+              ++ map (wrapCentralModule args) centralModules
+              ++ contributionModules;
             };
             option = selected.options.registry;
           in
@@ -151,11 +142,25 @@ let
       inherit (checkRoot evaluation) config;
     in
     builtins.mapAttrs (name: _: config.${name}) schemaOptions;
-in
-builtins.seq (checkRoot schema) {
-  inherit module;
 
-  central = getSharedData central;
-  combined = getSharedData combined;
-  validate = builtins.deepSeq (checkRoot combined).config true;
-}
+  registry = {
+    inherit
+      centralModules
+      moduleArgs
+      nodes
+      schemaModules
+      ;
+
+    # The generated module: the static module, with this registry as its
+    # `registry` argument.
+    module = {
+      _file = toString ./mk-registry.nix;
+      imports = [ ./static-module.nix ];
+      _module.args = { inherit registry; };
+    };
+    central = getSharedData central;
+    combined = getSharedData combined;
+    valid = builtins.deepSeq (checkRoot combined).config true;
+  };
+in
+builtins.seq (checkRoot schema) registry

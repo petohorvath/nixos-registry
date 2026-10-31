@@ -84,7 +84,7 @@ in
         nodePaths = nodeRegistry.combined.backupPaths;
         centralMatchesDirect = centralRegistry.combined == directCentral.config;
         nodeMatchesDirect = nodeRegistry.combined == directNode.config.registry;
-        valid = centralRegistry.validate && nodeRegistry.validate;
+        valid = centralRegistry.valid && nodeRegistry.valid;
       };
     expected = {
       centralPaths = [
@@ -121,7 +121,7 @@ in
       {
         paths = evaluations.combined.backupPaths;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       paths = [
@@ -129,7 +129,7 @@ in
         "/last"
       ];
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -149,7 +149,7 @@ in
           {
             paths = evaluations.combined.backupPaths;
             matchesDirect = evaluations.combined == evaluations.direct;
-            inherit (evaluations) validate;
+            inherit (evaluations) valid;
           }
         )
         [
@@ -160,12 +160,12 @@ in
       {
         paths = [ "/selected" ];
         matchesDirect = true;
-        validate = true;
+        valid = true;
       }
       {
         paths = [ "/selected" ];
         matchesDirect = true;
-        validate = true;
+        valid = true;
       }
     ];
   };
@@ -192,7 +192,7 @@ in
       {
         paths = evaluations.combined.backupPaths;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       paths = [
@@ -203,7 +203,7 @@ in
         "/central-last"
       ];
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 }

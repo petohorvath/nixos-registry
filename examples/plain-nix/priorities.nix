@@ -38,7 +38,7 @@ let
       };
     in
     {
-      inherit (registry) combined validate;
+      inherit (registry) combined valid;
     };
 
   replacement.backupDestinations.archive = {

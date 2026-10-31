@@ -37,7 +37,7 @@ let
       port,
     }:
     lib.nixosSystem {
-      specialArgs = { inherit registry serviceName; };
+      specialArgs = { inherit serviceName; };
       modules = [
         registry.module
         ./service-contribution.nix
@@ -54,7 +54,7 @@ in
   inherit nodes registry;
 
   result = {
-    inherit (registry) central combined validate;
+    inherit (registry) central combined valid;
     clientEndpoints = lib.mapAttrs (_: node: node.config.environment.etc."metrics-endpoint".text) nodes;
   };
 }

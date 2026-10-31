@@ -91,7 +91,7 @@ in
               disabledModules = [ fixtures.requiredEndpoint ];
             });
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `[^`]*/required-endpoint\\.nix`";
   };
 
@@ -117,11 +117,11 @@ in
       in
       {
         endpoints = registry.combined.service.endpoints;
-        inherit (registry) validate;
+        inherit (registry) valid;
       };
     expected = {
       endpoints = [ "active.example.test:443" ];
-      validate = true;
+      valid = true;
     };
   };
 
@@ -152,11 +152,11 @@ in
       in
       {
         endpoints = registry.combined.service.endpoints;
-        inherit (registry) validate;
+        inherit (registry) valid;
       };
     expected = {
       endpoints = [ "active.example.test:443" ];
-      validate = true;
+      valid = true;
     };
   };
 
@@ -176,7 +176,7 @@ in
               disabledModules = [ "required-endpoint.nix" ];
             };
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `[^`]*/required-endpoint\\.nix`";
   };
 
@@ -195,7 +195,7 @@ in
               disabledModules = [ fixtures.requiredEndpoint ];
             });
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `[^`]*/required-endpoint\\.nix`";
   };
 
@@ -220,7 +220,7 @@ in
               }
             );
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` disables schema module `service`";
   };
 
@@ -249,7 +249,7 @@ in
               endpoint = "backup.example.test:443";
               injected = "undeclared data";
             })
-          ).validate;
+          ).valid;
         expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` sets freeformType";
       };
 
@@ -267,7 +267,7 @@ in
                 };
                 config.endpoint = "backup.example.test:443";
               };
-          })).validate;
+          })).valid;
         expectedError.msg = "contribution at `registry\\.service\\.meta` from node `publisher` in `[^`]*` declares options";
       };
 
@@ -327,7 +327,7 @@ in
               ];
             });
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry\\.service` from node `publisher` in `[^`]*` declares options";
   };
 
@@ -422,7 +422,7 @@ in
       (mkContributionRegistry {
         type = entryType;
         wrap = lib.id;
-      } "not a module").validate;
+      } "not a module").valid;
     expectedError.msg = "`service' is not of type `submodule'";
   };
 
@@ -434,8 +434,7 @@ in
           imports = [ { endpoint = "backup.example.test:443"; } ];
         });
       in
-      registry.validate
-      && registry.combined.service == shape.wrap { endpoint = "backup.example.test:443"; }
+      registry.valid && registry.combined.service == shape.wrap { endpoint = "backup.example.test:443"; }
     ) shapes;
     expected = {
       attributes = true;
@@ -463,7 +462,7 @@ in
             };
             config.endpoint = "backup.example.test:443";
           }
-        )).validate;
+        )).valid;
       expectedError.msg = "contribution at `registry\\.service[^`]*` from node `publisher` in `[^`]*` declares options";
     }
   ) shapes;

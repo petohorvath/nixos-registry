@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Breaking API: the registry as a module argument
+
+Every node imports the registry's generated `module`, which adds the static NixOS module and passes the registry to the node as the `registry` module argument. The registry is one attribute set with the same shape in `mkRegistry`'s result, the static flake module's `registry` option, and that argument. [ADR 0006](docs/adr/0006-pass-the-registry-to-nodes-as-a-module-argument.md) records the decision.
+
+| Previous interface                                                                                      | Replacement                                                                                     |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `mkRegistry { specialArgs = ...; }`                                                                     | `mkRegistry { moduleArgs = ...; }`                                                              |
+| `mkRegistry` result `{ module, central, combined, validate }`                                           | The registry: the arguments other than `lib`, plus `module`, `central`, `combined`, and `valid` |
+| `specialArgs = { inherit registry; }` on a node, for reads                                              | Nothing; `registry.module` sets the `registry` argument                                         |
+| A common module importing `nixosModules.default` and setting `registry.settings` and the shared results | `imports = [ registry.module ];`                                                                |
+| `config.registry.central`, `.combined`, and `.validate` in a node                                       | `registry.central`, `registry.combined`, and `registry.valid` from the `registry` argument      |
+| Flake module `registry.settings.{schemaModules,nodes,centralModules,specialArgs}`                       | `registry.{schemaModules,nodes,centralModules,moduleArgs}`                                      |
+| Flake module `registry.validate`                                                                        | `registry.valid`, beside the new read-only `registry.module`                                    |
+
+The static NixOS module reserves no schema names, and an override of a node's whole contribution no longer discards its schema or shared data. Imports cannot depend on the `registry` argument; for reads during import selection, also pass the same registry through `specialArgs`. Import `registry.module` once per node.
+
+The `examples/static-nixos` example and the `static-interface` and `static-nixos-example` suites are removed, and `integration.diagnostics.static` becomes `integration.diagnostics.nixos`.
+
 ### Added: references between nodes example
 
 The [reference example](docs/examples.md#references-between-nodes) carries a list of references per key between nodes, with a store on each of two nodes writing to the other. Each store builds one token copy per reference, keyed by the reference's own fields, and sorts the references where their order shows. The `plain-nix-examples` suite asserts its result, and the `recursion` suite asserts that copies keyed through their references recurse. The public interface is unchanged.

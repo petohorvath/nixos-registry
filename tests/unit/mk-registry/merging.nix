@@ -88,7 +88,7 @@ in
   };
 
   testValidationRejectsConflictingData = {
-    expr = conflict.validate;
+    expr = conflict.valid;
     expectedError.msg = "`backupHost' has conflicting definition values[\\s\\S]*`node disagreeing: ";
   };
 }

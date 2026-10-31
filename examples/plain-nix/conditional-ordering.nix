@@ -23,7 +23,6 @@ let
       };
 
       node = lib.evalModules {
-        specialArgs = { inherit registry; };
         modules = [
           registry.module
           { backup.enable = enable; }
@@ -69,7 +68,7 @@ let
       };
     in
     {
-      inherit (registry) combined validate;
+      inherit (registry) combined valid;
       inherit (node.config) backupCommand;
     };
 in
