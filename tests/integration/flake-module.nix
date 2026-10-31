@@ -42,7 +42,7 @@ let
           };
         };
         flake.nixosConfigurations = {
-          monitor = helpers.mkStaticNode {
+          monitor = helpers.mkNixosNode {
             modules = [
               commonModule
               ({ config, registry, ... }: {
@@ -55,7 +55,7 @@ let
               })
             ];
           };
-          backup = helpers.mkStaticNode {
+          backup = helpers.mkNixosNode {
             modules = [
               commonModule
               ({ config, registry, ... }: {
@@ -99,7 +99,7 @@ in
             { config, ... }:
             let
               shared = config.registry;
-              node = helpers.mkStaticNode {
+              node = helpers.mkNixosNode {
                 lib = selectedLib;
                 specialArgs.nodePort = 2222;
                 modules = [

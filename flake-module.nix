@@ -1,8 +1,8 @@
 /*
   Compose a registry at the project level from the consumer's module library,
   shared schema, central modules, and named nodes. `registry` has the shape
-  that `mkRegistry` returns: the settings, plus the read-only node module,
-  central data, combined data, and validation.
+  that `mkRegistry` returns: the settings, plus the read-only generated
+  module, central data, combined data, and validation.
 */
 {
   config,
@@ -53,16 +53,16 @@ in
       type = lib.types.lazyAttrsOf lib.types.raw;
       default = { };
       description = ''
-        Arguments for schema and central modules, separate from node module
-        arguments.
+        Arguments for schema and central modules, separate from the nodes'
+        module arguments.
       '';
     };
     module = lib.mkOption {
       type = lib.types.raw;
       readOnly = true;
       description = ''
-        The node module, which declares a node's contribution root and passes
-        this registry as the `registry` module argument.
+        The generated module, which declares a node's contribution root and
+        passes this registry as the `registry` module argument.
       '';
     };
     central = lib.mkOption {

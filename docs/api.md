@@ -1,6 +1,6 @@
 # API reference
 
-The flake exports `lib.mkRegistry`, a function that returns a registry built from central modules and named nodes; `nixosModules.default`, the node module that declares a node's contribution root; and `flakeModules.default`, a flake-parts module that holds a registry at the project's `registry` option. The consuming project supplies the option declarations and evaluates the node configurations.
+The flake exports `lib.mkRegistry`, a function that returns a registry built from central modules and named nodes; `nixosModules.default`, the static NixOS module that declares a node's contribution root; and `flakeModules.default`, a flake-parts module that holds a registry at the project's `registry` option. The consuming project supplies the option declarations and evaluates the node configurations.
 
 Start with the complete [README example](../README.md#usage). The [Nixpkgs module-system reference](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules) explains the underlying `lib.evalModules` function.
 
@@ -43,7 +43,7 @@ The public exports load by path from the source tree without supplying or evalua
 | Path               | Export                                      |
 | ------------------ | ------------------------------------------- |
 | `lib`              | Attribute set containing only `mkRegistry`  |
-| `nixos/module.nix` | [Node module](#node-module)                 |
+| `nixos/module.nix` | [Static NixOS module](#nodes)               |
 | `flake-module.nix` | [Static flake module](#static-flake-module) |
 
 A consumer can obtain the repository as a source-only flake input with `flake = false` and import these paths:
@@ -79,7 +79,7 @@ nodes = {
 };
 ```
 
-An independently declared option named `registry` does not replace the node module. A node with a missing or incompatible option produces an error naming the node and the required import.
+An independently declared option named `registry` does not replace the static NixOS module. A node with a missing or incompatible option produces an error naming the node and the required import.
 
 ### `centralModules`
 
@@ -89,7 +89,7 @@ Central definitions have the same precedence as ordinary node definitions. Use `
 
 ### `moduleArgs`
 
-The `moduleArgs` argument supplies arguments to the schema and central module evaluations, including the schema within each node's `registry` option. It does not supply arguments to ordinary node modules; pass those through `nixosSystem.specialArgs` or `lib.evalModules`'s `specialArgs`.
+The `moduleArgs` argument supplies arguments to the schema and central module evaluations, including the schema within each node's `registry` option. It does not supply arguments to the node's own modules; pass those through `nixosSystem.specialArgs` or `lib.evalModules`'s `specialArgs`.
 
 ## The registry
 
@@ -101,16 +101,18 @@ The `moduleArgs` argument supplies arguments to the schema and central module ev
 | `nodes`          | Attribute set of evaluated nodes      | The `nodes` argument.                                                      |
 | `centralModules` | List of modules                       | The `centralModules` argument, or its default.                             |
 | `moduleArgs`     | Attribute set                         | The `moduleArgs` argument, or its default.                                 |
-| `module`         | Nix module                            | Import it in each node; see [Node module](#node-module).                   |
+| `module`         | Nix module                            | The generated module; import it in each node, as [Nodes](#nodes) shows.    |
 | `central`        | Attribute set of shared option values | Read data from the schema and central modules, without node contributions. |
 | `combined`       | Attribute set of shared option values | Read data from the schema, central modules, and all node contributions.    |
 | `valid`          | Boolean value, or an evaluation error | Demand all combined data. Valid data produces `true`.                      |
 
 Both data sets include schema defaults and derived values. Either can remain incomplete if its definitions lack required fields.
 
-## Node module
+Every node receives the whole registry, including `nodes`. Shared data belongs in contributions: reading another node's configuration through `registry.nodes` bypasses the schema, its merge rules, and validation.
 
-`registry.module` imports the node module, `nixos/module.nix`, and passes the registry to the node as its `registry` module argument:
+## Nodes
+
+`registry.module`, the generated module, imports the static NixOS module and passes the registry to the node as its `registry` module argument:
 
 ```nix
 nixpkgs.lib.nixosSystem {
@@ -131,7 +133,7 @@ The schema determines the available shared options. The `registry` prefix is add
 | -------------------------- | ----------------------------------------- | ---------------------------------------- |
 | Schema module              | `options.services`                        | Declare the shared option.               |
 | Central module             | `services.metrics.port`                   | Define a shared value outside the nodes. |
-| Node module                | `registry.services.metrics.port`          | Contribute a value from this node.       |
+| Node configuration         | `registry.services.metrics.port`          | Contribute a value from this node.       |
 | Node's local configuration | `config.registry.services.metrics.port`   | Read this node's own value.              |
 | `registry` module argument | `registry.central.services.metrics.port`  | Read the central value.                  |
 | `registry` module argument | `registry.combined.services.metrics.port` | Read the merged value.                   |
@@ -139,7 +141,9 @@ The schema determines the available shared options. The `registry` prefix is add
 
 `config.registry` contains only the node's local contribution, typed by the schema; its options appear in option listings such as `options.registry`. The `registry` argument is the whole registry.
 
-Import `registry.module` once per node; a second import defines the `registry` argument twice. A module from another source can import `nixosModules.default`, or `nixos/module.nix` by path, to contribute without access to the registry. The module system loads the file once, and the node still needs `registry.module`, or the `registry` argument through `specialArgs`; without the argument, reading `config.registry` fails with an error that names `registry.module`.
+Import `registry.module` once per node; a second import, even of the same registry's module, fails because `_module.args.registry` is defined multiple times. A module from another source can import `nixosModules.default`, or `nixos/module.nix` by path, to contribute without access to the registry. The module system loads the static module once, and the node still needs `registry.module`, or the `registry` argument through `specialArgs`; without the argument, reading `config.registry` fails with an error that names `registry.module`.
+
+A registry passed through `specialArgs` takes precedence over the one `registry.module` sets, as for any module argument, and the library cannot tell two registries apart. Pass the same registry through both.
 
 No schema name is reserved apart from `_module`. A schema can declare `settings`, `central`, `combined`, or `valid`; they are ordinary fields under `config.registry` and in the shared data.
 
@@ -157,7 +161,7 @@ Import `inputs.nixos-registry.flakeModules.default` into a flake-parts configura
 | `registry.nodes`          | Named, whole node evaluation results, including `options`.                | Required; `{ }` is valid |
 | `registry.centralModules` | Central definitions; lists from project modules concatenate.              | `[ ]`                    |
 | `registry.moduleArgs`     | Arguments for schema and central evaluation, including the node's schema. | `{ }`                    |
-| `registry.module`         | Read-only node module, which passes this registry to the node.            | Computed                 |
+| `registry.module`         | Read-only generated module, which passes this registry to the node.       | Computed                 |
 | `registry.central`        | Read-only central data.                                                   | Computed                 |
 | `registry.combined`       | Read-only combined data.                                                  | Computed                 |
 | `registry.valid`          | Read-only explicit validation, returning `true` or raising an error.      | Computed                 |
@@ -189,7 +193,7 @@ For example, a central module can supply a host and a node can supply its port:
 # In a central module:
 backupDestinations.archive.host = "archive.example.test";
 
-# In a node module:
+# In a node:
 registry.backupDestinations.archive.port = 2222;
 ```
 
@@ -296,7 +300,7 @@ Collection types can force related definitions during merging. In the [collectio
 # In a central module:
 settings.domain = "example.test";
 
-# In a node module:
+# In a node:
 registry.settings.endpoint = "api.${registry.combined.settings.domain}:8443";
 ```
 
@@ -368,7 +372,7 @@ in
 }
 ```
 
-Run `nix build --no-update-lock-file --no-link .#checks.<system>.registry` for this check alone, replacing `<system>` with a system from `systems`. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither the node module nor the flake module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
+Run `nix build --no-update-lock-file --no-link .#checks.<system>.registry` for this check alone, replacing `<system>` with a system from `systems`. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
 
 | Combined data                                               | Result                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------ |

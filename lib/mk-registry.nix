@@ -15,7 +15,7 @@
     `{ }`.
 
   Returns the registry: the arguments other than `lib`, with their defaults,
-  plus `module` (the node module), `central` (central data), `combined`
+  plus `module` (the generated module), `central` (central data), `combined`
   (combined data), and `valid` (`true` once all combined data evaluates).
 */
 {
@@ -41,6 +41,7 @@ let
   schemaOptions = removeAttrs schema.options [ "_module" ];
 
   checkContribution = import ./check-contribution.nix { inherit lib; };
+  mkContributionOption = import ./mk-contribution-option.nix { inherit lib; };
   wrapCentralModule = import ./wrap-central-module.nix {
     inherit lib;
     schemaGraph = schema.graph;
@@ -49,13 +50,8 @@ let
   # The root that selects whole contributions in the shared evaluations.
   contributionRoot = {
     _file = toString ./mk-registry.nix;
-    options.registry = lib.mkOption {
-      type = lib.types.submoduleWith {
-        specialArgs = moduleArgs;
-        modules = schemaModules;
-        shorthandOnlyDefinesConfig = true;
-      };
-      default = { };
+    options.registry = mkContributionOption {
+      inherit schemaModules moduleArgs;
       description = "A contribution to the shared registry.";
     };
   };
@@ -140,6 +136,13 @@ let
   central = evaluateContributions [ ];
   combined = evaluateContributions contributions;
 
+  getSharedData =
+    evaluation:
+    let
+      inherit (checkRoot evaluation) config;
+    in
+    builtins.mapAttrs (name: _: config.${name}) schemaOptions;
+
   registry = {
     inherit
       centralModules
@@ -148,22 +151,16 @@ let
       schemaModules
       ;
 
-    # The node module, with this registry as its `registry` argument.
+    # The generated module: the static module, with this registry as its
+    # `registry` argument.
     module = {
       _file = toString ./mk-registry.nix;
-      imports = [ ../nixos/module.nix ];
+      imports = [ ./static-module.nix ];
       _module.args = { inherit registry; };
     };
     central = getSharedData central;
     combined = getSharedData combined;
     valid = builtins.deepSeq (checkRoot combined).config true;
   };
-
-  getSharedData =
-    evaluation:
-    let
-      inherit (checkRoot evaluation) config;
-    in
-    builtins.mapAttrs (name: _: config.${name}) schemaOptions;
 in
 builtins.seq (checkRoot schema) registry

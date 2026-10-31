@@ -243,13 +243,7 @@ rootCases validate
       "node `handwritten contribution root` has an incompatible options\\.registry; import registry\\.module";
 
   testMissingRegistryArgument =
-    fails
-      (lib.evalModules {
-        modules = [
-          ../../nixos/module.nix
-          { registry.domain = "example.test"; }
-        ];
-      }).config.registry
+    fails (helpers.mkUnregisteredNode [ { registry.domain = "example.test"; } ]).config.registry
       "^nixos-registry: the `registry` module argument is not set; import registry\\.module\\.$";
 
   # A native module-system error; the node name stays in the trace context.
@@ -265,5 +259,5 @@ rootCases validate
           }
         ];
       })
-      "`registry' in `/modules/conflicting-interface\\.nix' is already declared in `[^']*/nixos/module\\.nix'";
+      "`registry' in `/modules/conflicting-interface\\.nix' is already declared in `[^']*/lib/static-module\\.nix'";
 }

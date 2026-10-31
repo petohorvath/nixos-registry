@@ -1,9 +1,9 @@
-# A consumer flake whose NixOS nodes share one registry through the static
-# flake module's node module, with a flake check that validates it.
+# A consumer flake whose NixOS nodes import the static flake module's generated
+# module, with a flake check that validates the registry.
 {
   lib,
   mkProject,
-  mkStaticNode,
+  mkNixosNode,
   nixpkgs,
   system,
 }:
@@ -41,7 +41,7 @@ let
           flake = {
             lib.registry = shared;
             nixosConfigurations = lib.mapAttrs (
-              _: configurationModules: mkStaticNode { modules = [ commonModule ] ++ configurationModules; }
+              _: configurationModules: mkNixosNode { modules = [ commonModule ] ++ configurationModules; }
             ) nodeModules;
           };
           perSystem =

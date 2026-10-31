@@ -21,11 +21,11 @@ Option definitions supplied by a node or a central module. A contribution can co
 _Avoid_: Publication, registration
 
 **Generated module**:
-The module a registry provides for its nodes to import, which gives each node its contribution root and that registry.
+The module a registry provides for its nodes to import, which adds the static NixOS module and passes that registry to the node.
 _Avoid_: Node adapter, registry module, constructor-generated module
 
 **Static module**:
-A module imported by path, independent of any one registry: the node module that declares a contribution root, or the project module that holds a registry's settings and results.
+A module imported by path, independent of any one registry: the static NixOS module, which declares a node's contribution root, or the static flake module, which holds a registry at a project's `registry` option.
 _Avoid_: Static interface, static adapter
 
 **Central data**:

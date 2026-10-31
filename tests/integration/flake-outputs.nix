@@ -19,7 +19,7 @@ let
     (lib.getAttrFromPath optionPath
       (lib.evalModules {
         modules = [ module ];
-        # The node module's contribution root takes its type from the registry.
+        # The static module's contribution root takes its type from the registry.
         specialArgs.registry = {
           schemaModules = [ ];
           moduleArgs = { };
@@ -55,7 +55,7 @@ in
       ];
     };
     expected = {
-      nixos = [ (toString ../../nixos/module.nix) ];
+      nixos = [ (toString ../../lib/static-module.nix) ];
       flakeParts = [ (toString ../../flake-module.nix) ];
     };
   };

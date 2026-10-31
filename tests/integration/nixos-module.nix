@@ -3,6 +3,7 @@
   helpers,
   lib,
   registryLib,
+  self,
   ...
 }:
 let
@@ -13,7 +14,7 @@ let
     centralModules = [ { domain = "example.test"; } ];
   };
   nodes = {
-    "metrics publisher" = helpers.mkStaticNode {
+    "metrics publisher" = helpers.mkNixosNode {
       modules = [
         registry.module
         {
@@ -29,14 +30,14 @@ let
         })
       ];
     };
-    # A module from another source imports the static module by path; the
-    # registry's module imports the same file.
-    "separate source" = helpers.mkStaticNode {
+    # A module from another source imports the flake's static NixOS module;
+    # the generated module imports the same implementation.
+    "separate source" = helpers.mkNixosNode {
       modules = [
         registry.module
         { system.stateVersion = "26.05"; }
         {
-          imports = [ ../../nixos/module.nix ];
+          imports = [ self.nixosModules.default ];
           registry.services.api = {
             host = "api.example.test";
             port = 8443;
@@ -76,7 +77,7 @@ in
         };
         # Overrides its whole contribution; the registry argument and the
         # contribution root's schema stay intact.
-        override = helpers.mkStaticNode {
+        override = helpers.mkNixosNode {
           modules = [
             overridden.module
             { system.stateVersion = "26.05"; }
@@ -103,7 +104,7 @@ in
     };
   };
 
-  testNixosNodeImportsTheStaticModuleOnce = {
+  testNixosNodeLoadsTheStaticModuleOnce = {
     expr = registry.combined.services.api.endpoint;
     expected = "api.example.test:8443";
   };
@@ -144,7 +145,7 @@ in
           };
           nodes."argument owner" = configured;
         };
-        configured = helpers.mkStaticNode {
+        configured = helpers.mkNixosNode {
           lib = selectedLib;
           specialArgs.nodePort = 2222;
           modules = [

@@ -1,4 +1,4 @@
-# Diagnostic helpers and the cases that generated and static nodes share.
+# Diagnostic helpers and the cases that plain and NixOS nodes share.
 # Diagnostics name the option path, node, and available source files; each
 # regex lists those facts in message order.
 {
@@ -39,7 +39,7 @@ in
 {
   inherit fails validateNodeModules;
 
-  # Contributions at the `registry` root, which static nodes also receive.
+  # Contributions at the `registry` root of any node.
   rootCases = validate: {
     testOrderedList =
       fails

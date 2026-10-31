@@ -151,7 +151,7 @@ The [example guide](docs/examples.md) covers plain Nix modules, references carri
 | `combined`       | Combined data                                                   |
 | `valid`          | `true` once all combined data evaluates, or an evaluation error |
 
-Each node receives this set as its `registry` module argument. In a flake-parts project, `flakeModules.default` holds the same set at the project's `registry` option, with the first four attributes as its settings. `nixosModules.default` is the node module that `registry.module` imports; a module from another source can import it by path to contribute without access to the registry. The [API reference](docs/api.md) documents each export.
+Each node receives this set as its `registry` module argument. In a flake-parts project, `flakeModules.default` holds the same set at the project's `registry` option, with the first four attributes as its settings. `nixosModules.default` is the static NixOS module, which declares a node's contribution root; `registry.module` imports its implementation, and a module from another source can import it to contribute without access to the registry. Every node receives the whole registry, including `nodes`, but shared data belongs in contributions rather than reads of other nodes' configurations. The [API reference](docs/api.md) documents each export.
 
 ## Merging and validation
 

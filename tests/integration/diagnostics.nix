@@ -1,4 +1,4 @@
-# Diagnostics of static nodes and flake-parts projects name the option path,
+# Diagnostics of NixOS nodes and flake-parts projects name the option path,
 # node, and available source files. Each regex lists those facts in message
 # order.
 {
@@ -43,31 +43,31 @@ let
       }
     ];
 
-  mkStaticNode =
+  mkNode =
     registry: modules:
-    helpers.mkStaticNode {
+    helpers.mkNixosNode {
       modules = [ registry.module ] ++ modules;
     };
 
-  staticInvalidPort =
+  nixosInvalidPort =
     let
       registry = mkRegistry {
         inherit lib;
         schemaModules = [ serviceSchema ];
         centralModules = [ { domain = "example.test"; } ];
-        nodes."static service publisher" = mkStaticNode registry [ fixtures.invalidService ];
+        nodes."static service publisher" = mkNode registry [ fixtures.invalidService ];
       };
     in
     {
       shared = registry.valid;
-      local = (mkStaticNode registry [ fixtures.invalidService ]).config.registry.services.api.port;
+      local = (mkNode registry [ fixtures.invalidService ]).config.registry.services.api.port;
     };
 in
 {
-  static = rootCases (validateNodeModules mkStaticNode) // {
-    testSharedInvalidPort = fails staticInvalidPort.shared "`services\\.api\\.port' is not of type[\\s\\S]*`node static service publisher: [^']*/invalid-service\\.nix'";
+  nixos = rootCases (validateNodeModules mkNode) // {
+    testSharedInvalidPort = fails nixosInvalidPort.shared "`services\\.api\\.port' is not of type[\\s\\S]*`node static service publisher: [^']*/invalid-service\\.nix'";
 
-    testLocalInvalidPort = fails staticInvalidPort.local "`registry\\.services\\.api\\.port' is not of type[\\s\\S]*`[^']*/invalid-service\\.nix'";
+    testLocalInvalidPort = fails nixosInvalidPort.local "`registry\\.services\\.api\\.port' is not of type[\\s\\S]*`[^']*/invalid-service\\.nix'";
 
     testFlakeCheckInvalidPort =
       fails
