@@ -7,190 +7,170 @@
 }:
 let
   inherit (registryLib) mkRegistry;
-  schemaModules = [ fixtures.schemas.service ];
   registry = mkRegistry {
-    inherit lib schemaModules;
+    inherit lib nodes;
+    schemaModules = [ fixtures.schemas.service ];
     centralModules = [ { domain = "example.test"; } ];
-    nodes."metrics publisher" = node;
   };
-  node = helpers.mkStaticNode {
-    modules = [
-      {
-        registry = {
-          settings = { inherit schemaModules; };
-          inherit (registry) central combined validate;
-        };
-        system.stateVersion = "26.05";
-        services.prometheus.port = 9191;
-      }
-      ({ config, ... }: {
-        registry.services.metrics = {
-          host = "monitor.${config.registry.central.domain}";
-          port = config.services.prometheus.port;
-        };
-        environment.etc."metrics-endpoint".text = config.registry.combined.services.metrics.endpoint;
-      })
-    ];
-  };
-in
-{
-  testStaticNixosModuleRejectsUnknownSettings = {
-    expr =
-      (node.extendModules {
-        modules = [ { registry.settings.unknown = true; } ];
-      }).config.registry.settings;
-    expectedError.msg = "`registry\\.settings\\.unknown' does not exist";
-  };
-
-  testStaticNixosModuleUsesCallerSchemaAndSeparateArguments = {
-    expr =
-      let
-        selectedLib = lib.extend (_final: _previous: { registryPortType = lib.types.port; });
-        settings = {
-          schemaModules = [
-            ({ lib, schemaLabel, ... }: {
-              options = {
-                schemaModules = lib.mkOption {
-                  type = lib.types.str;
-                  default = schemaLabel;
-                  description = ''
-                    A schema-owned field beside the settings group.
-                  '';
-                };
-                port = lib.mkOption {
-                  type = lib.registryPortType;
-                  description = ''
-                    A port checked with the consumer's extended library.
-                  '';
-                };
-              };
-            })
-          ];
-          specialArgs = {
-            schemaLabel = "shared schema";
-            nodePort = 1111;
-          };
-        };
-        shared = mkRegistry (
-          settings
-          // {
-            lib = selectedLib;
-            nodes."argument owner" = configured;
-          }
-        );
-        configured = helpers.mkStaticNode {
-          lib = selectedLib;
-          specialArgs.nodePort = 2222;
-          modules = [
-            {
-              registry = {
-                inherit settings;
-                inherit (shared) central combined validate;
-              };
-            }
-            ({ nodePort, ... }: {
-              registry = {
-                port = nodePort;
-                schemaModules = "node schema label";
-              };
-            })
-          ];
-        };
-      in
-      {
-        localLabel = configured.config.registry.schemaModules;
-        centralLabel = configured.config.registry.central.schemaModules;
-        localPort = configured.config.registry.port;
-        inherit (configured.config.registry) combined validate;
-      };
-    expected = {
-      localLabel = "node schema label";
-      centralLabel = "shared schema";
-      localPort = 2222;
-      combined = {
-        schemaModules = "node schema label";
-        port = 2222;
-      };
-      validate = true;
-    };
-  };
-
-  staticNixosModuleRejectsReservedSchemaNames =
-    lib.genAttrs
-      [
-        "settings"
-        "central"
-        "combined"
-        "validate"
-      ]
-      (
-        name:
-        let
-          collisionSchema = [
-            {
-              options.${name} = lib.mkOption {
-                type = lib.types.str;
-                default = "schema-owned value";
-                description = ''
-                  A field that collides with the static interface.
-                '';
-              };
-            }
-          ];
-          collisionRegistry = mkRegistry {
-            inherit lib;
-            schemaModules = collisionSchema;
-            nodes."colliding node" = collisionNode;
-          };
-          collisionNode = helpers.mkStaticNode {
-            modules = [
-              {
-                registry.settings.schemaModules = collisionSchema;
-                registry = { inherit (collisionRegistry) central combined validate; };
-              }
-            ];
-          };
-        in
+  nodes = {
+    "metrics publisher" = helpers.mkStaticNode {
+      modules = [
+        registry.module
         {
-          testLocal = {
-            expr = collisionNode.config.registry;
-            expectedError.msg = "^nixos-registry: schema option `registry\\.${name}` conflicts with a reserved static interface name";
+          system.stateVersion = "26.05";
+          services.prometheus.port = 9191;
+        }
+        ({ config, registry, ... }: {
+          registry.services.metrics = {
+            host = "monitor.${registry.central.domain}";
+            port = config.services.prometheus.port;
           };
-          testShared = {
-            expr = collisionRegistry.validate;
-            expectedError.msg = "node `colliding node`: schema option `registry\\.${name}` conflicts with a reserved static interface name";
+          environment.etc."metrics-endpoint".text = registry.combined.services.metrics.endpoint;
+        })
+      ];
+    };
+    # A module from another source imports the static module by path; the
+    # registry's module imports the same file.
+    "separate source" = helpers.mkStaticNode {
+      modules = [
+        registry.module
+        { system.stateVersion = "26.05"; }
+        {
+          imports = [ ../../nixos/module.nix ];
+          registry.services.api = {
+            host = "api.example.test";
+            port = 8443;
           };
         }
-      );
-
-  testStaticNixosModuleContributesAndReadsSharedResults = {
+      ];
+    };
+  };
+  node = nodes."metrics publisher";
+in
+{
+  testNixosNodeContributesAndReadsTheRegistryArgument = {
     expr = {
-      inherit (node.config.registry) central combined validate;
       local = node.config.registry.services.metrics;
       endpoint = node.config.environment.etc."metrics-endpoint".text;
-      port = node.config.services.prometheus.port;
+      inherit (registry) valid;
     };
     expected = {
-      central = {
-        domain = "example.test";
-        services = { };
-      };
-      combined = {
-        domain = "example.test";
-        services.metrics = {
-          host = "monitor.example.test";
-          port = 9191;
-          endpoint = "monitor.example.test:9191";
-        };
-      };
       local = {
         host = "monitor.example.test";
         port = 9191;
         endpoint = "monitor.example.test:9191";
       };
       endpoint = "monitor.example.test:9191";
-      port = 9191;
-      validate = true;
+      valid = true;
+    };
+  };
+
+  testNixosRootOverrideAffectsOnlyTheContribution = {
+    expr =
+      let
+        overridden = mkRegistry {
+          inherit lib;
+          schemaModules = [ fixtures.schemas.service ];
+          centralModules = [ { domain = "example.test"; } ];
+          nodes."backup override" = override;
+        };
+        # Overrides its whole contribution; the registry argument and the
+        # contribution root's schema stay intact.
+        override = helpers.mkStaticNode {
+          modules = [
+            overridden.module
+            { system.stateVersion = "26.05"; }
+            ({ registry, ... }: {
+              registry = lib.mkForce {
+                domain = "override.example.test";
+                services.backup = {
+                  host = "backup.override.example.test";
+                  port = 8022;
+                };
+              };
+              environment.etc."backup-endpoint".text = registry.combined.services.backup.endpoint;
+            })
+          ];
+        };
+      in
+      {
+        endpoint = override.config.environment.etc."backup-endpoint".text;
+        local = override.config.registry.services.backup.port;
+      };
+    expected = {
+      endpoint = "backup.override.example.test:8022";
+      local = 8022;
+    };
+  };
+
+  testNixosNodeImportsTheStaticModuleOnce = {
+    expr = registry.combined.services.api.endpoint;
+    expected = "api.example.test:8443";
+  };
+
+  testNixosOptionsDescribeTheSchema = {
+    expr = builtins.attrNames (node.options.registry.type.getSubOptions [ ]);
+    expected = [
+      "_module"
+      "domain"
+      "services"
+    ];
+  };
+
+  testNixosNodeUsesCallerSchemaAndSeparateArguments = {
+    expr =
+      let
+        selectedLib = lib.extend (_final: _previous: { registryPortType = lib.types.port; });
+        shared = mkRegistry {
+          lib = selectedLib;
+          schemaModules = [
+            ({ lib, schemaLabel, ... }: {
+              options = {
+                settings = lib.mkOption {
+                  type = lib.types.str;
+                  default = schemaLabel;
+                  description = "A schema field named like a registry setting.";
+                };
+                port = lib.mkOption {
+                  type = lib.registryPortType;
+                  description = "A port checked with the consumer's extended library.";
+                };
+              };
+            })
+          ];
+          moduleArgs = {
+            schemaLabel = "shared schema";
+            nodePort = 1111;
+          };
+          nodes."argument owner" = configured;
+        };
+        configured = helpers.mkStaticNode {
+          lib = selectedLib;
+          specialArgs.nodePort = 2222;
+          modules = [
+            shared.module
+            ({ nodePort, ... }: {
+              registry = {
+                port = nodePort;
+                settings = "node label";
+              };
+            })
+          ];
+        };
+      in
+      {
+        localPort = configured.config.registry.port;
+        centralLabel = shared.central.settings;
+        inherit (shared) combined valid;
+      };
+    expected = {
+      localPort = 2222;
+      centralLabel = "shared schema";
+      combined = {
+        settings = "node label";
+        port = 2222;
+      };
+      valid = true;
     };
   };
 }

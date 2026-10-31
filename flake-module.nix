@@ -1,8 +1,8 @@
 /*
   Compose a registry at the project level from the consumer's module library,
-  shared schema, central modules, and named nodes. Pass the `central`,
-  `combined`, and `validate` results to each node through the static NixOS
-  module.
+  shared schema, central modules, and named nodes. `registry` has the shape
+  that `mkRegistry` returns: the settings, plus the read-only node module,
+  central data, combined data, and validation.
 */
 {
   config,
@@ -13,51 +13,57 @@
 let
   registry = import ./lib/mk-registry.nix {
     inherit lib;
-    inherit (config.registry.settings)
+    inherit (config.registry)
       centralModules
+      moduleArgs
       nodes
       schemaModules
-      specialArgs
       ;
   };
   # Collection types can otherwise supply empty values for undefined options.
   requireSetting =
     name: value:
-    if options.registry.settings.${name}.isDefined then
+    if options.registry.${name}.isDefined then
       value
     else
-      throw "nixos-registry: registry.settings.${name} must be set explicitly.";
+      throw "nixos-registry: registry.${name} must be set explicitly.";
 in
 {
   options.registry = {
-    settings = {
-      schemaModules = lib.mkOption {
-        type = lib.types.listOf lib.types.deferredModule;
-        apply = requireSetting "schemaModules";
-        description = "Shared schema modules, also supplied to each node.";
-      };
-      nodes = lib.mkOption {
-        type = lib.types.lazyAttrsOf lib.types.raw;
-        apply = requireSetting "nodes";
-        description = ''
-          Named, complete node evaluation results; an empty set is valid.
-        '';
-      };
-      centralModules = lib.mkOption {
-        type = lib.types.listOf lib.types.deferredModule;
-        default = [ ];
-        description = ''
-          Modules defining shared values outside node contributions.
-        '';
-      };
-      specialArgs = lib.mkOption {
-        type = lib.types.lazyAttrsOf lib.types.raw;
-        default = { };
-        description = ''
-          Arguments for schema and central modules, separate from node module
-          arguments.
-        '';
-      };
+    schemaModules = lib.mkOption {
+      type = lib.types.listOf lib.types.deferredModule;
+      apply = requireSetting "schemaModules";
+      description = "Shared schema modules.";
+    };
+    nodes = lib.mkOption {
+      type = lib.types.lazyAttrsOf lib.types.raw;
+      apply = requireSetting "nodes";
+      description = ''
+        Named, complete node evaluation results; an empty set is valid.
+      '';
+    };
+    centralModules = lib.mkOption {
+      type = lib.types.listOf lib.types.deferredModule;
+      default = [ ];
+      description = ''
+        Modules defining shared values outside node contributions.
+      '';
+    };
+    moduleArgs = lib.mkOption {
+      type = lib.types.lazyAttrsOf lib.types.raw;
+      default = { };
+      description = ''
+        Arguments for schema and central modules, separate from node module
+        arguments.
+      '';
+    };
+    module = lib.mkOption {
+      type = lib.types.raw;
+      readOnly = true;
+      description = ''
+        The node module, which declares a node's contribution root and passes
+        this registry as the `registry` module argument.
+      '';
     };
     central = lib.mkOption {
       type = lib.types.raw;
@@ -71,7 +77,7 @@ in
         Shared data merged from central modules and the selected nodes.
       '';
     };
-    validate = lib.mkOption {
+    valid = lib.mkOption {
       type = lib.types.bool;
       readOnly = true;
       description = ''
@@ -81,5 +87,12 @@ in
     };
   };
 
-  config.registry = { inherit (registry) central combined validate; };
+  config.registry = {
+    inherit (registry)
+      central
+      combined
+      module
+      valid
+      ;
+  };
 }

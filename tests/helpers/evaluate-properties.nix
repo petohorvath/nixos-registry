@@ -45,6 +45,6 @@ let
   };
 in
 {
-  inherit (registry) central combined validate;
+  inherit (registry) central combined valid;
   direct = direct.config.registry;
 }

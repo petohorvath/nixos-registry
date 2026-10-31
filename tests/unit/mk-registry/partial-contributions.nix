@@ -60,7 +60,7 @@ in
     expr = {
       combined = split.registry.combined;
       matchesDirect = split.registry.combined == split.direct.config;
-      validate = split.registry.validate;
+      valid = split.registry.valid;
     };
     expected = {
       combined.backupDestinations.archive = {
@@ -71,7 +71,7 @@ in
         command = "backup archive.example.test:2222";
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -81,14 +81,14 @@ in
       centralIsComplete = succeeds centralPartial.registry.central;
       matchesDirect = centralPartial.registry.combined == centralPartial.direct.config;
       completedPort = centralPartial.registry.combined.backupDestinations.archive.port;
-      validate = centralPartial.registry.validate;
+      valid = centralPartial.registry.valid;
     };
     expected = {
       centralHost = "archive.example.test";
       centralIsComplete = false;
       matchesDirect = true;
       completedPort = 2222;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -111,7 +111,7 @@ in
     expr = {
       combinedSucceeds = succeeds incomplete.registry.combined;
       directSucceeds = succeeds incomplete.direct.config;
-      validationSucceeds = succeeds incomplete.registry.validate;
+      validationSucceeds = succeeds incomplete.registry.valid;
     };
     expected = {
       combinedSucceeds = false;
@@ -248,7 +248,7 @@ in
           {
             combinedSucceeds = succeeds evaluations.registry.combined;
             directSucceeds = succeeds evaluations.direct.config;
-            validationSucceeds = succeeds evaluations.registry.validate;
+            validationSucceeds = succeeds evaluations.registry.valid;
           }
         )
         [

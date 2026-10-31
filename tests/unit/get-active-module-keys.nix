@@ -48,12 +48,12 @@ in
         };
       in
       {
-        inherit (registry) validate;
+        inherit (registry) valid;
         paths = registry.combined.service.backupPaths;
       };
     expected = {
       paths = [ "/node" ];
-      validate = true;
+      valid = true;
     };
   };
 }

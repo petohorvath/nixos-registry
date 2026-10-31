@@ -68,7 +68,7 @@ in
           {
             paths = registry.combined.backupPaths;
             matchesDirect = registry.combined == direct.config.registry;
-            inherit (registry) validate;
+            inherit (registry) valid;
           }
         )
         [
@@ -79,12 +79,12 @@ in
       {
         paths = [ ];
         matchesDirect = true;
-        validate = true;
+        valid = true;
       }
       {
         paths = [ "/enabled" ];
         matchesDirect = true;
-        validate = true;
+        valid = true;
       }
     ];
   };
@@ -106,7 +106,7 @@ in
           {
             combinedSucceeds = succeeds evaluations.combined;
             directSucceeds = succeeds evaluations.direct;
-            validationSucceeds = succeeds evaluations.validate;
+            validationSucceeds = succeeds evaluations.valid;
           }
         )
         [
@@ -143,12 +143,12 @@ in
       {
         paths = evaluations.combined.backupPaths;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       paths = [ "/enabled" ];
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -177,7 +177,7 @@ in
       {
         paths = evaluations.combined.backupPaths;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       paths = [
@@ -186,7 +186,7 @@ in
         "/nested"
       ];
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 }

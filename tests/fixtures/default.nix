@@ -54,7 +54,6 @@ in
     plain-nix = callPlainExample ../../examples/plain-nix;
     priorities = callPlainExample ../../examples/plain-nix/priorities.nix;
     scalar-conflict = callPlainExample ../../examples/plain-nix/scalar-conflict.nix;
-    static-nixos = import ../../examples/static-nixos { inherit exports nixpkgs system; };
     value-cycle = callPlainExample ../../examples/plain-nix/value-cycle.nix;
   };
 }

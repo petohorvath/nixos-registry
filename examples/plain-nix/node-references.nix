@@ -130,7 +130,7 @@ let
       };
     in
     {
-      inherit (registry) validate;
+      inherit (registry) valid;
       tokens = lib.mapAttrs (_: node: lib.mapAttrs (_: token: token.value) node.config.tokens) nodes;
       authorizedWriters = lib.mapAttrs (_: node: node.config.authorizedWriters) {
         inherit (nodes) east west;

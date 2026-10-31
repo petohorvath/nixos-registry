@@ -41,7 +41,7 @@ in
           {
             combinedReadSucceeds = (builtins.tryEval consumer.lib.registry.combined.endpoints.domain).success;
             directReadSucceeds = (builtins.tryEval direct.config.endpoints.domain).success;
-            validates = (builtins.tryEval consumer.lib.registry.validate).success;
+            validates = (builtins.tryEval consumer.lib.registry.valid).success;
           }
         )
         {
@@ -68,7 +68,7 @@ in
         consumer = helpers.mkStaticCollectionConsumer lib.types.lazyAttrsOf;
       in
       {
-        inherit (consumer.lib.registry) combined validate;
+        inherit (consumer.lib.registry) combined valid;
         localEndpoint = consumer.nixosConfigurations.publisher.config.registry.endpoints.api;
       };
     expected = {
@@ -76,7 +76,7 @@ in
         domain = "example.test";
         api = "api.example.test:8443";
       };
-      validate = true;
+      valid = true;
       localEndpoint = "api.example.test:8443";
     };
   };
@@ -85,12 +85,13 @@ in
     expr =
       let
         consumer = mkConsumer {
-          schemaModules = throw "An unrelated read forced the schema.";
+          # The contribution root's type evaluates the schema's declarations.
+          schemaModules = [ fixtures.schemas.service ];
           centralModules = throw "An unrelated read forced central definitions.";
           nodeModules.reader = [ { networking.hostName = "independent"; } ];
           modules = [
             {
-              registry.settings.nodes = lib.mkForce (throw "An unrelated read collected nodes.");
+              registry.nodes = lib.mkForce (throw "An unrelated read collected nodes.");
               flake.unrelated = "independent project value";
             }
           ];
@@ -118,22 +119,23 @@ in
             }
           ];
           nodeModules.publisher = [
-            ({ config, ... }: {
-              registry.services.api.host = "api.${config.registry.combined.domain}";
-              environment.etc."api-endpoint".text = config.registry.combined.services.api.endpoint;
+            ({ registry, ... }: {
+              registry.services.api.host = "api.${registry.combined.domain}";
+              environment.etc."api-endpoint".text = registry.combined.services.api.endpoint;
             })
           ];
         };
         node = consumer.nixosConfigurations.publisher.config;
+        nodeRegistry = consumer.nixosConfigurations.publisher._module.args.registry;
       in
       {
-        inherit (consumer.lib.registry) combined validate;
+        inherit (consumer.lib.registry) combined valid;
         centralPort = consumer.lib.registry.central.services.api.port;
         localHost = node.registry.services.api.host;
         localPortExists = (builtins.tryEval node.registry.services.api.port).success;
         centralHostExists = (builtins.tryEval consumer.lib.registry.central.services.api.host).success;
         endpoint = node.environment.etc."api-endpoint".text;
-        nodeValidates = node.registry.validate;
+        nodeValidates = nodeRegistry.valid;
         checkEvaluates = (builtins.tryEval consumer.checks.${system}.registry.drvPath).success;
       };
     expected = {
@@ -145,7 +147,7 @@ in
           endpoint = "api.example.test:8443";
         };
       };
-      validate = true;
+      valid = true;
       centralPort = 8443;
       localHost = "api.example.test";
       localPortExists = false;
@@ -163,15 +165,13 @@ in
           schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodeModules.reader = [
-            ({ config, ... }: {
-              registry.services.api.host = "api.${config.registry.central.domain}";
+            ({ registry, ... }: {
+              registry.services.api.host = "api.${registry.central.domain}";
             })
           ];
           modules = [
             {
-              registry.settings.nodes = lib.mkForce (
-                throw "Central reads and schema keys must not collect nodes."
-              );
+              registry.nodes = lib.mkForce (throw "Central reads and schema keys must not collect nodes.");
             }
           ];
         };
@@ -186,7 +186,7 @@ in
         localHost = consumer.nixosConfigurations.reader.config.registry.services.api.host;
         centralKeys = builtins.attrNames shapeOnly.lib.registry.central;
         combinedKeys = builtins.attrNames shapeOnly.lib.registry.combined;
-        validates = (builtins.tryEval consumer.lib.registry.validate).success;
+        validates = (builtins.tryEval consumer.lib.registry.valid).success;
       };
     expected = {
       centralDomain = "example.test";
@@ -210,24 +210,25 @@ in
           schemaModules = [ fixtures.schemas.service ];
           centralModules = [ { domain = "example.test"; } ];
           nodeModules.publisher = [
-            ({ config, ... }: {
+            ({ registry, ... }: {
               registry.services.api = {
-                host = "api.${config.registry.combined.domain}";
+                host = "api.${registry.combined.domain}";
                 port = "invalid port";
               };
-              environment.etc."registry-domain".text = config.registry.combined.domain;
+              environment.etc."registry-domain".text = registry.combined.domain;
             })
           ];
         };
         node = consumer.nixosConfigurations.publisher.config;
+        nodeRegistry = consumer.nixosConfigurations.publisher._module.args.registry;
       in
       {
         domain = consumer.lib.registry.combined.domain;
         localHost = node.registry.services.api.host;
         sharedHost = consumer.lib.registry.combined.services.api.host;
         clientDomain = node.environment.etc."registry-domain".text;
-        validates = (builtins.tryEval consumer.lib.registry.validate).success;
-        nodeValidates = (builtins.tryEval node.registry.validate).success;
+        validates = (builtins.tryEval consumer.lib.registry.valid).success;
+        nodeValidates = (builtins.tryEval nodeRegistry.valid).success;
       };
     expected = {
       domain = "example.test";

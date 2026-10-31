@@ -65,7 +65,6 @@ let
   mkNode =
     module:
     lib.evalModules {
-      specialArgs = { inherit registry; };
       modules = [
         registry.module
         module
@@ -73,6 +72,6 @@ let
     };
 in
 {
-  inherit (registry) central combined validate;
+  inherit (registry) central combined valid;
   backupCommand = nodes."document backup job".config.backupCommand;
 }

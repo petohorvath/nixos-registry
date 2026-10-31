@@ -10,7 +10,8 @@
 let
   inherit (exports.lib) mkRegistry;
 
-  # A NixOS system for the selected system that imports the static module.
+  # A NixOS system for the selected system that imports the static module by
+  # its flake export; callers add a registry's module beside it.
   mkStaticNode =
     {
       lib ? nixpkgs.lib,

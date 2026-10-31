@@ -25,7 +25,7 @@ in
           {
             centralDomain = registry.central.domain;
             combinedKeys = builtins.attrNames registry.combined;
-            validates = (builtins.tryEval registry.validate).success;
+            validates = (builtins.tryEval registry.valid).success;
           }
         )
         [
@@ -89,7 +89,7 @@ in
       {
         paths = evaluations.combined.backupPaths;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       paths = [
@@ -97,7 +97,7 @@ in
         "/after"
       ];
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -142,12 +142,12 @@ in
         };
       in
       {
-        inherit (registry) validate;
+        inherit (registry) valid;
         inherit (builtins.head registry.combined.assertions) assertion;
       };
     expected = {
       assertion = false;
-      validate = true;
+      valid = true;
     };
   };
 }

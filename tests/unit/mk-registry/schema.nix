@@ -114,7 +114,7 @@ in
             )
           ];
           centralModules = [ ({ centralDomain, ... }: { domain = centralDomain; }) ];
-          specialArgs = {
+          moduleArgs = {
             centralDomain = "example.test";
             collectionName = "services";
           };
@@ -160,7 +160,7 @@ in
           nodes = { };
         };
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "unrestricted freeform roots are unsupported";
   };
 
@@ -179,7 +179,7 @@ in
           nodes = { };
         };
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "unrestricted freeform roots are unsupported";
   };
 
@@ -203,7 +203,7 @@ in
           };
         };
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry` from node `publisher` in `[^`]*` changes module controls";
   };
 
@@ -237,7 +237,7 @@ in
       in
       {
         keys = builtins.attrNames registry.combined;
-        valid = (builtins.tryEval registry.validate).success;
+        valid = (builtins.tryEval registry.valid).success;
       };
     expected = {
       keys = [ "domain" ];
@@ -270,7 +270,7 @@ in
           };
         };
       in
-      registry.validate;
+      registry.valid;
     expectedError.msg = "contribution at `registry\\.services\\.backup` from node `publisher` in `[^`]*` declares options";
   };
 
@@ -298,18 +298,18 @@ in
     expected = "backup.example.test:443";
   };
 
-  testConstructorKeepsSchemaNamesReservedByStaticModules = {
+  testSchemaCanDeclareAnyRootName = {
     expr =
       let
         legacy = mkRegistry {
           inherit lib;
           schemaModules = [
             {
-              options = lib.genAttrs [ "settings" "central" "combined" "validate" ] (
+              options = lib.genAttrs [ "settings" "central" "combined" "valid" ] (
                 name:
                 lib.mkOption {
                   type = lib.types.str;
-                  description = "Schema-owned ${name} through the constructor.";
+                  description = "Schema-owned ${name}, a name the registry also uses.";
                 }
               );
             }
@@ -322,7 +322,7 @@ in
                   settings = "local settings";
                   central = "local central";
                   combined = "local combined";
-                  validate = "local validate";
+                  valid = "local valid";
                 };
               }
             ];
@@ -330,16 +330,16 @@ in
         };
       in
       {
-        inherit (legacy) combined validate;
+        inherit (legacy) combined valid;
       };
     expected = {
       combined = {
         settings = "local settings";
         central = "local central";
         combined = "local combined";
-        validate = "local validate";
+        valid = "local valid";
       };
-      validate = true;
+      valid = true;
     };
   };
 }

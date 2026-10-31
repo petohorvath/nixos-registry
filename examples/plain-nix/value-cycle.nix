@@ -20,7 +20,6 @@ let
         (
           name: peer:
           lib.evalModules {
-            specialArgs = { inherit registry; };
             modules = [
               registry.module
               ({ registry, ... }: { registry.services.${name} = registry.combined.services.${peer}; })
@@ -34,5 +33,5 @@ let
   };
 in
 {
-  inherit (registry) combined validate;
+  inherit (registry) combined valid;
 }

@@ -33,7 +33,7 @@ let
     };
 in
 {
-  inherit (registry) combined validate;
+  inherit (registry) combined valid;
   centralHost = registry.central.backupDestinations.archive.host;
   localPort = nodes."transport settings".config.registry.backupDestinations.archive.port;
 }

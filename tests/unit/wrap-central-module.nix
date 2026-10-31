@@ -77,13 +77,13 @@ in
         centralPaths = registry.central.backupPaths;
         combinedPaths = registry.combined.backupPaths;
         matchesDirect = registry.combined == direct.config;
-        inherit (registry) validate;
+        inherit (registry) valid;
       };
     expected = {
       centralPaths = [ "/schema" ];
       combinedPaths = [ "/schema" ];
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -104,7 +104,7 @@ in
         direct = lib.evalModules { modules = [ schema ] ++ centralModules; };
       in
       {
-        validationSucceeds = succeeds registry.validate;
+        validationSucceeds = succeeds registry.valid;
         directSucceeds = succeeds direct.config;
       };
     expected = {
@@ -209,7 +209,7 @@ in
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          specialArgs.modulesPath = "/central-modules";
+          moduleArgs.modulesPath = "/central-modules";
           centralModules = [
             {
               key = "/central-modules/base.nix";
@@ -238,7 +238,7 @@ in
         };
       in
       {
-        inherit (registry) combined validate;
+        inherit (registry) combined valid;
         matchesDirect = registry.combined == direct.config.registry;
       };
     expected = {
@@ -247,7 +247,7 @@ in
         backupPaths = [ ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -290,7 +290,7 @@ in
         registry = mkRegistry {
           inherit lib;
           schemaModules = [ schema ];
-          specialArgs.centralHost = "archive.example.test";
+          moduleArgs.centralHost = "archive.example.test";
           centralModules = [
             {
               imports = [
@@ -322,7 +322,7 @@ in
         };
       in
       {
-        inherit (registry) combined validate;
+        inherit (registry) combined valid;
         matchesDirect = registry.combined == direct.config.registry;
       };
     expected = {
@@ -331,7 +331,7 @@ in
         backupPaths = [ "/archive.example.test" ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 }

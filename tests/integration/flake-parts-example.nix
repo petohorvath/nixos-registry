@@ -35,7 +35,7 @@ in
         };
       };
       backupCommand = "backup --api api.example.test:8443";
-      validate = true;
+      valid = true;
     };
   };
 
@@ -74,7 +74,7 @@ in
       localHostDefined = (builtins.tryEval api.registry.services.api.host).success;
       localApiPort = api.registry.services.api.port;
       localBackup = { inherit (backup.registry.services.backup) host port; };
-      sharedEndpoint = backup.registry.combined.services.api.endpoint;
+      sharedEndpoint = example.lib.registry.combined.services.api.endpoint;
     };
     expected = {
       centralPortDefined = false;
@@ -101,7 +101,6 @@ in
             (
               _: nodeModule:
               lib.evalModules {
-                specialArgs = { inherit registry; };
                 modules = [
                   registry.module
                   nodeModule
@@ -116,7 +115,7 @@ in
       {
         endpoints = builtins.mapAttrs (_: service: service.endpoint) registry.combined.services;
         backupCommand = nodes."backup consumer".config.backupCommand;
-        inherit (registry) validate;
+        inherit (registry) valid;
       };
     expected = {
       endpoints = {
@@ -124,7 +123,7 @@ in
         backup = "backup.example.test:8022";
       };
       backupCommand = "backup --api api.example.test:8443";
-      validate = true;
+      valid = true;
     };
   };
 }

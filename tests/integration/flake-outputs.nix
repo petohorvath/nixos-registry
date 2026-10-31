@@ -16,7 +16,16 @@ let
   ];
   declarationsOf =
     module: optionPath:
-    (lib.getAttrFromPath optionPath (lib.evalModules { modules = [ module ]; }).options).declarations;
+    (lib.getAttrFromPath optionPath
+      (lib.evalModules {
+        modules = [ module ];
+        # The node module's contribution root takes its type from the registry.
+        specialArgs.registry = {
+          schemaModules = [ ];
+          moduleArgs = { };
+        };
+      }).options
+    ).declarations;
 in
 {
   testRootLibraryExportsOnlyMkRegistry = {
@@ -42,7 +51,6 @@ in
       nixos = declarationsOf self.nixosModules.default [ "registry" ];
       flakeParts = declarationsOf self.flakeModules.default [
         "registry"
-        "settings"
         "schemaModules"
       ];
     };

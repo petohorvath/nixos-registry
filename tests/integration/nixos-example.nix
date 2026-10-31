@@ -27,7 +27,7 @@ in
         "metrics publisher" = "monitor.example.test:9191";
         "standby publisher" = "monitor.example.test:9191";
       };
-      validate = true;
+      valid = true;
     };
   };
 
@@ -93,14 +93,14 @@ in
         moduleSource = toString config.nixpkgs.flake.source;
         runsSelectedPackage = lib.hasPrefix "${package}/bin/prometheus " command;
         port = alternate.registry.combined.services.metrics.port;
-        inherit (alternate.registry) validate;
+        inherit (alternate.registry) valid;
       };
     expected = {
       differentPackages = true;
       moduleSource = toString pkgs.path;
       runsSelectedPackage = true;
       port = 9191;
-      validate = true;
+      valid = true;
     };
   };
 }

@@ -21,11 +21,11 @@ Option definitions supplied by a node or a central module. A contribution can co
 _Avoid_: Publication, registration
 
 **Generated module**:
-The module a registry returns for its nodes to import, declaring each node's contribution root under that registry's schema.
+The module a registry provides for its nodes to import, which gives each node its contribution root and that registry.
 _Avoid_: Node adapter, registry module, constructor-generated module
 
 **Static module**:
-A module imported by path, independent of any one registry, through which a node contributes and reads shared data or a project holds registry settings and results.
+A module imported by path, independent of any one registry: the node module that declares a contribution root, or the project module that holds a registry's settings and results.
 _Avoid_: Static interface, static adapter
 
 **Central data**:

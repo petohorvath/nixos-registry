@@ -32,7 +32,7 @@ in
       {
         combinedSucceeds = succeeds evaluations.combined;
         directSucceeds = succeeds evaluations.direct;
-        validationSucceeds = succeeds evaluations.validate;
+        validationSucceeds = succeeds evaluations.valid;
       };
     expected = {
       combinedSucceeds = false;
@@ -54,7 +54,7 @@ in
       {
         combinedSucceeds = succeeds evaluations.combined;
         directSucceeds = succeeds evaluations.direct;
-        validationSucceeds = succeeds evaluations.validate;
+        validationSucceeds = succeeds evaluations.valid;
       };
     expected = {
       combinedSucceeds = false;
@@ -86,7 +86,7 @@ in
         };
       in
       {
-        inherit (evaluations) combined validate;
+        inherit (evaluations) combined valid;
         matchesDirect = evaluations.combined == evaluations.direct;
       };
     expected = {
@@ -98,7 +98,7 @@ in
         ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -122,7 +122,7 @@ in
         };
       in
       {
-        inherit (evaluations) combined validate;
+        inherit (evaluations) combined valid;
         matchesDirect = evaluations.combined == evaluations.direct;
       };
     expected = {
@@ -131,7 +131,7 @@ in
         backupPaths = [ "/selected" ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -158,7 +158,7 @@ in
         };
       in
       {
-        inherit (evaluations) combined validate;
+        inherit (evaluations) combined valid;
         matchesDirect = evaluations.combined == evaluations.direct;
       };
     expected = {
@@ -170,7 +170,7 @@ in
         ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -188,7 +188,7 @@ in
         };
       in
       {
-        inherit (evaluations) combined validate;
+        inherit (evaluations) combined valid;
         matchesDirect = evaluations.combined == evaluations.direct;
       };
     expected = {
@@ -197,7 +197,7 @@ in
         backupPaths = [ ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -218,7 +218,7 @@ in
         };
       in
       {
-        inherit (evaluations) combined validate;
+        inherit (evaluations) combined valid;
         matchesDirect = evaluations.combined == evaluations.direct;
       };
     expected = {
@@ -227,7 +227,7 @@ in
         backupPaths = [ ];
       };
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -244,12 +244,12 @@ in
       {
         host = evaluations.combined.backupHost;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       host = "central.example.test";
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 
@@ -264,12 +264,12 @@ in
       {
         host = evaluations.combined.backupHost;
         matchesDirect = evaluations.combined == evaluations.direct;
-        inherit (evaluations) validate;
+        inherit (evaluations) valid;
       };
     expected = {
       host = "node.example.test";
       matchesDirect = true;
-      validate = true;
+      valid = true;
     };
   };
 }

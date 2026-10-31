@@ -97,12 +97,81 @@ in
         };
       in
       {
-        inherit (empty) central combined validate;
+        inherit (empty) central combined valid;
       };
     expected = {
       central.backupDestinations = { };
       combined.backupDestinations = { };
-      validate = true;
+      valid = true;
+    };
+  };
+
+  testModuleSuppliesTheRegistryArgument = {
+    expr =
+      let
+        mirrored = mkRegistry {
+          inherit lib;
+          schemaModules = [ schema ];
+          centralModules = [
+            {
+              backupDestinations.archive = {
+                host = "archive.example.test";
+                port = 22;
+              };
+            }
+          ];
+          nodes.mirror = lib.evalModules {
+            modules = [
+              mirrored.module
+              (
+                { registry, ... }:
+                {
+                  registry.backupDestinations.mirror = {
+                    host = "mirror.example.test";
+                    inherit (registry.central.backupDestinations.archive) port;
+                  };
+                }
+              )
+            ];
+          };
+        };
+      in
+      mirrored.combined.backupDestinations.mirror;
+    expected = {
+      host = "mirror.example.test";
+      port = 22;
+    };
+  };
+
+  testReturnsItsInputsAndResults = {
+    expr =
+      let
+        empty = mkRegistry {
+          inherit lib;
+          schemaModules = [ schema ];
+          nodes = { };
+        };
+      in
+      {
+        names = builtins.attrNames empty;
+        inherit (empty) centralModules moduleArgs nodes;
+        schemaModules = empty.schemaModules == [ schema ];
+      };
+    expected = {
+      names = [
+        "central"
+        "centralModules"
+        "combined"
+        "module"
+        "moduleArgs"
+        "nodes"
+        "schemaModules"
+        "valid"
+      ];
+      centralModules = [ ];
+      moduleArgs = { };
+      nodes = { };
+      schemaModules = true;
     };
   };
 
@@ -136,7 +205,7 @@ in
   };
 
   testValidatesCompleteCombinedData = {
-    expr = registry.validate;
+    expr = registry.valid;
     expected = true;
   };
 }

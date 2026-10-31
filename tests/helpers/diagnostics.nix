@@ -12,12 +12,12 @@ let
     expectedError.msg = msg;
   };
 
-  # Validates a registry whose nodes `mkNode settings registry modules`
-  # builds from each node's modules.
+  # Validates a registry whose nodes `mkNode registry modules` builds from
+  # each node's modules.
   validateNodeModules =
     mkNode: nodeModules:
     let
-      settings.schemaModules = [
+      schemaModules = [
         fixtures.schemas.service
         {
           options.backupPaths = lib.mkOption {
@@ -29,12 +29,12 @@ let
       ];
       registry = mkRegistry {
         inherit lib;
-        inherit (settings) schemaModules;
+        inherit schemaModules;
         centralModules = [ { domain = "example.test"; } ];
-        nodes = lib.mapAttrs (_: mkNode settings registry) nodeModules;
+        nodes = lib.mapAttrs (_: mkNode registry) nodeModules;
       };
     in
-    registry.validate;
+    registry.valid;
 in
 {
   inherit fails validateNodeModules;

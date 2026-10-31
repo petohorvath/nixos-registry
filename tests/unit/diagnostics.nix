@@ -13,7 +13,7 @@ let
   serviceSchema = fixtures.schemas.service;
 
   mkGeneratedNode =
-    _settings: registry: modules:
+    registry: modules:
     lib.evalModules {
       modules = [ registry.module ] ++ modules;
     };
@@ -194,7 +194,7 @@ rootCases validate
         nodes."missing contribution interface" = lib.evalModules {
           modules = [ ];
         };
-      }).validate
+      }).valid
       "node `missing contribution interface` is missing options\\.registry; import registry\\.module";
 
   testIncompatibleOption =
@@ -214,7 +214,7 @@ rootCases validate
             }
           ];
         };
-      }).validate
+      }).valid
       "node `unrelated registry option` has an incompatible options\\.registry; import registry\\.module";
 
   testUnrelatedSubmodule =
@@ -239,8 +239,18 @@ rootCases validate
             }
           ];
         };
-      }).validate
+      }).valid
       "node `handwritten contribution root` has an incompatible options\\.registry; import registry\\.module";
+
+  testMissingRegistryArgument =
+    fails
+      (lib.evalModules {
+        modules = [
+          ../../nixos/module.nix
+          { registry.domain = "example.test"; }
+        ];
+      }).config.registry
+      "^nixos-registry: the `registry` module argument is not set; import registry\\.module\\.$";
 
   # A native module-system error; the node name stays in the trace context.
   testConflictingInterface =
@@ -255,5 +265,5 @@ rootCases validate
           }
         ];
       })
-      "`registry' in `[^']*/lib/mk-registry\\.nix' is already declared in `/modules/conflicting-interface\\.nix'";
+      "`registry' in `/modules/conflicting-interface\\.nix' is already declared in `[^']*/nixos/module\\.nix'";
 }

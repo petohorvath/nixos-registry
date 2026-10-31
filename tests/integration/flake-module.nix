@@ -23,17 +23,13 @@ let
     (
       { config, ... }:
       let
-        shared = config.registry;
         commonModule = {
+          imports = [ config.registry.module ];
           system.stateVersion = "26.05";
-          registry = {
-            settings = { inherit (shared.settings) schemaModules specialArgs; };
-            inherit (shared) central combined validate;
-          };
         };
       in
       {
-        registry.settings = {
+        registry = {
           schemaModules = [ fixtures.schemas.service ];
           centralModules = [
             {
@@ -49,11 +45,11 @@ let
           monitor = helpers.mkStaticNode {
             modules = [
               commonModule
-              ({ config, ... }: {
+              ({ config, registry, ... }: {
                 networking.hostName = "monitor";
                 services.prometheus.port = 9191;
                 registry.services.metrics = {
-                  host = "${config.networking.hostName}.${config.registry.central.domain}";
+                  host = "${config.networking.hostName}.${registry.central.domain}";
                   port = config.services.prometheus.port;
                 };
               })
@@ -62,22 +58,22 @@ let
           backup = helpers.mkStaticNode {
             modules = [
               commonModule
-              ({ config, ... }: {
+              ({ config, registry, ... }: {
                 networking.hostName = "backup";
                 registry.services.backup = {
-                  host = "${config.networking.hostName}.${config.registry.central.domain}";
+                  host = "${config.networking.hostName}.${registry.central.domain}";
                   port = 8022;
                 };
-                environment.etc."metrics-endpoint".text = config.registry.combined.services.metrics.endpoint;
+                environment.etc."metrics-endpoint".text = registry.combined.services.metrics.endpoint;
               })
             ];
           };
-          unselected = throw "Configurations outside registry.settings.nodes must not be collected.";
+          unselected = throw "Configurations outside registry.nodes must not be collected.";
         };
       }
     )
     ({ config, lib, ... }: {
-      registry.settings = {
+      registry = {
         schemaModules = [
           ({ lib, ... }: {
             options.backupPaths = lib.mkOption {
@@ -107,19 +103,14 @@ in
                 lib = selectedLib;
                 specialArgs.nodePort = 2222;
                 modules = [
-                  {
-                    registry = {
-                      settings = { inherit (shared.settings) schemaModules specialArgs; };
-                      inherit (shared) central combined validate;
-                    };
-                  }
+                  shared.module
                   ({ nodePort, ... }: { registry.port = nodePort; })
                 ];
               };
             in
             {
               systems = [ ];
-              registry.settings = {
+              registry = {
                 schemaModules = [
                   ({ lib, schemaLabel, ... }: {
                     options = {
@@ -140,14 +131,14 @@ in
                   })
                 ];
                 centralModules = [ ({ nodePort, ... }: { centralPort = nodePort; }) ];
-                specialArgs = {
+                moduleArgs = {
                   schemaLabel = "shared schema";
                   nodePort = 1111;
                 };
                 nodes."argument owner" = node;
               };
               flake.lib.result = {
-                inherit (shared) combined validate;
+                inherit (shared) combined valid;
                 localPort = node.config.registry.port;
                 localLabel = node.config.registry.schemaModules;
               };
@@ -164,7 +155,7 @@ in
       };
       localPort = 2222;
       localLabel = "shared schema";
-      validate = true;
+      valid = true;
     };
   };
 
@@ -174,7 +165,7 @@ in
         empty =
           (mkConsumer [
             {
-              registry.settings = {
+              registry = {
                 schemaModules = [
                   ({ lib, ... }: {
                     options.domain = lib.mkOption {
@@ -190,25 +181,46 @@ in
           ]).lib.registry;
       in
       {
-        inherit (empty) central combined validate;
-        inherit (empty.settings) centralModules specialArgs;
+        inherit (empty)
+          central
+          centralModules
+          combined
+          moduleArgs
+          nodes
+          valid
+          ;
       };
     expected = {
       central.domain = "central.example.test";
-      combined.domain = "central.example.test";
-      validate = true;
       centralModules = [ ];
-      specialArgs = { };
+      combined.domain = "central.example.test";
+      moduleArgs = { };
+      nodes = { };
+      valid = true;
     };
+  };
+
+  testStaticFlakeModuleHasTheRegistryShape = {
+    expr = builtins.attrNames consumer.lib.registry;
+    expected = [
+      "central"
+      "centralModules"
+      "combined"
+      "module"
+      "moduleArgs"
+      "nodes"
+      "schemaModules"
+      "valid"
+    ];
   };
 
   testStaticFlakeModuleSharesOneRegistryWithNixosNodes = {
     expr = {
-      inherit (consumer.lib.registry) central combined validate;
+      inherit (consumer.lib.registry) central combined valid;
       endpoint = consumer.nixosConfigurations.backup.config.environment.etc."metrics-endpoint".text;
       localServices = lib.mapAttrs (
         _: node: builtins.attrNames node.config.registry.services
-      ) consumer.lib.registry.settings.nodes;
+      ) consumer.lib.registry.nodes;
     };
     expected = {
       central = {
@@ -238,7 +250,7 @@ in
           };
         };
       };
-      validate = true;
+      valid = true;
       endpoint = "monitor.example.test:9191";
       localServices = {
         "metrics publisher" = [ "metrics" ];

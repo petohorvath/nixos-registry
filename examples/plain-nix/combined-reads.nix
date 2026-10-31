@@ -17,7 +17,6 @@ let
   };
 
   node = lib.evalModules {
-    specialArgs = { inherit registry; };
     modules = [
       registry.module
       (
@@ -39,7 +38,7 @@ let
   };
 in
 {
-  inherit (registry) combined validate;
+  inherit (registry) combined valid;
   inherit (node.config) clientEndpoint;
   centralDomain = registry.central.domain;
   localHost = node.config.registry.services.api.host;

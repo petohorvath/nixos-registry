@@ -14,8 +14,8 @@ let
 in
 {
   testStrictCollectionCombinedRead = recurses collectionLaziness.strict.combined.settings.domain;
-  testStrictCollectionValidation = recurses collectionLaziness.strict.validate;
+  testStrictCollectionValidation = recurses collectionLaziness.strict.valid;
   testCopiesKeyedThroughReferencesRecurse = recurses nodeReferences.keyedThroughReferences.tokens.east;
   testValueCycleCombinedRead = recurses valueCycle.combined.services.east;
-  testValueCycleValidation = recurses valueCycle.validate;
+  testValueCycleValidation = recurses valueCycle.valid;
 }

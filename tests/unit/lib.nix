@@ -31,7 +31,7 @@ in
 
   testLibraryDirectoryUsesCallerLibraryWithoutFlakeInputs = {
     expr = {
-      inherit (registry) central combined validate;
+      inherit (registry) central combined valid;
       local = nodes.backup.config.registry;
     };
     expected = {
@@ -41,7 +41,7 @@ in
         "/srv/backup"
       ];
       local.paths = [ "/srv/backup" ];
-      validate = true;
+      valid = true;
     };
   };
 }

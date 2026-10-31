@@ -1,5 +1,5 @@
-# A consumer flake whose NixOS nodes share one registry through both static
-# modules, with a flake check that validates it.
+# A consumer flake whose NixOS nodes share one registry through the static
+# flake module's node module, with a flake check that validates it.
 {
   lib,
   mkProject,
@@ -28,16 +28,13 @@ let
         let
           shared = config.registry;
           commonModule = {
+            imports = [ shared.module ];
             system.stateVersion = "26.05";
-            registry = {
-              settings = { inherit (shared.settings) schemaModules specialArgs; };
-              inherit (shared) central combined validate;
-            };
           };
         in
         {
           systems = [ system ];
-          registry.settings = {
+          registry = {
             inherit centralModules schemaModules;
             nodes = config.flake.nixosConfigurations;
           };
@@ -51,7 +48,7 @@ let
             { pkgs, ... }:
             {
               checks.registry =
-                assert shared.validate;
+                assert shared.valid;
                 pkgs.runCommand "registry-validation" { } ''
                   touch "$out"
                 '';

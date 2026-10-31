@@ -16,13 +16,9 @@ flake-parts.lib.mkFlake { inputs.self.outPath = ./.; } (
     pkgs = nixpkgs.legacyPackages.${system};
     inherit (config) registry;
     commonModule = {
-      imports = [ exports.nixosModules.default ];
+      imports = [ registry.module ];
       nixpkgs.hostPlatform = system;
       system.stateVersion = "26.05";
-      registry = {
-        settings = { inherit (registry.settings) schemaModules specialArgs; };
-        inherit (registry) central combined validate;
-      };
     };
 
     mkNode =
@@ -44,7 +40,7 @@ flake-parts.lib.mkFlake { inputs.self.outPath = ./.; } (
     imports = [ exports.flakeModules.default ];
     systems = [ system ];
 
-    registry.settings = {
+    registry = {
       inherit nodes;
       schemaModules = [ ./schema.nix ];
       centralModules = [
@@ -63,13 +59,13 @@ flake-parts.lib.mkFlake { inputs.self.outPath = ./.; } (
           inherit (registry.central) domain;
           services.api.host = registry.central.services.api.host;
         };
-        inherit (registry) combined validate;
+        inherit (registry) combined valid;
         backupCommand = nodes."backup consumer".config.environment.etc."backup-command".text;
       };
     };
 
     perSystem.checks.registry =
-      assert registry.validate;
+      assert registry.valid;
       pkgs.runCommand "flake-parts-registry-validation" { } ''
         touch "$out"
       '';
