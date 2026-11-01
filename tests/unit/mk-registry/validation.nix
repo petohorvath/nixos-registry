@@ -7,8 +7,105 @@
 }:
 let
   inherit (registryLib) mkRegistry;
+
+  # A package whose attributes reach further data, as real packages reach
+  # their package set.
+  mkPackage =
+    name: extraAttrs:
+    {
+      type = "derivation";
+      inherit name;
+      outPath = "/nix/store/00000000000000000000000000000000-${name}";
+    }
+    // extraAttrs;
+
+  # Data without a bottom, standing in for a package set. Each level is a new
+  # value, so `builtins.deepSeq` cannot stop at a repeated one.
+  mkPackageSet = depth: { next = mkPackageSet (depth + 1); };
+
+  # A registry whose schema holds a package by default and packages from
+  # nodes.
+  mkPackageRegistry =
+    {
+      defaultPackage,
+      contributions ? { },
+    }:
+    let
+      registry = mkRegistry {
+        inherit lib;
+        schemaModules = [
+          {
+            options = {
+              tool = lib.mkOption {
+                type = lib.types.package;
+                default = defaultPackage;
+                description = "A shared tool.";
+              };
+              tools = lib.mkOption {
+                type = lib.types.attrsOf lib.types.package;
+                default = { };
+                description = "Named tools from nodes.";
+              };
+            };
+          }
+        ];
+        nodes = lib.mapAttrs (
+          _: contribution:
+          lib.evalModules {
+            modules = [
+              registry.module
+              { registry = contribution; }
+            ];
+          }
+        ) contributions;
+      };
+    in
+    registry;
 in
 {
+  testValidationTreatsPackagesAsLeaves = {
+    expr =
+      let
+        registry = mkPackageRegistry {
+          defaultPackage = mkPackage "default-tool" { pkgs = mkPackageSet 0; };
+          contributions.publisher.tools.publisher = mkPackage "node-tool" {
+            pkgs = mkPackageSet 0;
+          };
+        };
+      in
+      {
+        inherit (registry) valid;
+        inherit (registry.combined.tools.publisher) name;
+      };
+    expected = {
+      valid = true;
+      name = "node-tool";
+    };
+  };
+
+  testValidationDoesNotInstantiatePackages = {
+    expr =
+      let
+        uninstantiable.drvPath = throw "Validation instantiated a package.";
+      in
+      (mkPackageRegistry {
+        defaultPackage = mkPackage "default-tool" uninstantiable;
+        contributions.publisher.tools.publisher = mkPackage "node-tool" uninstantiable;
+      }).valid;
+    expected = true;
+  };
+
+  testValidationRejectsInvalidDataBesidePackages = {
+    expr =
+      (builtins.tryEval
+        (mkPackageRegistry {
+          defaultPackage = mkPackage "default-tool" { };
+          contributions.publisher.tools.publisher = "not a package";
+        }).valid
+      ).success;
+    expected = false;
+  };
+
   testMalformedNodesLeaveCentralReadsIndependent = {
     expr =
       map

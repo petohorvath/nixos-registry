@@ -374,13 +374,16 @@ in
 
 Run `nix build --no-update-lock-file --no-link .#checks.<system>.registry` for this check alone, replacing `<system>` with a system from `systems`. Evaluating the check demands complete combined data and reports schema errors before a derivation can build. Defining the check leaves ordinary reads lazy; neither static module installs or demands a validation check automatically. The [static example](examples.md#static-flake-module) includes this wiring. Full `nix flake check --no-update-lock-file` also validates other consumer outputs, so exported NixOS configurations must include their machine-specific boot and filesystem settings.
 
-| Combined data                                               | Result                                                             |
-| ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| Complete records with valid types                           | `true`                                                             |
-| Central records completed by nodes                          | `true`, even if the central data is incomplete                     |
-| Type errors, missing required fields, or unknown options    | Evaluation error                                                   |
-| Additional definitions of read-only fields                  | Evaluation error                                                   |
-| A declared `assertions` option containing a false assertion | Checked as ordinary schema data; NixOS assertions are not executed |
+| Combined data                                               | Result                                                                             |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Complete records with valid types                           | `true`                                                                             |
+| Central records completed by nodes                          | `true`, even if the central data is incomplete                                     |
+| Type errors, missing required fields, or unknown options    | Evaluation error                                                                   |
+| Additional definitions of read-only fields                  | Evaluation error                                                                   |
+| A declared `assertions` option containing a false assertion | Checked as ordinary schema data; NixOS assertions are not executed                 |
+| Packages and other derivations                              | `true` when valid; forced without descending into, instantiating, or building them |
+
+Values of `lib.types.raw` and `lib.types.anything` are forced deeply, so shared data that holds a value such as `pkgs` or `lib`, or an attribute set that contains itself, makes `registry.valid` raise an evaluation error.
 
 Errors retain the relevant option path, node name, and available source filenames. This includes definitions with priorities, ordering, `mkMerge`, explicit `lib.mkDefinition` locations, and submodule source files. A missing required value has an option path but no definition filename.
 
