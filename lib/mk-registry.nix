@@ -16,7 +16,8 @@
 
   Returns the registry: the arguments other than `lib`, with their defaults,
   plus `module` (the generated module), `central` (central data), `combined`
-  (combined data), and `valid` (`true` once all combined data evaluates).
+  (combined data), and `valid` (`true` once all combined data evaluates,
+  without descending into or instantiating derivations).
 */
 {
   lib,
@@ -143,6 +144,20 @@ let
     in
     builtins.mapAttrs (name: _: config.${name}) schemaOptions;
 
+  # Force data deeply, but stop at derivations: a package reaches its whole
+  # package set, and its `drvPath` instantiates it. Unlike `builtins.deepSeq`,
+  # this does not detect cycles, so a value that contains itself overflows.
+  forceData =
+    value:
+    if lib.isDerivation value then
+      true
+    else if builtins.isAttrs value then
+      builtins.all forceData (builtins.attrValues value)
+    else if builtins.isList value then
+      builtins.all forceData value
+    else
+      true;
+
   registry = {
     inherit
       centralModules
@@ -160,7 +175,7 @@ let
     };
     central = getSharedData central;
     combined = getSharedData combined;
-    valid = builtins.deepSeq (checkRoot combined).config true;
+    valid = forceData (checkRoot combined).config;
   };
 in
 builtins.seq (checkRoot schema) registry
