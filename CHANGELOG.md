@@ -10,7 +10,7 @@
 - Central definitions and node contributions merge under the schema's ordinary module rules, with the [priorities](docs/api.md#override-a-field-or-a-whole-contribution), [list ordering](docs/api.md#conditions-and-list-ordering), and [laziness](docs/api.md#evaluation-and-recursion) that the API reference documents.
 - `registry.valid` evaluates all combined data, treating packages and other derivations as leaves that it neither instantiates nor builds. [Validation and diagnostics](docs/api.md#validation-and-diagnostics) shows the pattern that runs it as a flake check.
 - `nixosModules.default`, the static NixOS module, declares a node's `registry` contribution root, typed by the schema of the registry in the `registry` module argument. A module from another source can import it to contribute without access to the registry.
-- `flakeModules.default`, the static flake module, holds one registry at a flake-parts project's `registry` option, with the registry's settings and read-only results ([Static flake module](docs/api.md#static-flake-module)).
+- `flakeModules.default`, the static flake module, has module class `flake` and holds one registry at a flake-parts project's `registry` option, with the registry's settings and read-only results ([Static flake module](docs/api.md#static-flake-module)).
 - `lib`, `nixos/module.nix`, and `flake-module.nix` load by path without supplying or evaluating flake inputs ([Plain-import access](docs/api.md#plain-import-access)).
 
 ### Compatibility

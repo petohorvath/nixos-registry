@@ -90,6 +90,14 @@ let
   ];
 in
 {
+  # Reading any option collects the node's modules, which checks their class.
+  testStaticFlakeModuleRejectsNixosConfigurations =
+    helpers.diagnostics.fails
+      (helpers.mkNixosNode {
+        modules = [ ../../flake-module.nix ];
+      }).config.system.stateVersion
+      "`[^`]*/flake-module\\.nix` \\(class: \"flake\"\\) cannot be imported into a module evaluation that expects class \"nixos\"";
+
   testStaticFlakeModuleUsesConsumerLibraryAndSeparateArguments = {
     expr =
       let

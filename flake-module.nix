@@ -29,6 +29,8 @@ let
       throw "nixos-registry: registry.${name} must be set explicitly.";
 in
 {
+  _class = "flake";
+
   options.registry = {
     schemaModules = lib.mkOption {
       type = lib.types.listOf lib.types.deferredModule;

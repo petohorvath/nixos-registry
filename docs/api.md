@@ -153,7 +153,7 @@ Contributions cannot add shared option declarations, including through submodule
 
 ## Static flake module
 
-Import `inputs.nixos-registry.flakeModules.default` into a flake-parts configuration. It evaluates one registry with the enclosing evaluator's `lib` and holds it at the project's `registry` option, with the same attributes that `mkRegistry` returns:
+Import `inputs.nixos-registry.flakeModules.default` into a flake-parts configuration. The module has class `flake`, so importing it into a NixOS configuration or another evaluation of a different class fails with a module-class error. It evaluates one registry with the enclosing evaluator's `lib` and holds it at the project's `registry` option, with the same attributes that `mkRegistry` returns:
 
 | Project option            | Meaning                                                                   | Default                  |
 | ------------------------- | ------------------------------------------------------------------------- | ------------------------ |
