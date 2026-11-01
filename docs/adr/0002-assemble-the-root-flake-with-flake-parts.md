@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Assemble the root flake with flake-parts

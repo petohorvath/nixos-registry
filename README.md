@@ -24,7 +24,9 @@ inputs.nixos-registry = {
 };
 ```
 
-The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs`, `flake-parts`, and `nix-unit` inputs enter the lock graph but do not select the module system: `mkRegistry` uses the library its caller passes in, and the static modules use the library of their enclosing evaluation.
+A project can pin a release by adding its tag to the URL, such as `github:petohorvath/nixos-registry/v0.1.0`.
+
+The flake exports `lib.mkRegistry`, `nixosModules.default`, and `flakeModules.default`. Its `nixpkgs`, `flake-parts`, `nix-unit`, and `treefmt-nix` inputs enter the lock graph but do not select the module system: `mkRegistry` uses the library its caller passes in, and the static modules use the library of their enclosing evaluation.
 
 ## Usage
 

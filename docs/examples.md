@@ -24,7 +24,7 @@ import ./examples/nixos {
 }
 ```
 
-This changes `services.prometheus.package`. The caller's `nixpkgs` input still selects the module system through `nixpkgs.lib.nixosSystem`. Every node and the registry must use the same module-system revision. The repository's root flake has only the selected `nixpkgs` input; its alternate-package test uses an extended package set from that revision.
+This changes `services.prometheus.package`. The caller's `nixpkgs` input still selects the module system through `nixpkgs.lib.nixosSystem`. Every node and the registry must use the same module-system revision. The repository's root flake has one Nixpkgs input, `nixpkgs`; its alternate-package test uses an extended package set from that revision.
 
 ## Static flake module
 

@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Run the suite with nix-unit
