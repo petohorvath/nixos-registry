@@ -4,7 +4,7 @@ The [root flake](../flake.nix) delegates the development shell, formatter, and c
 
 ## Host prerequisites
 
-Install Nix with the `nix-command` and `flakes` experimental features enabled, Git for the checkout, and direnv with flake support and shell integration. Flake support may come from direnv itself or nix-direnv. Run `direnv allow` at the repository root after reviewing `.envrc`, or enter the shell directly:
+Install Nix with the `nix-command` and `flakes` experimental features enabled, Git for the checkout, and direnv with shell integration. The root `.envrc` uses nix-direnv for flake support, reusing an installed version of at least 3.2.0 or downloading the checksum-verified 3.2.0 release on first activation. This download requires network access. Run `direnv allow` at the repository root after reviewing `.envrc`, or enter the shell directly:
 
 ```sh
 nix develop --no-update-lock-file
