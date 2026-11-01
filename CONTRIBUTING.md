@@ -22,13 +22,13 @@ The static `nixosModules.default` export declares the `registry` contribution ro
 
 The static `flakeModules.default` export declares the project-level `registry` option with the registry's attributes: the `schemaModules`, `nodes`, `centralModules`, and `moduleArgs` settings, and the read-only `module`, `central`, `combined`, and `valid` results. Its [required settings, defaults, composition, and conflict behavior](docs/api.md#static-flake-module) are public. The enclosing consumer evaluator supplies the module library; callers construct and select nodes.
 
-Keep the public exports loadable by path without supplying or evaluating flake inputs: `(import ./lib).mkRegistry`, `nixos/module.nix`, and `flake-module.nix`. The root `nixpkgs`, `flake-parts`, `nix-unit`, and `treefmt-nix` inputs can enter normal consumer lock graphs. This path-based contract replaces plain import through the flake's `outputs` function, as [ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md) records, and the original v1 input-free-flake promise, while preserving the library contract.
+Keep the public exports loadable by path without supplying or evaluating flake inputs: `(import ./lib).mkRegistry`, `nixos/module.nix`, and `flake-module.nix`. Plain import uses these paths rather than the flake's `outputs` function, as [ADR 0002](docs/adr/0002-assemble-the-root-flake-with-flake-parts.md) records. The root `nixpkgs`, `flake-parts`, `nix-unit`, and `treefmt-nix` inputs can enter normal consumer lock graphs.
 
 The `dev` partition supplies the root `checks`, `devShells`, `formatter`, and `tests` development entrypoints. The checks are `nix-unit`, `treefmt`, and `lint`. `tests.systems.<system>` holds the nix-unit suites of `tests/unit` and `tests/integration` as `unit` and `integration`, and the `nix-unit` check runs them. `nix flake check --no-update-lock-file` runs every test and asserts every documented example result using the selected root `nixpkgs`; the project provides no separate example entrypoints. Removing or renaming these entrypoints or input overrides is a breaking tooling change and requires migration guidance.
 
 ## Releases
 
-Release independently using Semantic Versioning tags and [CHANGELOG.md](CHANGELOG.md). Choose a version in a release PR; this development migration does not select an initial version. During 0.x, breaking changes require a minor bump and patch releases remain compatible. Decide readiness for 1.0 explicitly. Released versions and existing tags are immutable.
+Release independently using Semantic Versioning tags and [CHANGELOG.md](CHANGELOG.md). Choose each version in its release PR. During 0.x, breaking changes require a minor bump and patch releases remain compatible. Decide readiness for 1.0 explicitly. Released versions and existing tags are immutable.
 
 A release PR specifies its version, changelog, and migration notes. Its human merge authorizes publication only after checks pass on the release commit. Ordinary merges do not publish releases. Preserve existing release history.
 

@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Adopt the devnix-labs test standard

@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Pass the registry to nodes as a module argument
