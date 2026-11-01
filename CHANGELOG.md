@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+All notable changes to nixos-registry will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-11-01
 
 ### API
 
@@ -22,3 +28,6 @@
 
 - The `dev` partition supplies the root `checks`, `devShells`, `formatter`, and `tests` outputs. The `nix-unit` check runs the test suites, `treefmt` runs the formatters and linters that `dev/treefmt.nix` enables, and `lint` runs `statix check`.
 - `tests.systems.<system>` holds the nix-unit suites as `unit` and `integration`. The [development guide](docs/development.md#run-checks) describes how to run them.
+
+[Unreleased]: https://github.com/petohorvath/nixos-registry/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/petohorvath/nixos-registry/releases/tag/v0.1.0
