@@ -163,7 +163,7 @@ Central definitions and node contributions merge under the schema's ordinary mod
 
 - Data is shared only during evaluation. Every node must be evaluated in the same Nix evaluation, including configurations whose modules come from separate repositories.
 - Schema declarations and the module imports of each node must not depend on node data. A contribution that reads a collection it also contributes to, when the collection type merges strictly as `attrsOf str` does, or two values that read each other, can cause infinite recursion. The API reference describes the [evaluation rules](docs/api.md#evaluation-and-recursion).
-- No version has been released. The [changelog](CHANGELOG.md) records breaking changes and migration steps.
+- Releases follow [Semantic Versioning](CONTRIBUTING.md#releases). During 0.x, a minor release can break the API; the [changelog](CHANGELOG.md) gives migration notes.
 
 ## Contributing
 
